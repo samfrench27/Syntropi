@@ -13,7 +13,9 @@ import adminOrgRoutes from './routes/admin/organization.routes';
 import adminApiKeyRoutes from './routes/admin/apiKey.routes';
 import adminActivityRoutes from './routes/admin/activity.routes';
 import adminProviderRoutes from './routes/admin/provider.routes';
-//import clientAuthRoutes from './routes/client/auth.routes';
+import clientAuthRoutes from './routes/client/auth.routes';
+import clientApiKeyRoutes from './routes/client/apiKey.routes';
+import clientOrganizationRoutes from './routes/client/organization.routes';
 //import publicRoutes from './routes/public/index.routes';
 
 dotenv.config();
@@ -35,7 +37,9 @@ app.use('/api/admin/organizations', adminOrgRoutes);
 app.use('/api/admin/api-keys', adminApiKeyRoutes); // Add this line
 app.use('/api/admin/activities', adminActivityRoutes); // Add this line
 app.use('/api/admin/providers', adminProviderRoutes); // Add this line
-//app.use('/api/client/auth', clientAuthRoutes);
+app.use('/api/client/auth', clientAuthRoutes);
+app.use('/api/client/api-keys', clientApiKeyRoutes);
+app.use('/api/client/organization', clientOrganizationRoutes);
 //app.use('/api/public', publicRoutes);
 
 // Health check endpoint

@@ -78,7 +78,6 @@ export const validateCreateAdmin = [
     handleValidationErrors,
   ];
   
-  // Update user validation
   export const validateUpdateUser = [
     body('firstName').optional(),
     body('lastName').optional(),
@@ -92,3 +91,30 @@ export const validateCreateAdmin = [
       .withMessage('Valid status is required'),
     handleValidationErrors,
   ];
+  
+// API Key validation
+export const validateCreateApiKey = [
+  body('name').notEmpty().withMessage('Name is required'),
+  body('environment')
+    .optional()
+    .isIn(['sandbox', 'production'])
+    .withMessage('Valid environment is required'),
+  handleValidationErrors,
+];
+
+// Password update validation
+export const validateUpdatePassword = [
+  body('currentPassword').notEmpty().withMessage('Current password is required'),
+  body('newPassword')
+    .isLength({ min: 8 })
+    .withMessage('New password must be at least 8 characters long'),
+  handleValidationErrors,
+];
+
+// Client organization update validation
+export const validateUpdateClientOrganization = [
+  body('contactEmail').optional().isEmail().withMessage('Valid contact email is required'),
+  body('billingEmail').optional().isEmail().withMessage('Valid billing email is required'),
+  body('settings.webhookUrl').optional().isURL().withMessage('Valid webhook URL is required'),
+  handleValidationErrors,
+];

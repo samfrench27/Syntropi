@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Building2, 
@@ -9,7 +9,7 @@ import {
   Activity,
   TrendingUp,
   ArrowUpRight,
-  AlertTriangle
+  AlertTriangle,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Card from '@/components/admin/Card';
@@ -23,7 +23,26 @@ interface DashboardStats {
   systemStatus: 'healthy' | 'warning' | 'critical';
 }
 
-export default function DashboardPage() {
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  change?: {
+    value: number;
+    positive: boolean;
+  };
+  icon: ReactNode;
+  onClick?: () => void;
+}
+
+// Define a type for the status values
+type SystemStatus = 'healthy' | 'warning' | 'critical';
+
+// Create an interface for the component props
+interface StatusIndicatorProps {
+  status: SystemStatus;
+}
+
+export default function PlatformAdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     organizationCount: 0,
     userCount: 0,
@@ -39,10 +58,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // In a real implementation, you would fetch actual dashboard data
-        // from a dedicated endpoint that aggregates all stats
-        
-        // For now, we'll fetch some basic data from existing endpoints
+        // Fetch basic data from existing endpoints
         const [orgsResponse, usersResponse] = await Promise.all([
           organizationAPI.getOrganizations({ limit: 0 }),
           userAPI.getUsers({ limit: 0 })
@@ -66,20 +82,15 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, []);
 
+  // Stat card component for dashboard metrics
   const StatCard = ({ 
     title, 
     value, 
     change, 
     icon, 
     onClick 
-  }: { 
-    title: string; 
-    value: number | string; 
-    change?: { value: number; positive: boolean };
-    icon: React.ReactNode;
-    onClick?: () => void;
-  }) => (
-    <div onClick={onClick} className="cursor-pointer">
+  }: StatCardProps) => (
+    <div onClick={onClick} className={onClick ? "cursor-pointer" : ""}>
       <Card className="hover:shadow-md transition-shadow">
         <Card.Body>
           <div className="flex items-center justify-between">
@@ -108,19 +119,17 @@ export default function DashboardPage() {
     </div>
   );
 
-  const StatusIndicator = ({ status }: { status: DashboardStats['systemStatus'] }) => {
+  // System status indicator
+  const StatusIndicator = ({ status }: StatusIndicatorProps) => {
     let bgColor = 'bg-green-500';
     let textColor = 'text-green-800';
-    let bgLight = 'bg-green-50';
     
     if (status === 'warning') {
       bgColor = 'bg-yellow-500';
       textColor = 'text-yellow-800';
-      bgLight = 'bg-yellow-50';
     } else if (status === 'critical') {
       bgColor = 'bg-red-500';
       textColor = 'text-red-800';
-      bgLight = 'bg-red-50';
     }
     
     return (
@@ -148,7 +157,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <Header title="Dashboard" />
+      <Header title="Platform Dashboard" />
       
       <main className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -157,31 +166,32 @@ export default function DashboardPage() {
             value={stats.organizationCount} 
             change={{ value: 8.2, positive: true }}
             icon={<Building2 size={24} />} 
-            onClick={() => router.push('/organizations')}
+            onClick={() => router.push('/platform-admin/organizations')}
           />
           <StatCard 
             title="Users" 
             value={stats.userCount} 
             change={{ value: 12.5, positive: true }}
             icon={<Users size={24} />} 
-            onClick={() => router.push('/users')}
+            onClick={() => router.push('/platform-admin/users')}
           />
           <StatCard 
             title="API Keys" 
             value={stats.apiKeyCount} 
             change={{ value: 3.8, positive: true }}
             icon={<Key size={24} />} 
-            onClick={() => router.push('/api-keys')}
+            onClick={() => router.push('/platform-admin/api-keys')}
           />
           <StatCard 
             title="API Calls (24h)" 
             value={stats.activeApiCalls} 
             change={{ value: 5.2, positive: true }}
             icon={<ArrowUpRight size={24} />} 
-            onClick={() => router.push('/activities')}
+            onClick={() => router.push('/platform-admin/activities')}
           />
         </div>
 
+        {/* System status and recent activity cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <Card className="lg:col-span-2">
             <Card.Header title="Recent Activity" />
@@ -235,18 +245,12 @@ export default function DashboardPage() {
                     Healthy
                   </span>
                 </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Integration Service</span>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Healthy
-                  </span>
-                </div>
               </div>
             </Card.Body>
           </Card>
         </div>
         
+        {/* Provider Status */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <Card.Header title="Provider Status" />
@@ -304,16 +308,6 @@ export default function DashboardPage() {
                   <div>
                     <h4 className="text-sm font-medium">Database Maintenance Completed</h4>
                     <p className="text-xs text-gray-500 mt-1">Mar 1, 2025 - 08:15</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <div className="mt-1 mr-3 flex-shrink-0">
-                    <AlertTriangle size={18} className="text-yellow-500" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium">High API Usage Alert</h4>
-                    <p className="text-xs text-gray-500 mt-1">Feb 28, 2025 - 17:42</p>
                   </div>
                 </div>
               </div>
