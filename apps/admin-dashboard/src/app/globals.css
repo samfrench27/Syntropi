@@ -22,3 +22,8 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.card-body-scroll {
+  max-height: 70vh;
+  overflow-y: auto;
+}
