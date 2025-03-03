@@ -126,6 +126,8 @@ const emergencyFetchData = async () => {
 };
 
   // Special helper to handle the Emergency Load button click
+// In src/app/org-admin/dashboard/page.tsx - add this to the file
+
 const handleEmergencyLoad = async () => {
   debugLog('OrgAdminDashboard', 'Manual emergency load initiated', {});
   
@@ -135,7 +137,7 @@ const handleEmergencyLoad = async () => {
   try {
     // Hard-code the organization ID from the logs for now
     // This is a temporary fix until we resolve the proper data structure
-    const orgId = "67c4838d9528d82a26c39dd9"; // From the logs
+    const orgId = "67c4838d9528d82a26c39dd9"; // Your organization ID here
     
     debugLog('OrgAdminDashboard', 'Using hardcoded organization ID for emergency', { orgId });
     
@@ -165,13 +167,32 @@ const handleEmergencyLoad = async () => {
     }
     
     setError(null);
-  } catch (err: any) {
+  } catch (err) {
     debugLog('OrgAdminDashboard', 'Manual emergency load failed', { error: err }, true);
-    setError(`Emergency load failed: ${err.message}`);
+    if (err instanceof Error) {
+      setError(`Emergency load failed: ${err.message}`);
+    } else {
+      setError('Emergency load failed: Unknown error');
+    }
   } finally {
     setLoading(false);
   }
 };
+
+// Then add this button in the error display section:
+{error && (
+  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+    <p className="font-bold">Error Loading Dashboard</p>
+    <p>{error}</p>
+    <button 
+      onClick={handleEmergencyLoad}
+      className="mt-2 underline text-red-700 hover:text-red-900"
+    >
+      Try Emergency Load
+    </button>
+  </div>
+)}
+
 
   // Direct data fetching fallback if context approach fails
   const fetchDataDirectly = async () => {

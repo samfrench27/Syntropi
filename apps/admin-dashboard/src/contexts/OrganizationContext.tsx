@@ -119,35 +119,49 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       let orgData = null;
       let stats = null;
       
-      // DIRECT APPROACH: First try direct method with organization ID from auth
-      const orgId = getOrganizationId();
+      let orgId = getOrganizationId();
+    
+    // If no organization ID was found, try to get from localStorage
+    if (!orgId && typeof window !== 'undefined') {
+      orgId = localStorage.getItem('emergency_org_id');
       if (orgId) {
-        debugLog('OrganizationContext', 'Trying direct approach with ID', { orgId });
-        
-        try {
-          // Try the /admin/organizations/:id endpoint
-          const response = await organizationAPI.getOrganization(orgId);
-          orgData = response.data.data.organization;
-          stats = response.data.data.stats || {};
-          debugLog('OrganizationContext', 'Direct approach succeeded', { 
-            orgName: orgData.name,
-            userCount: stats.userCount,
-            apiKeyCount: stats.apiKeyCount
-          });
-        } catch (directError) {
-          debugLog('OrganizationContext', 'Direct approach failed', { error: directError }, true);
-        }
+        debugLog('OrganizationContext', 'Using emergency orgId from localStorage', { orgId });
       }
+    }
+    
+    if (orgId) {
+      debugLog('OrganizationContext', 'Trying direct approach with ID', { orgId });
       
-      // If we got data, set it and finish
-      if (orgData) {
-        setCurrentOrganization({
-          ...orgData,
-          stats
+      try {
+        // Try the API call with the ID we found
+        const response = await organizationAPI.getOrganization(orgId);
+        orgData = response.data.data.organization;
+        stats = response.data.data.stats || {};
+        
+        // Store this ID in localStorage for future emergency use
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('emergency_org_id', orgId);
+        }
+        
+        debugLog('OrganizationContext', 'Direct approach succeeded', { 
+          orgName: orgData.name,
+          userCount: stats.userCount,
+          apiKeyCount: stats.apiKeyCount
         });
-      } else {
-        throw new Error('Could not retrieve organization data');
+      } catch (directError) {
+        debugLog('OrganizationContext', 'Direct approach failed', { error: directError }, true);
       }
+    }
+    
+    // Set the organization data if we got it
+    if (orgData) {
+      setCurrentOrganization({
+        ...orgData,
+        stats
+      });
+    } else {
+      throw new Error('Could not retrieve organization data');
+    }
       
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to fetch organization details';

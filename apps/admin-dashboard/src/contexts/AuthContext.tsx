@@ -61,12 +61,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     checkAuthStatus();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  // In src/contexts/AuthContext.tsx - update the login function to better handle organization ID
+
+const login = async (email: string, password: string) => {
     try {
       const response = await authAPI.login(email, password);
       const { token, user: userData } = response.data.data;
       
-      // Extract organization ID from the response data
+      // Extract organization ID more reliably
       let organizationId = null;
       
       if (userData.organizationId) {
@@ -79,7 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
       
-      // Create proper user object with organization ID and full organization object
+      // Add organizationId directly to the user object
       const userWithOrg = {
         id: userData.id,
         email: userData.email,
@@ -87,12 +89,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         lastName: userData.lastName,
         role: userData.role,
         organizationId: organizationId,
-        organization: userData.organization // Keep the full organization object too
+        organization: userData.organization
       };
       
-      // Log the user we're storing to help with debugging
       debugLog('Auth', 'Storing user with org data', {
-        user: userWithOrg,
+        user: userWithOrg, 
         organizationId
       });
       
