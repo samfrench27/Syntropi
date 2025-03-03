@@ -142,12 +142,24 @@ export const isSuperAdmin = (): boolean => {
 
 // Helper to extract organization ID from user in various formats
 export const getOrganizationId = (): string | null => {
-  const user = getUser();
-  if (!user) return null;
-  
-  // Try various ways to get organization ID
-  return user.organizationId || 
-         user.organization?._id || 
-         user.organization?.id || 
-         null;
-};
+    const user = getUser();
+    if (!user) return null;
+    
+    debugLog('Auth', 'Getting organization ID', { user });
+    
+    // Try various ways to get organization ID
+    const orgId = user.organizationId || 
+           (user.organization && user.organization._id) || 
+           (user.organization && user.organization.id);
+    
+    // Add debugging to see what we're getting
+    debugLog('Auth', 'Organization ID result', { 
+      orgId,
+      hasOrganization: !!user.organization,
+      directAccessId: user.organizationId,
+      nestedId: user.organization?.id,
+      nestedUnderscoreId: user.organization?._id
+    });
+    
+    return orgId || null;
+  };

@@ -1,10 +1,11 @@
 // src/contexts/OrganizationContext.tsx
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { organizationAPI } from '@/lib/api';
 import { debugLog } from '@/lib/debug';
+import { getOrganizationId } from '@/lib/auth';
 
 // Define the complete organization interface
 interface Organization {
@@ -56,23 +57,46 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempted, setFetchAttempted] = useState(false);
+  
+  // Add timeout mechanism
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fetchingRef = useRef<boolean>(false);
+
+  // Function to handle timeout
+  const setupFetchTimeout = () => {
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    // Set a new timeout - if fetch takes longer than 5 seconds, force it to complete
+    timeoutRef.current = setTimeout(() => {
+      if (fetchingRef.current) {
+        debugLog('OrganizationContext', 'Fetch timeout reached', {}, true);
+        fetchingRef.current = false;
+        setLoading(false);
+        setError('Timed out while fetching organization data');
+      }
+    }, 5000); // 5 second timeout
+  };
 
   const fetchOrganization = async () => {
+    // Don't fetch if already fetching
+    if (fetchingRef.current) {
+      debugLog('OrganizationContext', 'Already fetching', {});
+      return;
+    }
+    
     // Don't fetch if we've already tried and failed
     if (fetchAttempted && error) {
       debugLog('OrganizationContext', 'Skipping fetch', { reason: 'Previous attempt failed' });
       return;
     }
 
-    // Skip for no user, loading auth, or superadmins (they don't have a primary organization)
+    // Skip for no user or superadmins
     if (!user) {
       debugLog('OrganizationContext', 'Skipping fetch', { reason: 'No user' });
       setLoading(false);
-      return;
-    }
-
-    if (authLoading) {
-      debugLog('OrganizationContext', 'Skipping fetch', { reason: 'Auth loading' });
       return;
     }
     
@@ -84,64 +108,45 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
     
     debugLog('OrganizationContext', 'Fetching organization', { user });
     
+    // Mark that we're fetching and set up timeout
+    fetchingRef.current = true;
+    setupFetchTimeout();
+    
     try {
       setLoading(true);
       setError(null);
       
-      let response;
-      let orgData;
-      let stats;
+      let orgData = null;
+      let stats = null;
       
-      // Try different approaches to get organization data
-      
-      // Approach 1: Try using the organizationId from user object
-      if (user.organizationId) {
-        debugLog('OrganizationContext', 'Fetching by ID', { organizationId: user.organizationId });
+      // DIRECT APPROACH: First try direct method with organization ID from auth
+      const orgId = getOrganizationId();
+      if (orgId) {
+        debugLog('OrganizationContext', 'Trying direct approach with ID', { orgId });
+        
         try {
-          response = await organizationAPI.getOrganization(user.organizationId);
+          // Try the /admin/organizations/:id endpoint
+          const response = await organizationAPI.getOrganization(orgId);
           orgData = response.data.data.organization;
           stats = response.data.data.stats || {};
-          debugLog('OrganizationContext', 'Fetched by ID', { orgData, stats });
-        } catch (err) {
-          debugLog('OrganizationContext', 'Failed to fetch by ID', { error: err }, true);
+          debugLog('OrganizationContext', 'Direct approach succeeded', { 
+            orgName: orgData.name,
+            userCount: stats.userCount,
+            apiKeyCount: stats.apiKeyCount
+          });
+        } catch (directError) {
+          debugLog('OrganizationContext', 'Direct approach failed', { error: directError }, true);
         }
       }
       
-      // Approach 2: Try using client endpoint if admin endpoint failed
-      if (!orgData) {
-        debugLog('OrganizationContext', 'Fetching from client endpoint', {});
-        try {
-          response = await organizationAPI.getCurrentOrganization();
-          orgData = response.data.data.organization;
-          stats = response.data.data.stats || {};
-          debugLog('OrganizationContext', 'Fetched from client endpoint', { orgData, stats });
-        } catch (err) {
-          debugLog('OrganizationContext', 'Failed to fetch from client endpoint', { error: err }, true);
-        }
-      }
-      
-      // Approach 3: Use any available organization ID from user object
-      if (!orgData && ((user as any).organization?._id || (user as any).organization?.id)) {
-        const orgId = (user as any).organization?._id || (user as any).organization?.id;
-        debugLog('OrganizationContext', 'Fetching by alternate ID', { organizationId: orgId });
-        try {
-          response = await organizationAPI.getOrganization(orgId);
-          orgData = response.data.data.organization;
-          stats = response.data.data.stats || {};
-          debugLog('OrganizationContext', 'Fetched by alternate ID', { orgData, stats });
-        } catch (err) {
-          debugLog('OrganizationContext', 'Failed to fetch by alternate ID', { error: err }, true);
-        }
-      }
-      
-      // Finally, check if we got organization data
+      // If we got data, set it and finish
       if (orgData) {
         setCurrentOrganization({
           ...orgData,
           stats
         });
       } else {
-        throw new Error('Could not retrieve organization data through any method');
+        throw new Error('Could not retrieve organization data');
       }
       
     } catch (err: any) {
@@ -149,9 +154,66 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       debugLog('OrganizationContext', 'Error', { message: errorMessage }, true);
       setError(errorMessage);
     } finally {
-      setLoading(false);
+      // Always mark that we've attempted to fetch and we're no longer fetching
       setFetchAttempted(true);
+      fetchingRef.current = false;
+      
+      // Clear the timeout since we're done
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      
+      setLoading(false);
     }
+  };
+
+  // Function to extract organization ID from user with detailed logging
+const extractOrganizationId = (user: any): string | null => {
+    if (!user) return null;
+    
+    // Try all possible paths for organization ID
+    let orgId = null;
+    
+    // Direct organizationId property
+    if (user.organizationId) {
+      orgId = user.organizationId;
+      debugLog('OrganizationContext', 'Found organizationId directly', { orgId });
+      return orgId;
+    }
+    
+    // Organization as a string (direct ID)
+    if (typeof user.organization === 'string') {
+      orgId = user.organization;
+      debugLog('OrganizationContext', 'Found organization as string', { orgId });
+      return orgId;
+    }
+    
+    // Organization as an object
+    if (user.organization && typeof user.organization === 'object') {
+      // Try id property
+      if (user.organization.id) {
+        orgId = user.organization.id;
+        debugLog('OrganizationContext', 'Found organization.id', { orgId });
+        return orgId;
+      }
+      
+      // Try _id property
+      if (user.organization._id) {
+        orgId = user.organization._id;
+        debugLog('OrganizationContext', 'Found organization._id', { orgId });
+        return orgId;
+      }
+    }
+    
+    // Log failure and return null
+    debugLog('OrganizationContext', 'Failed to extract organization ID', { 
+      user,
+      hasOrganizationField: !!user.organization,
+      organizationFieldType: typeof user.organization
+    }, true);
+    
+    return null;
   };
   
   // Effect for initial load and when auth changes
@@ -159,6 +221,13 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
     if (!authLoading) {
       fetchOrganization();
     }
+    
+    // Clean up timeout on unmount
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, [user, authLoading]);
 
   const refreshOrganization = async () => {
@@ -169,10 +238,10 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
   // Debug rendering
   useEffect(() => {
     debugLog('OrganizationContext', 'State update', {
-      currentOrganization,
+      hasOrganization: !!currentOrganization,
       loading,
       error,
-      user: user?.id
+      userId: user?.id
     });
   }, [currentOrganization, loading, error, user]);
 

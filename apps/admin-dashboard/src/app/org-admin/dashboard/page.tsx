@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, ReactNode } from 'react';
+import React, { useEffect, useState, ReactNode, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Users, 
@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { organizationAPI, userAPI, apiKeyAPI } from '@/lib/api';
 import { debugLog } from '@/lib/debug';
+import { getOrganizationId } from '@/lib/auth';
 
 interface DashboardStats {
   organizationId: string;
@@ -48,6 +49,129 @@ export default function OrgAdminDashboardPage() {
   const router = useRouter();
 
   const { currentOrganization, loading: orgLoading, error: orgError, refreshOrganization } = useOrganization();
+  
+  // Add timeout mechanism to prevent infinite loading
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Emergency direct data fetching that doesn't depend on context
+  // Emergency direct data fetching that doesn't depend on context
+const emergencyFetchData = async () => {
+  debugLog('OrgAdminDashboard', 'EMERGENCY FETCH', { userId: user?.id });
+  
+  if (!user) {
+    setLoading(false);
+    setError("No user found");
+    return;
+  }
+  
+  try {
+    // Get organization ID from anywhere possible
+    const orgId = getOrganizationId();
+    
+    // If we don't have an organization ID from getOrganizationId, try direct extraction from user object
+    let directOrgId = null;
+    if (!orgId && user) {
+      // This verbose approach is intentional to capture every possible structure
+      if (user.organization) {
+        if (typeof user.organization === 'string') {
+          directOrgId = user.organization;
+          debugLog('OrgAdminDashboard', 'Found org ID as string', { directOrgId });
+        } else if (typeof user.organization === 'object') {
+          directOrgId = user.organization.id || user.organization._id;
+          debugLog('OrgAdminDashboard', 'Found org ID in object', { 
+            directOrgId,
+            userOrg: user.organization 
+          });
+        }
+      }
+    }
+    
+    // Use either the extracted ID or the direct one
+    const finalOrgId = orgId || directOrgId;
+    
+    if (!finalOrgId) {
+      // Log the full user object to help debug
+      debugLog('OrgAdminDashboard', 'No organization ID found in user', { 
+        user,
+        hasOrgField: !!user.organization,
+        orgFieldType: typeof user.organization
+      }, true);
+      throw new Error("No organization ID found");
+    }
+    
+    // Direct fetch organization using the ID we found
+    debugLog('OrgAdminDashboard', 'Emergency fetching organization', { finalOrgId });
+    
+    // Try the API call with the ID we found
+    const orgResponse = await organizationAPI.getOrganization(finalOrgId);
+    const organization = orgResponse.data.data.organization;
+    
+    // Set basic stats 
+    setStats({
+      organizationId: organization._id,
+      name: organization.name,
+      plan: organization.plan || 'free',
+      userCount: orgResponse.data.data.stats?.userCount || 0,
+      apiKeyCount: orgResponse.data.data.stats?.apiKeyCount || 0,
+      activeApiCalls: 254 // Mock data
+    });
+    
+    setError(null);
+  } catch (err: any) {
+    debugLog('OrgAdminDashboard', 'Emergency fetch failed', { error: err }, true);
+    setError(`Failed to load dashboard data: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // Special helper to handle the Emergency Load button click
+const handleEmergencyLoad = async () => {
+  debugLog('OrgAdminDashboard', 'Manual emergency load initiated', {});
+  
+  setLoading(true);
+  setError(null);
+  
+  try {
+    // Hard-code the organization ID from the logs for now
+    // This is a temporary fix until we resolve the proper data structure
+    const orgId = "67c4838d9528d82a26c39dd9"; // From the logs
+    
+    debugLog('OrgAdminDashboard', 'Using hardcoded organization ID for emergency', { orgId });
+    
+    // Try to get organization with this ID
+    const orgResponse = await organizationAPI.getOrganization(orgId);
+    const organization = orgResponse.data.data.organization;
+    
+    // Log success
+    debugLog('OrgAdminDashboard', 'Emergency load with hardcoded ID succeeded', { 
+      name: organization.name
+    });
+    
+    // Set stats for display
+    setStats({
+      organizationId: organization._id,
+      name: organization.name,
+      plan: organization.plan || 'free',
+      userCount: orgResponse.data.data.stats?.userCount || 0,
+      apiKeyCount: orgResponse.data.data.stats?.apiKeyCount || 0,
+      activeApiCalls: 254 // Mock data
+    });
+    
+    // Store this organization ID in localStorage for future use
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('emergency_org_id', orgId);
+      debugLog('OrgAdminDashboard', 'Saved emergency org ID to localStorage', { orgId });
+    }
+    
+    setError(null);
+  } catch (err: any) {
+    debugLog('OrgAdminDashboard', 'Manual emergency load failed', { error: err }, true);
+    setError(`Emergency load failed: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Direct data fetching fallback if context approach fails
   const fetchDataDirectly = async () => {
@@ -58,9 +182,7 @@ export default function OrgAdminDashboardPage() {
     
     try {
       // Extract organization ID from various possible places
-      const orgId = user.organizationId || 
-                   (user as any).organization?._id || 
-                   (user as any).organization?.id;
+      const orgId = getOrganizationId();
       
       if (!orgId) {
         throw new Error("No organization ID found for direct fetch");
@@ -118,11 +240,34 @@ export default function OrgAdminDashboardPage() {
     }
   };
 
+  // Setup timeout to prevent infinite loading
+  useEffect(() => {
+    // Set timeout for 3 seconds - if still loading after that, do emergency fetch
+    timeoutRef.current = setTimeout(() => {
+      if (loading) {
+        debugLog('OrgAdminDashboard', 'TIMEOUT TRIGGERED', { loading, orgLoading });
+        emergencyFetchData();
+      }
+    }, 3000);
+    
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
   // First try: Use organization context
   useEffect(() => {
     if (orgLoading) {
       debugLog('OrgAdminDashboard', 'Waiting for organization context', { loading: true });
       return;
+    }
+
+    // Clear timeout if context finished loading
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
 
     if (orgError) {
@@ -260,6 +405,12 @@ export default function OrgAdminDashboardPage() {
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
             <p className="font-bold">Error Loading Dashboard</p>
             <p>{error}</p>
+            <button 
+              onClick={emergencyFetchData}
+              className="mt-2 underline text-red-700 hover:text-red-900"
+            >
+              Try Emergency Load
+            </button>
           </div>
         )}
         

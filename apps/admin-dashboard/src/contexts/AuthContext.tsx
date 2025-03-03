@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authAPI } from '@/lib/api';
 import { User, setAuth, clearAuth, getUser, isAuthenticated } from '@/lib/auth';
+import { debugLog } from '@/lib/debug';
 
 interface AuthContextType {
   user: User | null;
@@ -65,15 +66,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const response = await authAPI.login(email, password);
       const { token, user: userData } = response.data.data;
       
-      // Create proper user object with organization ID
+      // Extract organization ID from the response data
+      let organizationId = null;
+      
+      if (userData.organizationId) {
+        organizationId = userData.organizationId;
+      } else if (userData.organization) {
+        if (typeof userData.organization === 'string') {
+          organizationId = userData.organization;
+        } else if (typeof userData.organization === 'object') {
+          organizationId = userData.organization.id || userData.organization._id;
+        }
+      }
+      
+      // Create proper user object with organization ID and full organization object
       const userWithOrg = {
         id: userData.id,
         email: userData.email,
         firstName: userData.firstName,
         lastName: userData.lastName,
         role: userData.role,
-        organizationId: userData.organization?.id || userData.organization?._id,
+        organizationId: organizationId,
+        organization: userData.organization // Keep the full organization object too
       };
+      
+      // Log the user we're storing to help with debugging
+      debugLog('Auth', 'Storing user with org data', {
+        user: userWithOrg,
+        organizationId
+      });
       
       setAuth(token, userWithOrg);
       setUser(userWithOrg);
