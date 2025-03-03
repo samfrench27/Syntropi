@@ -28,8 +28,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-
-
   // Check if user is authenticated on mount
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -39,14 +37,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const response = await authAPI.me();
           const userData = response.data.data.user;
           
-          // Update local state
-          setUser({
+          // Construct a proper user object with organization ID
+          const userWithOrg = {
             id: userData.id,
             email: userData.email,
             firstName: userData.firstName,
             lastName: userData.lastName,
             role: userData.role,
-          });
+            organizationId: userData.organization?.id || userData.organization?._id,
+          };
+          
+          // Update local state
+          setUser(userWithOrg);
         } catch (error) {
           clearAuth();
           console.error('Auth verification failed:', error);
@@ -61,15 +63,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (email: string, password: string) => {
     try {
       const response = await authAPI.login(email, password);
-      const { token, user } = response.data.data;
+      const { token, user: userData } = response.data.data;
       
-      setAuth(token, user);
-      setUser(user);
+      // Create proper user object with organization ID
+      const userWithOrg = {
+        id: userData.id,
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        role: userData.role,
+        organizationId: userData.organization?.id || userData.organization?._id,
+      };
+      
+      setAuth(token, userWithOrg);
+      setUser(userWithOrg);
       
       // Redirect based on role
-      if (user.role === 'superadmin') {
+      if (userData.role === 'superadmin') {
         router.push('/platform-admin/dashboard');
-      } else if (user.role === 'admin') {
+      } else if (userData.role === 'admin') {
         router.push('/org-admin/dashboard');
       } else {
         router.push('/client/dashboard');

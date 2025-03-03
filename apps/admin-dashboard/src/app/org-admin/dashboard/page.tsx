@@ -13,7 +13,6 @@ import {
 import Header from '@/components/layout/Header';
 import Card from '@/components/admin/Card';
 import { useAuth } from '@/contexts/AuthContext';
-import { organizationAPI, userAPI, apiKeyAPI } from '@/lib/api';
 import { useOrganization } from '@/contexts/OrganizationContext';
 
 interface DashboardStats {
@@ -45,15 +44,16 @@ export default function OrgAdminDashboardPage() {
 
   const { currentOrganization, loading: orgLoading, error: orgError } = useOrganization();
 
-  // First effect - handle organization data when the user or organization context changes
+  // Effect for handling organization data
   useEffect(() => {
     // Skip if still loading or no user
-    if (!user || orgLoading) {
+    if (orgLoading) {
       return;
     }
 
     // Handle org context errors
     if (orgError) {
+      console.error("Organization error:", orgError);
       setError(orgError);
       setLoading(false);
       return;
@@ -61,65 +61,28 @@ export default function OrgAdminDashboardPage() {
     
     // If we have an organization from context, use it
     if (currentOrganization) {
+      console.log("Using current organization:", currentOrganization);
       try {
-        const org = currentOrganization as any;
         setStats({
           organizationId: currentOrganization._id,
           name: currentOrganization.name,
           plan: currentOrganization.plan,
-          userCount: org.stats?.userCount || 0,
-          apiKeyCount: org.stats?.apiKeyCount || 0,
+          userCount: (currentOrganization as any).stats?.userCount || 0,
+          apiKeyCount: (currentOrganization as any).stats?.apiKeyCount || 0,
           activeApiCalls: 254 // Mock data
         });
-        setLoading(false);
       } catch (err) {
         console.error('Failed to process organization data:', err);
         setError('Failed to load dashboard data');
-        setLoading(false);
-      }
-      return;
-    }
-    
-    // Fallback to using organization ID from user object if context doesn't have data
-    const fetchOrgData = async () => {
-      // Get organization ID from user object
-      const orgId = (user as any)?.organization?.id;
-      console.log("User:", user);
-      console.log("Organization structure:", (user as any)?.organization);
-      
-      if (!orgId) {
-        setError("No organization associated with user");
-        setLoading(false);
-        return;
-      }
-      
-      try {
-        // Call API to get organization data
-        const response = await organizationAPI.getOrganization(orgId);
-        console.log("Organization API response:", response.data);
-        
-        const orgData = response.data.data.organization;
-        const orgStats = response.data.data.stats || {};
-        
-        setStats({
-          organizationId: orgData._id,
-          name: orgData.name,
-          plan: orgData.plan || "Free",
-          userCount: orgStats.userCount || 0,
-          apiKeyCount: orgStats.apiKeyCount || 0,
-          activeApiCalls: orgStats.apiCalls || 254 // Fallback to mock data
-        });
-      } catch (err) {
-        console.error('Failed to fetch organization data:', err);
-        setError('Failed to load organization data');
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchOrgData();
-  }, [user, currentOrganization, orgLoading, orgError]);
-
+    } else {
+      console.log("No organization found in context");
+      setError("No organization data available");
+      setLoading(false);
+    }
+  }, [currentOrganization, orgLoading, orgError]);
 
   // Stat card component for dashboard metrics
   const StatCard = ({ 
@@ -244,45 +207,42 @@ export default function OrgAdminDashboardPage() {
         </div>
         
         <div className="mb-6">
-  <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-    {/* Add New User */}
-    <div onClick={() => router.push('/org-admin/users/create')} className="cursor-pointer">
-      <Card className="hover:shadow-md transition-shadow">
-        <Card.Body>
-          <div className="flex flex-col items-center justify-center py-4">
-            <Users size={24} className="mb-2 text-blue-600" />
-            <h3 className="font-medium text-center">Add New User</h3>
+          <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div onClick={() => router.push('/org-admin/users/create')} className="cursor-pointer">
+              <Card className="hover:shadow-md transition-shadow">
+                <Card.Body>
+                  <div className="flex flex-col items-center justify-center py-4">
+                    <Users size={24} className="mb-2 text-blue-600" />
+                    <h3 className="font-medium text-center">Add New User</h3>
+                  </div>
+                </Card.Body>
+              </Card>
+            </div>
+            
+            <div onClick={() => router.push('/org-admin/api-keys/create')} className="cursor-pointer">
+              <Card className="hover:shadow-md transition-shadow">
+                <Card.Body>
+                  <div className="flex flex-col items-center justify-center py-4">
+                    <Key size={24} className="mb-2 text-blue-600" />
+                    <h3 className="font-medium text-center">Create API Key</h3>
+                  </div>
+                </Card.Body>
+              </Card>
+            </div>
+            
+            <div onClick={() => router.push('/org-admin/organization')} className="cursor-pointer">
+              <Card className="hover:shadow-md transition-shadow">
+                <Card.Body>
+                  <div className="flex flex-col items-center justify-center py-4">
+                    <Settings size={24} className="mb-2 text-blue-600" />
+                    <h3 className="font-medium text-center">Organization Settings</h3>
+                  </div>
+                </Card.Body>
+              </Card>
+            </div>
           </div>
-        </Card.Body>
-      </Card>
-    </div>
-    
-    {/* Create API Key */}
-    <div onClick={() => router.push('/org-admin/api-keys/create')} className="cursor-pointer">
-      <Card className="hover:shadow-md transition-shadow">
-        <Card.Body>
-          <div className="flex flex-col items-center justify-center py-4">
-            <Key size={24} className="mb-2 text-blue-600" />
-            <h3 className="font-medium text-center">Create API Key</h3>
-          </div>
-        </Card.Body>
-      </Card>
-    </div>
-    
-    {/* Organization Settings */}
-    <div onClick={() => router.push('/org-admin/organization')} className="cursor-pointer">
-      <Card className="hover:shadow-md transition-shadow">
-        <Card.Body>
-          <div className="flex flex-col items-center justify-center py-4">
-            <Settings size={24} className="mb-2 text-blue-600" />
-            <h3 className="font-medium text-center">Organization Settings</h3>
-          </div>
-        </Card.Body>
-      </Card>
-    </div>
-  </div>
-</div>
+        </div>
       </main>
     </div>
   );

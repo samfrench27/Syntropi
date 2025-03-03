@@ -3,6 +3,7 @@ import { jwtDecode } from 'jwt-decode';
 interface AuthToken {
   userId: string;
   role: string;
+  organizationId?: string;
   iat: number;
   exp: number;
 }
@@ -15,7 +16,8 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'superadmin' | 'admin';
+  role: 'superadmin' | 'admin' | 'user';
+  organizationId?: string;
 }
 
 export const setAuth = (token: string, user: User) => {
