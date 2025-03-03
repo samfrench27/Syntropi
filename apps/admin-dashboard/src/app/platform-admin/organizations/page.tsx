@@ -61,11 +61,11 @@ export default function OrganizationsPage() {
   };
 
   const handleCreateOrganization = () => {
-    router.push('/organizations/create');
+    router.push('/platform-admin/organizations/create');
   };
 
   const handleEditOrganization = (id: string) => {
-    router.push(`/organizations/${id}`);
+    router.push(`/platform-admin/organizations/${id}`);
   };
 
   const handleDeleteOrganization = async (id: string) => {

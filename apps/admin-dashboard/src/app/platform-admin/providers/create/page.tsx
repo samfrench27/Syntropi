@@ -33,7 +33,7 @@ export default function CreateProviderPage() {
   useEffect(() => {
     // Redirect if not a super admin
     if (!isSuperAdminUser) {
-      router.push('/providers');
+      router.push('/platform-admin/providers');
     }
   }, [isSuperAdminUser, router]);
 
@@ -84,7 +84,7 @@ export default function CreateProviderPage() {
         ...formData,
         status: formData.status as "inactive" | "active" | "maintenance"
       });
-      router.push('/providers');
+      router.push('/platform-admin/providers');
     } catch (err: any) {
       console.error('Failed to create provider:', err);
       setError(err.response?.data?.error?.message || 'Failed to create provider');

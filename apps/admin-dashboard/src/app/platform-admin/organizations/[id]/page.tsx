@@ -278,7 +278,7 @@ export default function OrganizationDetailsPage({ params }: { params: { id: stri
         <div className="text-center py-12">
           <p className="text-gray-700">Organization not found</p>
           <button
-            onClick={() => router.push('/organizations')}
+            onClick={() => router.push('/platform-admin/organizations')}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Go Back to Organizations
@@ -295,7 +295,7 @@ export default function OrganizationDetailsPage({ params }: { params: { id: stri
       <main className="p-6">
         <div className="mb-6">
           <button
-            onClick={() => router.push('/organizations')}
+            onClick={() => router.push('/platform-admin/organizations')}
             className="flex items-center text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft size={16} className="mr-2" />
@@ -657,7 +657,7 @@ export default function OrganizationDetailsPage({ params }: { params: { id: stri
                 title="Organization Users" 
                 action={
                   <button
-                    onClick={() => router.push(`/users/create?organizationId=${organization._id}`)}
+                    onClick={() => router.push(`/platform-admin/users/create?organizationId=${organization._id}`)}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                   >
                     Add User
@@ -716,7 +716,7 @@ export default function OrganizationDetailsPage({ params }: { params: { id: stri
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <button
-                              onClick={() => router.push(`/users/${user.id}`)}
+                              onClick={() => router.push(`/platform-admin/users/${user.id}`)}
                               className="text-blue-600 hover:text-blue-900"
                             >
                               Edit
@@ -737,7 +737,7 @@ export default function OrganizationDetailsPage({ params }: { params: { id: stri
                 title="API Keys" 
                 action={
                   <button
-                    onClick={() => router.push(`/api-keys/create?organizationId=${organization._id}`)}
+                    onClick={() => router.push(`/platform-admin/api-keys/create?organizationId=${organization._id}`)}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                   >
                     Create API Key

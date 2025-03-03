@@ -44,40 +44,45 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchOrganization = async () => {
-    if (!user || authLoading) return;
+  if (!user || authLoading) return;
+  
+  // Add console logs for debugging
+  console.log("Fetching organization for user:", user);
+  console.log("User role:", user.role);
+  console.log("User organizationId:", user.organizationId);
+  
+  // Skip for superadmins - they don't have a primary organization
+  if (user.role === 'superadmin') {
+    setLoading(false);
+    return;
+  }
+  
+  try {
+    setLoading(true);
+    setError(null);
     
-    // Skip for superadmins - they don't have a primary organization
-    if (user.role === 'superadmin') {
+    // Make sure user has an organizationId property
+    if (!user.organizationId) {
+      console.error("User has no organizationId:", user);
+      setError('No organization associated with user');
       setLoading(false);
       return;
     }
     
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Get organization data
-        // For admins and users, we fetch their specific organization
-        let response;
-
-        if ((user as any).organizationId) {
-            // For regular users, get their organization
-            response = await api.get(`/api/organizations/${(user as any).organizationId}`);
-          } else {
-            // Fallback - shouldn't happen with proper user data
-            setError('No organization associated with user');
-            setLoading(false);
-            return;
-          }
-      
-      setCurrentOrganization(response.data.data.organization);
-    } catch (err: any) {
-      console.error('Failed to fetch organization:', err);
-      setError(err.response?.data?.error?.message || 'Failed to load organization data');
-    } finally {
-      setLoading(false);
-    }
-  };
+    // For regular users, get their organization
+    const response = await api.get(`/api/organizations/${user.organizationId}`);
+    console.log("Organization API response:", response.data);
+    
+    // Make sure to set the complete organization data with stats
+    setCurrentOrganization(response.data.data.organization);
+    
+  } catch (err) {
+    console.error("Error fetching organization:", err);
+    setError('Failed to fetch organization details');
+  } finally {
+    setLoading(false);
+  }
+};
   
   useEffect(() => {
     if (!authLoading) {

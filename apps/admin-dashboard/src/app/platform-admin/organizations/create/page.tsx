@@ -70,7 +70,7 @@ export default function CreateOrganizationPage() {
 
     try {
       await organizationAPI.createOrganization(formData);
-      router.push('/organizations');
+      router.push('/platform-admin/organizations');
     } catch (err: any) {
       console.error('Failed to create organization:', err);
       setError(err.response?.data?.error?.message || 'Failed to create organization');

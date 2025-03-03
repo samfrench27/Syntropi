@@ -33,14 +33,14 @@ export default function RoleBasedRoute({
     if (!hasRequiredRole) {
       // Redirect based on role
       if (user.role === 'superadmin') {
-        router.push('/dashboard');
+        router.push('/platform-admin/dashboard');
       } else if (user.role === 'admin') {
-        router.push('/org/dashboard');  
+        router.push('/org-admin/dashboard');  
       } else {
         router.push('/client/dashboard');
       }
     }
-  }, [user, loading, router, allowedRoles, redirectPath]);
+  }, [user, loading, router, allowedRoles, redirectPath]);  
 
   if (loading || !user) {
     return (

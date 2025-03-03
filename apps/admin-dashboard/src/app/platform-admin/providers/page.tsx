@@ -76,11 +76,11 @@ export default function ProvidersPage() {
   }, [searchTerm]);
 
   const handleCreateProvider = () => {
-    router.push('/providers/create');
+    router.push('/platform-admin/providers/create');
   };
 
   const handleEditProvider = (id: string) => {
-    router.push(`/providers/${id}`);
+    router.push(`/platform-admin/providers/${id}`);
   };
 
   const handleDeleteProvider = async (id: string) => {

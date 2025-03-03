@@ -167,7 +167,7 @@ export default function ApiKeyDetailsPage({ params }: { params: { id: string } }
         <div className="text-center py-12">
           <p className="text-gray-700">API key not found</p>
           <button
-            onClick={() => router.push('/api-keys')}
+            onClick={() => router.push('/platform-admin/api-keys')}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Go Back to API Keys
@@ -184,7 +184,7 @@ export default function ApiKeyDetailsPage({ params }: { params: { id: string } }
       <main className="p-6">
         <div className="mb-6">
           <button
-            onClick={() => router.push('/api-keys')}
+            onClick={() => router.push('/platform-admin/api-keys')}
             className="flex items-center text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft size={16} className="mr-2" />

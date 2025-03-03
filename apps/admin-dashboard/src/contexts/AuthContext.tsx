@@ -64,14 +64,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setAuth(token, user);
       setUser(user);
       
-      // Redirect to dashboard
-      router.push('/dashboard');
+      // Redirect based on role
+      if (user.role === 'superadmin') {
+        router.push('/platform-admin/dashboard');
+      } else if (user.role === 'admin') {
+        router.push('/org-admin/dashboard');
+      } else {
+        router.push('/client/dashboard');
+      }
     } catch (error) {
       console.error('Login failed:', error);
-      // Explicitly prevent default actions
-      if (error instanceof Event) {
-        error.preventDefault();
-      }
       throw error;
     }
   };

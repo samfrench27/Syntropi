@@ -86,9 +86,9 @@ export default function CreateUserPage() {
       
       // Redirect to the users list or the specific organization's users tab
       if (userData.organizationId) {
-        router.push(`/organizations/${userData.organizationId}?tab=users`);
+        router.push(`/platform-admin/organizations/${userData.organizationId}?tab=users`);
       } else {
-        router.push('/users');
+        router.push('/platform-admin/users');
       }
     } catch (err: any) {
       console.error('Failed to create user:', err);

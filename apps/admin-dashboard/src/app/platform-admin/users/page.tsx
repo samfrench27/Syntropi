@@ -95,11 +95,11 @@ export default function UsersPage() {
   };
 
   const handleCreateUser = () => {
-    router.push('/users/create');
+    router.push('/platform-admin/users/create');
   };
 
   const handleEditUser = (id: string) => {
-    router.push(`/users/${id}`);
+    router.push(`/platform-admin/users/${id}`);
   };
 
   const handleDeleteUser = async (id: string) => {

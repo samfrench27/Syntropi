@@ -61,12 +61,12 @@ export default function PlatformAdminSidebar() {
 
   // Navigation items for platform admin
   const navigation = [
-    { href: '/dashboard', icon: <BarChart size={20} />, label: 'Dashboard' },
-    { href: '/organizations', icon: <Building2 size={20} />, label: 'Organizations' },
-    { href: '/users', icon: <Users size={20} />, label: 'Users' },
-    { href: '/api-keys', icon: <Key size={20} />, label: 'API Keys' },
-    { href: '/providers', icon: <Database size={20} />, label: 'Providers' },
-    { href: '/activities', icon: <Activity size={20} />, label: 'Activities' },
+    { href: '/platform-admin/dashboard', icon: <BarChart size={20} />, label: 'Dashboard' },
+    { href: '/platform-admin/organizations', icon: <Building2 size={20} />, label: 'Organizations' },
+    { href: '/platform-admin/users', icon: <Users size={20} />, label: 'Users' },
+    { href: '/platform-admin/api-keys', icon: <Key size={20} />, label: 'API Keys' },
+    { href: '/platform-admin/providers', icon: <Database size={20} />, label: 'Providers' },
+    { href: '/platform-admin/activities', icon: <Activity size={20} />, label: 'Activities' },
   ];
 
   // Configuration items

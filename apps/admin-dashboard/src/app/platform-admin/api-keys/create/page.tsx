@@ -152,7 +152,7 @@ export default function CreateApiKeyPage() {
                 
                 <div className="flex justify-between">
                   <button
-                    onClick={() => router.push('/api-keys')}
+                    onClick={() => router.push('/platform-admin/api-keys')}
                     className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                   >
                     Done

@@ -96,11 +96,11 @@ export default function ApiKeysPage() {
   };
 
   const handleCreateApiKey = () => {
-    router.push('/api-keys/create');
+    router.push('/platform-admin/api-keys/create');
   };
 
   const handleViewApiKey = (id: string) => {
-    router.push(`/api-keys/${id}`);
+    router.push(`/platform-admin/api-keys/${id}`);
   };
 
   const handleRevokeApiKey = async (id: string) => {
