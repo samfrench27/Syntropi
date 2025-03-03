@@ -8,12 +8,15 @@ import {
   Activity,
   TrendingUp,
   ArrowUpRight,
-  Settings
+  Settings,
+  RefreshCw
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Card from '@/components/admin/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { organizationAPI, userAPI, apiKeyAPI } from '@/lib/api';
+import { debugLog } from '@/lib/debug';
 
 interface DashboardStats {
   organizationId: string;
@@ -33,35 +36,110 @@ interface StatCardProps {
   };
   icon: ReactNode;
   onClick?: () => void;
+  loading?: boolean;
 }
 
 export default function OrgAdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [directFetchInProgress, setDirectFetchInProgress] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
 
-  const { currentOrganization, loading: orgLoading, error: orgError } = useOrganization();
+  const { currentOrganization, loading: orgLoading, error: orgError, refreshOrganization } = useOrganization();
 
-  // Effect for handling organization data
+  // Direct data fetching fallback if context approach fails
+  const fetchDataDirectly = async () => {
+    if (!user || directFetchInProgress) return;
+    
+    setDirectFetchInProgress(true);
+    debugLog('OrgAdminDashboard', 'Fetching data directly', { userId: user.id });
+    
+    try {
+      // Extract organization ID from various possible places
+      const orgId = user.organizationId || 
+                   (user as any).organization?._id || 
+                   (user as any).organization?.id;
+      
+      if (!orgId) {
+        throw new Error("No organization ID found for direct fetch");
+      }
+      
+      // Fetch organization data directly
+      const orgResponse = await organizationAPI.getOrganization(orgId);
+      const organization = orgResponse.data.data.organization;
+      
+      // Get counts directly
+      let userCount = 0;
+      let apiKeyCount = 0;
+      
+      try {
+        // Default to stats in response if available
+        if (orgResponse.data.data.stats) {
+          userCount = orgResponse.data.data.stats.userCount || 0;
+          apiKeyCount = orgResponse.data.data.stats.apiKeyCount || 0;
+        } else {
+          // Otherwise fetch counts directly
+          const usersResponse = await userAPI.getUsers({ 
+            organizationId: orgId,
+            limit: 1
+          });
+          const apiKeysResponse = await apiKeyAPI.getApiKeys({
+            organizationId: orgId,
+            limit: 1
+          });
+          
+          userCount = usersResponse.data.data.pagination.total || 0;
+          apiKeyCount = apiKeysResponse.data.data.pagination.total || 0;
+        }
+      } catch (countError) {
+        debugLog('OrgAdminDashboard', 'Error fetching counts', { error: countError }, true);
+        // Continue with zeros if counts fetch fails
+      }
+      
+      // Set stats with the data we have
+      setStats({
+        organizationId: organization._id,
+        name: organization.name,
+        plan: organization.plan || 'free',
+        userCount: userCount,
+        apiKeyCount: apiKeyCount,
+        activeApiCalls: 254 // Mock data
+      });
+      
+      setError(null);
+    } catch (err) {
+      debugLog('OrgAdminDashboard', 'Direct fetch failed', { error: err }, true);
+      setError("Failed to load dashboard data directly");
+    } finally {
+      setLoading(false);
+      setDirectFetchInProgress(false);
+    }
+  };
+
+  // First try: Use organization context
   useEffect(() => {
-    // Skip if still loading or no user
     if (orgLoading) {
+      debugLog('OrgAdminDashboard', 'Waiting for organization context', { loading: true });
       return;
     }
 
-    // Handle org context errors
     if (orgError) {
-      console.error("Organization error:", orgError);
-      setError(orgError);
-      setLoading(false);
+      debugLog('OrgAdminDashboard', 'Organization context error', { error: orgError }, true);
+      setError(`Context error: ${orgError}`);
+      // If context fails, try direct fetching
+      fetchDataDirectly();
       return;
     }
     
     // If we have an organization from context, use it
     if (currentOrganization) {
-      console.log("Using current organization:", currentOrganization);
+      debugLog('OrgAdminDashboard', 'Using organization from context', { 
+        org: currentOrganization._id,
+        stats: currentOrganization.stats
+      });
+      
       try {
         setStats({
           organizationId: currentOrganization._id,
@@ -69,20 +147,38 @@ export default function OrgAdminDashboardPage() {
           plan: currentOrganization.plan,
           userCount: (currentOrganization as any).stats?.userCount || 0,
           apiKeyCount: (currentOrganization as any).stats?.apiKeyCount || 0,
-          activeApiCalls: 254 // Mock data
+          activeApiCalls: 254 // Mock data for now
         });
+        setError(null);
       } catch (err) {
-        console.error('Failed to process organization data:', err);
-        setError('Failed to load dashboard data');
+        debugLog('OrgAdminDashboard', 'Failed to process organization data', { error: err }, true);
+        setError('Failed to process organization data');
+        // If processing fails, try direct fetching
+        fetchDataDirectly();
       } finally {
         setLoading(false);
       }
     } else {
-      console.log("No organization found in context");
-      setError("No organization data available");
-      setLoading(false);
+      debugLog('OrgAdminDashboard', 'No organization in context', {}, true);
+      // If no organization in context, try direct fetching
+      fetchDataDirectly();
     }
   }, [currentOrganization, orgLoading, orgError]);
+
+  // Refresh handler for manual refresh
+  const handleRefresh = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Try to refresh organization context first
+      await refreshOrganization();
+      // If that doesn't work, fetchDataDirectly will be triggered by the useEffect
+    } catch (err) {
+      debugLog('OrgAdminDashboard', 'Refresh failed', { error: err }, true);
+      // Direct fetch will happen in the useEffect
+    }
+  };
 
   // Stat card component for dashboard metrics
   const StatCard = ({ 
@@ -90,7 +186,8 @@ export default function OrgAdminDashboardPage() {
     value, 
     change, 
     icon, 
-    onClick 
+    onClick,
+    loading: cardLoading = false
   }: StatCardProps) => (
     <div onClick={onClick} className={onClick ? "cursor-pointer" : ""}>
       <Card className="hover:shadow-md transition-shadow">
@@ -99,7 +196,7 @@ export default function OrgAdminDashboardPage() {
             <div>
               <p className="text-sm font-medium text-gray-600">{title}</p>
               <p className="text-2xl font-semibold mt-1">
-                {loading ? (
+                {loading || cardLoading ? (
                   <span className="h-8 w-16 bg-gray-200 rounded animate-pulse"></span>
                 ) : (
                   value
@@ -121,31 +218,52 @@ export default function OrgAdminDashboardPage() {
     </div>
   );
 
-  if (error) {
-    return (
-      <div className="p-6">
-        <Header title="Organization Dashboard" />
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4">
-          {error}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div>
       <Header title="Organization Dashboard" />
       
       <main className="p-6">
-        {stats && (
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">{stats.name}</h1>
-            <p className="text-gray-500">
-              Plan: <span className="font-medium">{stats.plan.charAt(0).toUpperCase() + stats.plan.slice(1)}</span>
-            </p>
+        {/* Organization header with refresh button */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            {stats ? (
+              <>
+                <h1 className="text-2xl font-bold text-gray-900">{stats.name}</h1>
+                <p className="text-gray-500">
+                  Plan: <span className="font-medium">
+                    {stats.plan.charAt(0).toUpperCase() + stats.plan.slice(1)}
+                  </span>
+                </p>
+              </>
+            ) : loading ? (
+              <div className="space-y-2">
+                <div className="h-8 w-48 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-5 w-32 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            ) : (
+              <h1 className="text-2xl font-bold text-gray-900">Organization Dashboard</h1>
+            )}
+          </div>
+          
+          <button
+            onClick={handleRefresh}
+            className="flex items-center px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            disabled={loading}
+          >
+            <RefreshCw size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+        
+        {/* Error display if applicable */}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            <p className="font-bold">Error Loading Dashboard</p>
+            <p>{error}</p>
           </div>
         )}
         
+        {/* Stats cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <StatCard 
             title="Users" 
@@ -153,6 +271,7 @@ export default function OrgAdminDashboardPage() {
             change={{ value: 5.2, positive: true }}
             icon={<Users size={24} />} 
             onClick={() => router.push('/org-admin/users')}
+            loading={loading}
           />
           <StatCard 
             title="API Keys" 
@@ -160,6 +279,7 @@ export default function OrgAdminDashboardPage() {
             change={{ value: 3.8, positive: true }}
             icon={<Key size={24} />} 
             onClick={() => router.push('/org-admin/api-keys')}
+            loading={loading}
           />
           <StatCard 
             title="API Calls (24h)" 
@@ -167,9 +287,11 @@ export default function OrgAdminDashboardPage() {
             change={{ value: 5.2, positive: true }}
             icon={<ArrowUpRight size={24} />} 
             onClick={() => router.push('/org-admin/activities')}
+            loading={loading}
           />
         </div>
 
+        {/* Activity and Usage cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <Card>
             <Card.Header title="Recent Activity" />
@@ -206,6 +328,7 @@ export default function OrgAdminDashboardPage() {
           </Card>
         </div>
         
+        {/* Quick Actions */}
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

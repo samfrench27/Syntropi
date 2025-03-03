@@ -1,5 +1,7 @@
+// src/lib/api.ts
 import axios from 'axios';
 import { getToken, clearAuth } from './auth';
+import { logApiRequest, logApiResponse, debugLog } from './debug';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
@@ -16,22 +18,56 @@ api.interceptors.request.use(
     const token = getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      // Log all requests with their headers for debugging
+      logApiRequest(
+        config.method?.toUpperCase() || 'UNKNOWN',
+        config.url || 'unknown-url',
+        config.data,
+        {
+          ...config.headers,
+          // Mask the full token for security, but show first and last few chars
+          Authorization: token ? `Bearer ${token.substr(0, 5)}...${token.substr(-5)}` : undefined
+        }
+      );
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    debugLog('API', 'Request Error', error, true);
+    return Promise.reject(error);
+  }
 );
 
-// Handle auth errors
+// Handle auth errors and log responses
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Log successful responses
+    logApiResponse(
+      response.config.url || 'unknown-url',
+      response.status,
+      response.data
+    );
+    return response;
+  },
   (error) => {
-    if (error.response?.status === 401) {
-      // Clear auth and redirect to login
-      clearAuth();
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+    // Log error responses
+    if (error.response) {
+      logApiResponse(
+        error.config.url || 'unknown-url',
+        error.response.status,
+        error.response.data
+      );
+      
+      if (error.response.status === 401) {
+        // Clear auth and redirect to login
+        debugLog('API', 'Authentication Failed', 'Clearing auth and redirecting', true);
+        clearAuth();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
       }
+    } else {
+      debugLog('API', 'Network Error', error.message || error, true);
     }
     return Promise.reject(error);
   }
@@ -56,10 +92,9 @@ export const authAPI = {
     firstName: string;
     lastName: string;
   }) => api.post('/admin/auth/create-first-admin', userData),
+  
   checkSetupStatus: () => api.get('/admin/auth/setup-status'),
 };
-
-
 
 // User management API
 export const userAPI = {
@@ -100,15 +135,19 @@ export const userAPI = {
 
 // Organization management API
 export const organizationAPI = {
+  // Admin endpoints
   getOrganizations: (params?: {
     page?: number;
     limit?: number;
     search?: string;
     plan?: string;
     status?: string;
-  }) => api.get('/api/admin/organizations', { params }),
+  }) => api.get('/admin/organizations', { params }),
   
-  getOrganization: (id: string) => api.get(`api/client/organizations/${id}`),
+  getOrganization: (id: string) => api.get(`/admin/organizations/${id}`),
+  
+  // Client endpoint for current org
+  getCurrentOrganization: () => api.get('/client/organization'),
   
   createOrganization: (orgData: {
     name: string;
@@ -128,7 +167,7 @@ export const organizationAPI = {
       rateLimit?: number;
       webhookUrl?: string;
     };
-  }) => api.post('/api/admin/organizations', orgData),
+  }) => api.post('/admin/organizations', orgData),
   
   updateOrganization: (id: string, orgData: {
     name?: string;
@@ -148,24 +187,24 @@ export const organizationAPI = {
       rateLimit?: number;
       webhookUrl?: string;
     };
-  }) => api.put(`/api/admin/organizations/${id}`, orgData),
+  }) => api.put(`/admin/organizations/${id}`, orgData),
   
-  deleteOrganization: (id: string) => api.delete(`/api/admin/organizations/${id}`),
+  deleteOrganization: (id: string) => api.delete(`/admin/organizations/${id}`),
   
   getOrganizationUsers: (id: string, params?: {
     page?: number;
     limit?: number;
-  }) => api.get(`/api/admin/organizations/${id}/users`, { params }),
+  }) => api.get(`/admin/organizations/${id}/users`, { params }),
   
   getOrganizationApiKeys: (id: string, params?: {
     page?: number;
     limit?: number;
-  }) => api.get(`/api/admin/organizations/${id}/api-keys`, { params }),
+  }) => api.get(`/admin/organizations/${id}/api-keys`, { params }),
   
   getOrganizationActivities: (id: string, params?: {
     page?: number;
     limit?: number;
-  }) => api.get(`/api/admin/organizations/${id}/activities`, { params }),
+  }) => api.get(`/admin/organizations/${id}/activities`, { params }),
 };
 
 // API Key management API
@@ -176,9 +215,9 @@ export const apiKeyAPI = {
     organizationId?: string;
     environment?: string;
     isActive?: boolean;
-  }) => api.get('/api/admin/api-keys', { params }),
+  }) => api.get('/admin/api-keys', { params }),
   
-  getApiKey: (id: string) => api.get(`/api/admin/api-keys/${id}`),
+  getApiKey: (id: string) => api.get(`/admin/api-keys/${id}`),
   
   createApiKey: (keyData: {
     name: string;
@@ -200,16 +239,16 @@ export const activityAPI = {
     action?: string;
     startDate?: string;
     endDate?: string;
-  }) => api.get('/api/admin/activities', { params }),
+  }) => api.get('/admin/activities', { params }),
   
-  getActivity: (id: string) => api.get(`/api/admin/activities/${id}`),
+  getActivity: (id: string) => api.get(`/admin/activities/${id}`),
 };
 
 // Provider management API
 export const providerAPI = {
-  getProviders: () => api.get('/api/admin/providers'),
+  getProviders: () => api.get('/admin/providers'),
   
-  getProvider: (id: string) => api.get(`/api/admin/providers/${id}`),
+  getProvider: (id: string) => api.get(`/admin/providers/${id}`),
   
   createProvider: (providerData: {
     name: string;
@@ -224,7 +263,7 @@ export const providerAPI = {
     status?: 'active' | 'maintenance' | 'inactive';
     logoUrl?: string;
     settings?: any;
-  }) => api.post('/api/admin/providers', providerData),
+  }) => api.post('/admin/providers', providerData),
   
   updateProvider: (id: string, providerData: {
     name?: string;
@@ -238,9 +277,9 @@ export const providerAPI = {
     status?: 'active' | 'maintenance' | 'inactive';
     logoUrl?: string;
     settings?: any;
-  }) => api.put(`/api/admin/providers/${id}`, providerData),
+  }) => api.put(`/admin/providers/${id}`, providerData),
   
-  deleteProvider: (id: string) => api.delete(`/api/admin/providers/${id}`),
+  deleteProvider: (id: string) => api.delete(`/admin/providers/${id}`),
 };
 
 export default api;
