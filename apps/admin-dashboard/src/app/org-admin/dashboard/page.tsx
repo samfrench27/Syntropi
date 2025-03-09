@@ -54,29 +54,56 @@ export default function OrgAdminDashboardPage() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Emergency direct data fetching that doesn't depend on context
-  // Emergency direct data fetching that doesn't depend on context
-const emergencyFetchData = async () => {
-  debugLog('OrgAdminDashboard', 'EMERGENCY FETCH', { userId: user?.id });
-  
-  if (!user) {
-    setLoading(false);
-    setError("No user found");
-    return;
-  }
-  
-  try {
-    // Get organization ID from anywhere possible
-    const orgId = getOrganizationId();
+  const emergencyFetchData = async () => {
+    debugLog('OrgAdminDashboard', 'EMERGENCY FETCH', { userId: user?.id });
     
-    // If we don't have an organization ID from getOrganizationId, try direct extraction from user object
-    let directOrgId = null;
-    if (!orgId && user) {
-      // This verbose approach is intentional to capture every possible structure
-      if (user.organization) {
+    if (!user) {
+      setLoading(false);
+      setError("No user found");
+      return;
+    }
+    
+    try {
+      // Attempt to retrieve the organization ID from localStorage first
+      let emergencyOrgId = localStorage.getItem('emergency_org_id');
+      
+      // If we have an emergency org ID saved, try using it first
+      if (emergencyOrgId) {
+        debugLog('OrgAdminDashboard', 'Using emergency organization ID from storage', { emergencyOrgId });
+        
+        try {
+          const orgResponse = await organizationAPI.getOrganization(emergencyOrgId);
+          const organization = orgResponse.data.data.organization;
+          
+          // Set basic stats 
+          setStats({
+            organizationId: organization._id,
+            name: organization.name,
+            plan: organization.plan || 'free',
+            userCount: orgResponse.data.data.stats?.userCount || 0,
+            apiKeyCount: orgResponse.data.data.stats?.apiKeyCount || 0,
+            activeApiCalls: 254 // Mock data
+          });
+          
+          setError(null);
+          return; // Exit early if we successfully fetched with emergency ID
+        } catch (err) {
+          debugLog('OrgAdminDashboard', 'Emergency ID failed, trying other methods', { error: err });
+          // Continue to other methods if emergency ID fails
+        }
+      }
+    
+      // Get organization ID from anywhere possible
+      const orgId = getOrganizationId();
+      
+      // If we don't have an organization ID from getOrganizationId, try direct extraction from user object
+      let directOrgId = null;
+      if (!orgId && user) {
+        // Try to extract organization ID directly from user object
         if (typeof user.organization === 'string') {
           directOrgId = user.organization;
           debugLog('OrgAdminDashboard', 'Found org ID as string', { directOrgId });
-        } else if (typeof user.organization === 'object') {
+        } else if (user.organization && typeof user.organization === 'object') {
           directOrgId = user.organization.id || user.organization._id;
           debugLog('OrgAdminDashboard', 'Found org ID in object', { 
             directOrgId,
@@ -84,115 +111,132 @@ const emergencyFetchData = async () => {
           });
         }
       }
+      
+      // Use either the extracted ID or the direct one
+      const finalOrgId = orgId || directOrgId;
+      
+      if (!finalOrgId) {
+        debugLog('OrgAdminDashboard', 'No organization ID found in user', { 
+          user,
+          hasOrgField: !!user.organization,
+          orgFieldType: typeof user.organization
+        }, true);
+        
+        // FALLBACK: Try to get the user's details again from the API
+        try {
+          const userResponse = await userAPI.getUser(user.id);
+          const userData = userResponse.data.data.user;
+          
+          if (userData.organization && userData.organization._id) {
+            const freshOrgId = userData.organization._id;
+            debugLog('OrgAdminDashboard', 'Found organization ID from user API', { freshOrgId });
+            
+            // Try the API call with the fresh org ID
+            const orgResponse = await organizationAPI.getOrganization(freshOrgId);
+            const organization = orgResponse.data.data.organization;
+            
+            // Set basic stats 
+            setStats({
+              organizationId: organization._id,
+              name: organization.name,
+              plan: organization.plan || 'free',
+              userCount: orgResponse.data.data.stats?.userCount || 0,
+              apiKeyCount: orgResponse.data.data.stats?.apiKeyCount || 0,
+              activeApiCalls: 254 // Mock data
+            });
+            
+            // Store this organization ID in localStorage for future use
+            localStorage.setItem('emergency_org_id', freshOrgId);
+            setError(null);
+            return;
+          } else {
+            throw new Error("No organization found in user data");
+          }
+        } catch (userErr) {
+          debugLog('OrgAdminDashboard', 'Failed to get fresh user data', { error: userErr }, true);
+          throw new Error("No organization ID found");
+        }
+      }
+      
+      // Direct fetch organization using the ID we found
+      debugLog('OrgAdminDashboard', 'Emergency fetching organization', { finalOrgId });
+      
+      // Try the API call with the ID we found
+      const orgResponse = await organizationAPI.getOrganization(finalOrgId);
+      const organization = orgResponse.data.data.organization;
+      
+      // Set basic stats 
+      setStats({
+        organizationId: organization._id,
+        name: organization.name,
+        plan: organization.plan || 'free',
+        userCount: orgResponse.data.data.stats?.userCount || 0,
+        apiKeyCount: orgResponse.data.data.stats?.apiKeyCount || 0,
+        activeApiCalls: 254 // Mock data
+      });
+      
+      // Store this organization ID in localStorage for future use
+      localStorage.setItem('emergency_org_id', finalOrgId);
+      setError(null);
+    } catch (err: any) {
+      debugLog('OrgAdminDashboard', 'Emergency fetch failed', { error: err }, true);
+      setError(`Failed to load dashboard data: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
-    
-    // Use either the extracted ID or the direct one
-    const finalOrgId = orgId || directOrgId;
-    
-    if (!finalOrgId) {
-      // Log the full user object to help debug
-      debugLog('OrgAdminDashboard', 'No organization ID found in user', { 
-        user,
-        hasOrgField: !!user.organization,
-        orgFieldType: typeof user.organization
-      }, true);
-      throw new Error("No organization ID found");
-    }
-    
-    // Direct fetch organization using the ID we found
-    debugLog('OrgAdminDashboard', 'Emergency fetching organization', { finalOrgId });
-    
-    // Try the API call with the ID we found
-    const orgResponse = await organizationAPI.getOrganization(finalOrgId);
-    const organization = orgResponse.data.data.organization;
-    
-    // Set basic stats 
-    setStats({
-      organizationId: organization._id,
-      name: organization.name,
-      plan: organization.plan || 'free',
-      userCount: orgResponse.data.data.stats?.userCount || 0,
-      apiKeyCount: orgResponse.data.data.stats?.apiKeyCount || 0,
-      activeApiCalls: 254 // Mock data
-    });
-    
-    setError(null);
-  } catch (err: any) {
-    debugLog('OrgAdminDashboard', 'Emergency fetch failed', { error: err }, true);
-    setError(`Failed to load dashboard data: ${err.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // Special helper to handle the Emergency Load button click
-// In src/app/org-admin/dashboard/page.tsx - add this to the file
-
-const handleEmergencyLoad = async () => {
-  debugLog('OrgAdminDashboard', 'Manual emergency load initiated', {});
-  
-  setLoading(true);
-  setError(null);
-  
-  try {
-    // Hard-code the organization ID from the logs for now
-    // This is a temporary fix until we resolve the proper data structure
-    const orgId = "67c4838d9528d82a26c39dd9"; // Your organization ID here
+  const handleEmergencyLoad = async () => {
+    debugLog('OrgAdminDashboard', 'Manual emergency load initiated', {});
     
-    debugLog('OrgAdminDashboard', 'Using hardcoded organization ID for emergency', { orgId });
-    
-    // Try to get organization with this ID
-    const orgResponse = await organizationAPI.getOrganization(orgId);
-    const organization = orgResponse.data.data.organization;
-    
-    // Log success
-    debugLog('OrgAdminDashboard', 'Emergency load with hardcoded ID succeeded', { 
-      name: organization.name
-    });
-    
-    // Set stats for display
-    setStats({
-      organizationId: organization._id,
-      name: organization.name,
-      plan: organization.plan || 'free',
-      userCount: orgResponse.data.data.stats?.userCount || 0,
-      apiKeyCount: orgResponse.data.data.stats?.apiKeyCount || 0,
-      activeApiCalls: 254 // Mock data
-    });
-    
-    // Store this organization ID in localStorage for future use
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('emergency_org_id', orgId);
-      debugLog('OrgAdminDashboard', 'Saved emergency org ID to localStorage', { orgId });
-    }
-    
+    setLoading(true);
     setError(null);
-  } catch (err) {
-    debugLog('OrgAdminDashboard', 'Manual emergency load failed', { error: err }, true);
-    if (err instanceof Error) {
-      setError(`Emergency load failed: ${err.message}`);
-    } else {
-      setError('Emergency load failed: Unknown error');
+    
+    try {
+      // Hard-code the organization ID from the logs for now
+      // This is a temporary fix until we resolve the proper data structure
+      // Attempt to retrieve from localStorage first
+      const storedOrgId = localStorage.getItem('emergency_org_id');
+      const orgId = storedOrgId || "67c4838d9528d82a26c39dd9"; // Fallback ID
+      
+      debugLog('OrgAdminDashboard', 'Using organization ID for emergency', { orgId });
+      
+      // Try to get organization with this ID
+      const orgResponse = await organizationAPI.getOrganization(orgId);
+      const organization = orgResponse.data.data.organization;
+      
+      // Log success
+      debugLog('OrgAdminDashboard', 'Emergency load with ID succeeded', { 
+        name: organization.name
+      });
+      
+      // Set stats for display
+      setStats({
+        organizationId: organization._id,
+        name: organization.name,
+        plan: organization.plan || 'free',
+        userCount: orgResponse.data.data.stats?.userCount || 0,
+        apiKeyCount: orgResponse.data.data.stats?.apiKeyCount || 0,
+        activeApiCalls: 254 // Mock data
+      });
+      
+      // Store this organization ID in localStorage for future use
+      localStorage.setItem('emergency_org_id', organization._id);
+      debugLog('OrgAdminDashboard', 'Saved emergency org ID to localStorage', { orgId: organization._id });
+      
+      setError(null);
+    } catch (err) {
+      debugLog('OrgAdminDashboard', 'Manual emergency load failed', { error: err }, true);
+      if (err instanceof Error) {
+        setError(`Emergency load failed: ${err.message}`);
+      } else {
+        setError('Emergency load failed: Unknown error');
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
-
-// Then add this button in the error display section:
-{error && (
-  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-    <p className="font-bold">Error Loading Dashboard</p>
-    <p>{error}</p>
-    <button 
-      onClick={handleEmergencyLoad}
-      className="mt-2 underline text-red-700 hover:text-red-900"
-    >
-      Try Emergency Load
-    </button>
-  </div>
-)}
-
+  };
 
   // Direct data fetching fallback if context approach fails
   const fetchDataDirectly = async () => {
@@ -202,6 +246,31 @@ const handleEmergencyLoad = async () => {
     debugLog('OrgAdminDashboard', 'Fetching data directly', { userId: user.id });
     
     try {
+      // First try to get from localStorage
+      const storedOrgId = localStorage.getItem('emergency_org_id');
+      if (storedOrgId) {
+        debugLog('OrgAdminDashboard', 'Using stored organization ID', { storedOrgId });
+        
+        // Try the API call with the stored org ID
+        const orgResponse = await organizationAPI.getOrganization(storedOrgId);
+        const organization = orgResponse.data.data.organization;
+        
+        // Set basic stats
+        setStats({
+          organizationId: organization._id,
+          name: organization.name,
+          plan: organization.plan || 'free',
+          userCount: orgResponse.data.data.stats?.userCount || 0,
+          apiKeyCount: orgResponse.data.data.stats?.apiKeyCount || 0,
+          activeApiCalls: 254 // Mock data
+        });
+        
+        setError(null);
+        setLoading(false);
+        setDirectFetchInProgress(false);
+        return;
+      }
+    
       // Extract organization ID from various possible places
       const orgId = getOrganizationId();
       
@@ -250,6 +319,9 @@ const handleEmergencyLoad = async () => {
         apiKeyCount: apiKeyCount,
         activeApiCalls: 254 // Mock data
       });
+      
+      // Save the organization ID for future use
+      localStorage.setItem('emergency_org_id', organization._id);
       
       setError(null);
     } catch (err) {
@@ -315,6 +387,10 @@ const handleEmergencyLoad = async () => {
           apiKeyCount: (currentOrganization as any).stats?.apiKeyCount || 0,
           activeApiCalls: 254 // Mock data for now
         });
+        
+        // Save the organization ID for future emergency use
+        localStorage.setItem('emergency_org_id', currentOrganization._id);
+        
         setError(null);
       } catch (err) {
         debugLog('OrgAdminDashboard', 'Failed to process organization data', { error: err }, true);
@@ -427,8 +503,8 @@ const handleEmergencyLoad = async () => {
             <p className="font-bold">Error Loading Dashboard</p>
             <p>{error}</p>
             <button 
-              onClick={emergencyFetchData}
-              className="mt-2 underline text-red-700 hover:text-red-900"
+              onClick={handleEmergencyLoad}
+              className="mt-2 px-3 py-1 bg-red-700 text-white rounded hover:bg-red-800"
             >
               Try Emergency Load
             </button>
@@ -541,4 +617,4 @@ const handleEmergencyLoad = async () => {
       </main>
     </div>
   );
-}
+} 
