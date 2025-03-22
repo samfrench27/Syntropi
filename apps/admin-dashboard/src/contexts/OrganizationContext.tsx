@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useAuth } from './AuthContext';
 import { organizationAPI } from '@/lib/api';
 import { debugLog } from '@/lib/debug';
+import { getUserOrganizationId } from '@/lib/organizationFetcher';
 
 // Define the complete organization interface
 interface Organization {
@@ -62,7 +63,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
       return;
     }
-
+  
     try {
       setLoading(true);
       setError(null);
@@ -76,40 +77,29 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       
-      // Get organization ID with fallbacks
-      let orgId = null;
+      // Try to load from localStorage first for immediate display
+      if (typeof window !== 'undefined') {
+        try {
+          const storedOrg = localStorage.getItem('syntropi_organization');
+          if (storedOrg) {
+            const parsedOrg = JSON.parse(storedOrg);
+            setCurrentOrganization(parsedOrg);
+            debugLog('OrganizationContext', 'Loaded organization from localStorage', {
+              name: parsedOrg.name
+            });
+            // Continue fetching fresh data
+          }
+        } catch (err) {
+          debugLog('OrganizationContext', 'Error loading from localStorage', { error: err });
+        }
+      }
       
-      // Try user object first
-      if (user.organizationId) {
-        orgId = user.organizationId;
-        debugLog('OrganizationContext', 'Using organizationId from user', { orgId });
-      } 
-      // Then try organization object if present
-      else if (user.organization) {
-        if (typeof user.organization === 'string') {
-          orgId = user.organization;
-          debugLog('OrganizationContext', 'Using string organization from user', { orgId });
-        } else if (typeof user.organization === 'object') {
-          orgId = user.organization._id || user.organization.id;
-          debugLog('OrganizationContext', 'Using object organization from user', { orgId });
-        }
-      }
-      // Finally try localStorage
-      if (!orgId && typeof window !== 'undefined') {
-        const storedOrgId = localStorage.getItem('syntropi_org_id');
-        if (storedOrgId) {
-          orgId = storedOrgId;
-          debugLog('OrganizationContext', 'Using organization ID from localStorage', { orgId });
-        }
-      }
+      // Get organization ID using the dedicated fetcher
+      const orgId = await getUserOrganizationId(user.id);
       
       if (!orgId) {
-        debugLog('OrganizationContext', 'No organization ID found after all fallbacks', { 
-          user: user ? {
-            id: user.id,
-            email: user.email,
-            role: user.role
-          } : 'No user'
+        debugLog('OrganizationContext', 'No organization ID found after all attempts', { 
+          userId: user.id
         }, true);
         setError('No organization ID found for user');
         setLoading(false);

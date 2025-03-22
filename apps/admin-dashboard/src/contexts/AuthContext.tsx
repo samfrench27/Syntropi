@@ -159,30 +159,38 @@ const ensureOrganizationId = (userData: any): User => {
       debugLog('Auth', 'Raw user data from API', { userData });
       
       // Create a basic user object from the response
-      const userObj = {
+      const userObj: User = {
         id: userData.id || userData._id,
         email: userData.email,
         firstName: userData.firstName,
         lastName: userData.lastName,
         role: userData.role,
-        // Organization will be added later
-        organizationId: null,
-        organization: null
+        organizationId: undefined,
+        organization: userData.organization || null
       };
       
       // Set auth with the basic user first so we are authenticated for the next API calls
       setAuth(token, userObj);
       setUser(userObj);
       
-      // For admin users, fetch organization information
-      if (userData.role === 'admin') {
+      // Check if organization data is already available in the response
+      if (userData.organizationId) {
+        userObj.organizationId = userData.organizationId;
+        debugLog('Auth', 'Organization ID found in user data', { organizationId: userData.organizationId });
+      } else if (userData.organization && typeof userData.organization === 'object' && userData.organization._id) {
+        userObj.organizationId = userData.organization._id;
+        debugLog('Auth', 'Organization ID extracted from organization object', { organizationId: userObj.organizationId });
+      }
+      
+      // For admin users, fetch organization information if not already available
+      if (userData.role === 'admin' && !userObj.organizationId) {
         debugLog('Auth', 'Admin user, fetching organization information', { userId: userObj.id });
         
         // Fetch organization in the background
         fetchUserOrganization(userObj.id).then(orgId => {
           if (orgId) {
             // Update user object with organization ID
-            const updatedUser = {
+            const updatedUser: User = {
               ...userObj,
               organizationId: orgId
             };
