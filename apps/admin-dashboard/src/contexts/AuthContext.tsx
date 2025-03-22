@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { authAPI } from '@/lib/api';
 import { User, setAuth, clearAuth, getUser, isAuthenticated } from '@/lib/auth';
 import { debugLog } from '@/lib/debug';
+import { fetchUserOrganization, storeUserOrganizationId } from '@/lib/organizationFetcher';
 
 interface AuthContextType {
   user: User | null;
@@ -157,21 +158,54 @@ const ensureOrganizationId = (userData: any): User => {
       // Log the raw user data from API
       debugLog('Auth', 'Raw user data from API', { userData });
       
-      // Extract organization information
-      const userWithOrg = ensureOrganizationId(userData);
+      // Create a basic user object from the response
+      const userObj = {
+        id: userData.id || userData._id,
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        role: userData.role,
+        // Organization will be added later
+        organizationId: null,
+        organization: null
+      };
       
-      // First set the auth data in localStorage
-      setAuth(token, userWithOrg);
+      // Set auth with the basic user first so we are authenticated for the next API calls
+      setAuth(token, userObj);
+      setUser(userObj);
       
-      // Then update the state
-      setUser(userWithOrg);
+      // For admin users, fetch organization information
+      if (userData.role === 'admin') {
+        debugLog('Auth', 'Admin user, fetching organization information', { userId: userObj.id });
+        
+        // Fetch organization in the background
+        fetchUserOrganization(userObj.id).then(orgId => {
+          if (orgId) {
+            // Update user object with organization ID
+            const updatedUser = {
+              ...userObj,
+              organizationId: orgId
+            };
+            
+            // Update auth with the organization ID
+            setAuth(token, updatedUser);
+            setUser(updatedUser);
+            
+            debugLog('Auth', 'Updated user with organization ID', { 
+              userId: updatedUser.id, 
+              organizationId: updatedUser.organizationId 
+            });
+          }
+        }).catch(err => {
+          debugLog('Auth', 'Error fetching organization for user', { error: err }, true);
+        });
+      }
       
       // Log success with the processed user data
       debugLog('Auth', 'Login successful, processed user data:', {
-        id: userWithOrg.id,
-        email: userWithOrg.email,
-        role: userWithOrg.role,
-        organizationId: userWithOrg.organizationId || 'none',
+        id: userObj.id,
+        email: userObj.email,
+        role: userObj.role
       });
       
       // Add a small delay before redirecting to ensure state is updated
@@ -184,7 +218,7 @@ const ensureOrganizationId = (userData: any): User => {
         } else {
           router.push('/client/dashboard');
         }
-      }, 100);
+      }, 300); // Increased delay to allow for organization fetch
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
