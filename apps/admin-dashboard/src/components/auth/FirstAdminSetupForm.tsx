@@ -43,9 +43,9 @@ export default function FirstAdminSetupForm() {
       });
       
       const { token, user } = response.data.data;
-      setAuth(token, user);
+      setAuth(token, user); 
       
-      router.push('/dashboard');
+      router.push('/platform-admin/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.error?.message || 'Failed to create admin account');
     } finally {

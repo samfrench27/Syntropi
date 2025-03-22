@@ -83,7 +83,7 @@ export default function CreateOrganizationPage() {
     <div>
       <Header title="Create Organization" />
       
-      <main className="p-6">
+      <main className="p-6 overflow auto">
         <div className="mb-6">
           <button
             onClick={() => router.back()}
