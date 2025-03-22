@@ -32,38 +32,64 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Function to ensure user has organizationId
-  const ensureOrganizationId = (userData: any): User => {
-    // Extract organization ID safely
-    let organizationId = null;
-    
-    // Try direct organizationId property first
-    if (userData.organizationId) {
-      organizationId = userData.organizationId;
-      debugLog('AuthContext', 'Using direct organizationId', { organizationId });
-    }
-    // Then try organization object if available
-    else if (userData.organization) {
-      if (typeof userData.organization === 'string') {
-        organizationId = userData.organization;
-        debugLog('AuthContext', 'Using organization string', { organizationId });
-      } else if (typeof userData.organization === 'object') {
-        organizationId = userData.organization.id || userData.organization._id;
-        debugLog('AuthContext', 'Using organization object ID', { organizationId });
+  // Function to ensure user has organizationId - improved version
+const ensureOrganizationId = (userData: any): User => {
+  // Extract organization ID safely with more logging
+  let organizationId = null;
+  
+  // Log the full user data structure to understand what we're working with
+  debugLog('AuthContext', 'User data structure:', { 
+    userData: JSON.stringify(userData, null, 2),
+    hasOrgId: !!userData.organizationId,
+    hasOrg: !!userData.organization,
+    orgType: userData.organization ? typeof userData.organization : 'undefined'
+  });
+  
+  // Try direct organizationId property first
+  if (userData.organizationId) {
+    organizationId = userData.organizationId;
+    debugLog('AuthContext', 'Using direct organizationId', { organizationId });
+  }
+  // Then try organization object if available
+  else if (userData.organization) {
+    if (typeof userData.organization === 'string') {
+      organizationId = userData.organization;
+      debugLog('AuthContext', 'Using organization string', { organizationId });
+    } else if (typeof userData.organization === 'object') {
+      // Extract id from object, handling both _id and id properties
+      if (userData.organization._id) {
+        organizationId = userData.organization._id;
+        debugLog('AuthContext', 'Using organization._id', { organizationId });
+      } else if (userData.organization.id) {
+        organizationId = userData.organization.id;
+        debugLog('AuthContext', 'Using organization.id', { organizationId });
       }
     }
-    
-    // Return user object with organizationId
-    return {
-      id: userData.id,
-      email: userData.email,
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      role: userData.role,
-      organizationId: organizationId,
-      organization: userData.organization,
-    };
+  }
+  
+  // Log warning but don't show as error if no organization ID found
+  if (!organizationId) {
+    console.warn('[AuthContext] No organization ID found after extraction', { userData });
+  } else {
+    // If we found an organization ID, save it in localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('syntropi_org_id', organizationId);
+      debugLog('AuthContext', 'Saved organization ID to localStorage', { organizationId });
+    }
+  }
+  
+  // Return user object with organizationId
+  return {
+    id: userData.id || userData._id,
+    email: userData.email,
+    firstName: userData.firstName,
+    lastName: userData.lastName,
+    role: userData.role,
+    organizationId: organizationId,
+    organization: userData.organization,
   };
+};
+
 
   // Function to refresh user data from the server
   const refreshUser = async () => {
@@ -124,27 +150,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (email: string, password: string) => {
     try {
       const response = await authAPI.login(email, password);
+      debugLog('Auth', 'Login response received', { status: response.status });
+      
       const { token, user: userData } = response.data.data;
       
-      // Ensure organization ID is properly extracted
+      // Log the raw user data from API
+      debugLog('Auth', 'Raw user data from API', { userData });
+      
+      // Extract organization information
       const userWithOrg = ensureOrganizationId(userData);
       
-      debugLog('Auth', 'Login successful', {
-        user: userWithOrg, 
-        organizationId: userWithOrg.organizationId
-      });
-      
+      // First set the auth data in localStorage
       setAuth(token, userWithOrg);
+      
+      // Then update the state
       setUser(userWithOrg);
       
-      // Redirect based on role
-      if (userData.role === 'superadmin') {
-        router.push('/platform-admin/dashboard');
-      } else if (userData.role === 'admin') {
-        router.push('/org-admin/dashboard');
-      } else {
-        router.push('/client/dashboard');
-      }
+      // Log success with the processed user data
+      debugLog('Auth', 'Login successful, processed user data:', {
+        id: userWithOrg.id,
+        email: userWithOrg.email,
+        role: userWithOrg.role,
+        organizationId: userWithOrg.organizationId || 'none',
+      });
+      
+      // Add a small delay before redirecting to ensure state is updated
+      setTimeout(() => {
+        // Redirect based on role
+        if (userData.role === 'superadmin') {
+          router.push('/platform-admin/dashboard');
+        } else if (userData.role === 'admin') {
+          router.push('/org-admin/dashboard');
+        } else {
+          router.push('/client/dashboard');
+        }
+      }, 100);
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
