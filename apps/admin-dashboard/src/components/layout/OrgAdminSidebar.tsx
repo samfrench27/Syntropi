@@ -17,17 +17,18 @@ import {
   X
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 interface NavItemProps {
-    href: string;
-    icon: ReactNode;
-    label: string;
-    active: boolean;
-    onClick?: () => void;  // Optional since some nav items might not need click handlers
-  }
+  href: string;
+  icon: ReactNode;
+  label: string;
+  active: boolean;
+  onClick?: () => void;
+}
 
 // NavItem component for sidebar links
-const NavItem = ({ href, icon, label, active, onClick }:NavItemProps) => (
+const NavItem = ({ href, icon, label, active, onClick }: NavItemProps) => (
   <Link 
     href={href}
     className={`flex items-center px-4 py-3 rounded-md mb-1 ${
@@ -45,6 +46,7 @@ const NavItem = ({ href, icon, label, active, onClick }:NavItemProps) => (
 export default function OrgAdminSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { currentOrganization } = useOrganization();
   const [mobileOpen, setMobileOpen] = useState(false);
   
   const closeMobileMenu = () => {
@@ -92,7 +94,9 @@ export default function OrgAdminSidebar() {
       >
         <div className="p-6 border-b border-gray-200">
           <h1 className="text-xl font-bold text-blue-700">Syntropi</h1>
-          <p className="text-sm text-gray-500">Organization Admin</p>
+          <p className="text-sm text-gray-500">
+            {currentOrganization ? currentOrganization.name : 'Organization Admin'}
+          </p>
         </div>
         
         <div className="flex-1 overflow-auto p-4">

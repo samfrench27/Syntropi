@@ -1,3 +1,4 @@
+// src/contexts/AuthContext.tsx
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -31,6 +32,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // Function to ensure user has organizationId
+  const ensureOrganizationId = (userData: any): User => {
+    // Extract organization ID safely
+    let organizationId = null;
+    
+    // Try direct organizationId property first
+    if (userData.organizationId) {
+      organizationId = userData.organizationId;
+      debugLog('AuthContext', 'Using direct organizationId', { organizationId });
+    }
+    // Then try organization object if available
+    else if (userData.organization) {
+      if (typeof userData.organization === 'string') {
+        organizationId = userData.organization;
+        debugLog('AuthContext', 'Using organization string', { organizationId });
+      } else if (typeof userData.organization === 'object') {
+        organizationId = userData.organization.id || userData.organization._id;
+        debugLog('AuthContext', 'Using organization object ID', { organizationId });
+      }
+    }
+    
+    // Return user object with organizationId
+    return {
+      id: userData.id,
+      email: userData.email,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      role: userData.role,
+      organizationId: organizationId,
+      organization: userData.organization,
+    };
+  };
+
   // Function to refresh user data from the server
   const refreshUser = async () => {
     try {
@@ -39,26 +73,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const response = await authAPI.me();
         const userData = response.data.data.user;
         
-        // Extract organization id safely
-        let organizationId = null;
-        if (userData.organization) {
-          if (typeof userData.organization === 'string') {
-            organizationId = userData.organization;
-          } else if (typeof userData.organization === 'object') {
-            organizationId = userData.organization.id || userData.organization._id;
-          }
-        }
-        
-        // Construct a proper user object with organization ID
-        const updatedUser = {
-          id: userData.id,
-          email: userData.email,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          role: userData.role,
-          organizationId: organizationId,
-          organization: userData.organization,
-        };
+        // Ensure organization ID is properly extracted
+        const updatedUser = ensureOrganizationId(userData);
         
         // Update local state
         setUser(updatedUser);
@@ -66,11 +82,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Also update local storage
         localStorage.setItem('syntropi_admin_user', JSON.stringify(updatedUser));
         
-        // Store organization ID separately if available
-        if (organizationId) {
-          localStorage.setItem('syntropi_org_id', organizationId);
-          debugLog('AuthContext', 'Updated organization ID in storage', { organizationId });
-        }
+        debugLog('AuthContext', 'User refreshed successfully', { 
+          id: updatedUser.id,
+          organizationId: updatedUser.organizationId
+        });
         
         return updatedUser;
       }
@@ -88,10 +103,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Get user from local storage first
           const storedUser = getUser();
           if (storedUser) {
-            setUser(storedUser);
+            // Ensure we have organization ID
+            const userWithOrg = ensureOrganizationId(storedUser);
+            setUser(userWithOrg);
           }
           
-          // Then try to verify with server and update
+          // Then verify with server and update
           await refreshUser();
         } catch (error) {
           clearAuth();
@@ -109,39 +126,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const response = await authAPI.login(email, password);
       const { token, user: userData } = response.data.data;
       
-      // Extract organization ID more reliably
-      let organizationId = null;
+      // Ensure organization ID is properly extracted
+      const userWithOrg = ensureOrganizationId(userData);
       
-      if (userData.organizationId) {
-        organizationId = userData.organizationId;
-      } else if (userData.organization) {
-        if (typeof userData.organization === 'string') {
-          organizationId = userData.organization;
-        } else if (typeof userData.organization === 'object') {
-          organizationId = userData.organization.id || userData.organization._id;
-        }
-      }
-      
-      // Add organizationId directly to the user object
-      const userWithOrg = {
-        id: userData.id,
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        role: userData.role,
-        organizationId: organizationId,
-        organization: userData.organization
-      };
-      
-      debugLog('Auth', 'Storing user with org data', {
+      debugLog('Auth', 'Login successful', {
         user: userWithOrg, 
-        organizationId
+        organizationId: userWithOrg.organizationId
       });
-      
-      // Store organization ID separately
-      if (organizationId && typeof window !== 'undefined') {
-        localStorage.setItem('syntropi_org_id', organizationId);
-      }
       
       setAuth(token, userWithOrg);
       setUser(userWithOrg);
