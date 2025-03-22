@@ -1,10 +1,11 @@
-// src/app/(platform-admin)/layout.tsx
+// src/app/platform-admin/layout.tsx
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/layout/PlatformAdminSidebar';
+import Header from '@/components/layout/Header';
 import RoleBasedRoute from '@/components/auth/RoleBasedRoute';
 
 export default function PlatformAdminLayout({
@@ -12,12 +13,45 @@ export default function PlatformAdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Get the current page title based on the path
+  const getPageTitle = () => {
+    if (!pathname) return 'Platform Dashboard';
+    
+    // For dashboard, use a specific title
+    if (pathname === '/platform-admin' || pathname === '/platform-admin/dashboard') {
+      return 'Platform Dashboard';
+    }
+    
+    // Get the last part of the path
+    const parts = pathname.split('/');
+    const lastPart = parts[parts.length - 1];
+    
+    // Handle special cases
+    if (lastPart === 'api-keys') return 'API Keys';
+    
+    // Convert slug to title case (e.g., "user-management" -> "User Management")
+    return lastPart
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   return (
     <RoleBasedRoute allowedRoles={['superadmin']}>
-      <div className="flex h-screen bg-gray-50">
-        <Sidebar />
-        <div className="flex-1 flex flex-col overflow-auto">
-          {children}
+      <div className="flex flex-col h-screen bg-gray-50">
+        {/* Header contains the logo and user profile */}
+        <Header title={getPageTitle()} />
+        
+        {/* Main content area with sidebar */}
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar />
+          <main className="flex-1 overflow-auto">
+            {children}
+          </main>
         </div>
       </div>
     </RoleBasedRoute>

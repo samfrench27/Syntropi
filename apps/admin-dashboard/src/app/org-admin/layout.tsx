@@ -2,10 +2,11 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import Sidebar from '@/components/layout/OrgAdminSidebar';
+import OrgAdminHeader from '@/components/layout/OrgAdminHeader';
 import RoleBasedRoute from '@/components/auth/RoleBasedRoute';
 import LoadingState from '@/components/admin/LoadingState';
 import { debugLog } from '@/lib/debug';
@@ -16,6 +17,7 @@ export default function OrgAdminLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, loading: authLoading } = useAuth();
   const { currentOrganization, loading: orgLoading, error: orgError, refreshOrganization } = useOrganization();
   
@@ -41,6 +43,30 @@ export default function OrgAdminLayout({
     }
   }, [currentOrganization, authLoading, orgLoading, refreshOrganization, user]);
   
+  // Get the current page title based on the path
+  const getPageTitle = () => {
+    if (!pathname) return 'Organization Dashboard';
+    
+    // For dashboard or organization path
+    if (pathname === '/org-admin' || pathname === '/org-admin/dashboard') {
+      return 'Organization Dashboard';
+    }
+    
+    // Get the last part of the path
+    const parts = pathname.split('/');
+    const lastPart = parts[parts.length - 1];
+    
+    // Handle special cases
+    if (lastPart === 'api-keys') return 'API Keys';
+    if (lastPart === 'organization') return 'Organization Settings';
+    
+    // Convert slug to title case (e.g., "user-management" -> "User Management")
+    return lastPart
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   // Show loading state when both auth and organization are loading
   if (authLoading) {
     return (
@@ -49,22 +75,25 @@ export default function OrgAdminLayout({
       </div>
     );
   }
-  
-  // We'll show a loading state for the organization, but still render the layout
-  // This way, the sidebar is visible while the organization data loads
-  
+
   return (
     <RoleBasedRoute allowedRoles={['admin']}>
-      <div className="flex h-screen bg-gray-50">
-        <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {orgLoading ? (
-            <div className="flex-1 flex items-center justify-center">
-              <LoadingState message="Loading organization data..." />
-            </div>
-          ) : (
-            children
-          )}
+      <div className="flex flex-col h-screen bg-gray-50">
+        {/* Use the specialized OrgAdminHeader that displays organization name */}
+        <OrgAdminHeader title={getPageTitle()} />
+        
+        {/* Main content area with sidebar */}
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar />
+          <main className="flex-1 overflow-auto">
+            {orgLoading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <LoadingState message="Loading organization data..." />
+              </div>
+            ) : (
+              children
+            )}
+          </main>
         </div>
       </div>
     </RoleBasedRoute>
