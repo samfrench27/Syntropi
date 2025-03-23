@@ -16,7 +16,7 @@ import adminProviderRoutes from './routes/admin/provider.routes';
 import clientAuthRoutes from './routes/client/auth.routes';
 import clientApiKeyRoutes from './routes/client/apiKey.routes';
 import clientOrganizationRoutes from './routes/client/organization.routes';
-//import publicRoutes from './routes/public/index.routes';
+import stubbedBankRoutes from './routes/public/stubbed-bank.routes';
 
 dotenv.config();
 
@@ -34,17 +34,29 @@ app.use(logger);
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin/users', adminUserRoutes);
 app.use('/api/admin/organizations', adminOrgRoutes);
-app.use('/api/admin/api-keys', adminApiKeyRoutes); // Add this line
-app.use('/api/admin/activities', adminActivityRoutes); // Add this line
-app.use('/api/admin/providers', adminProviderRoutes); // Add this line
+app.use('/api/admin/api-keys', adminApiKeyRoutes);
+app.use('/api/admin/activities', adminActivityRoutes);
+app.use('/api/admin/providers', adminProviderRoutes);
 app.use('/api/client/auth', clientAuthRoutes);
 app.use('/api/client/api-keys', clientApiKeyRoutes);
 app.use('/api/client/organization', clientOrganizationRoutes);
-//app.use('/api/public', publicRoutes);
+app.use('/api/banks', stubbedBankRoutes); // Added stubbed bank routes
 
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
+});
+
+// Simple public endpoint for checking API status (no auth required)
+app.get('/api/status', (req, res) => {
+  res.status(200).json({
+    success: true,
+    data: {
+      status: 'operational',
+      version: process.env.API_VERSION || '1.0.0',
+      timestamp: new Date()
+    }
+  });
 });
 
 // Error handler (should be last)

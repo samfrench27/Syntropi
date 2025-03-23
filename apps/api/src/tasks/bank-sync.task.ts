@@ -1,6 +1,8 @@
 // apps/api/src/tasks/bank-sync.task.ts
 import * as bankService from '../services/bank.service';
-import winstonLogger from '../utils/logger';
+import { winstonLogger as logger } from '../utils/logger';
+
+
 
 // Schedule bank sync once a day
 export const scheduleBankSync = () => {
