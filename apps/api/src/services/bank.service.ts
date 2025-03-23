@@ -5,7 +5,7 @@ import * as tokenAdapter from '../integrations/adapters/token-adapter';
 import * as yapilyAdapter from '../integrations/adapters/yapily-adapter';
 import * as truelayerAdapter from '../integrations/adapters/truelayer-adapter';
 import * as tinkAdapter from '../integrations/adapters/tink-adapter';
-import logger from '../utils/logger';
+import { winstonLogger as logger } from '../utils/logger';
 
 // Interface for standardized bank info across providers
 interface StandardizedBankInfo {
@@ -41,7 +41,14 @@ export const getSupportedProviders = () => {
 export const fetchBanksFromProvider = async (provider: string): Promise<{[bankId: string]: StandardizedBankInfo}> => {
   try {
     const adapter = getProviderAdapter(provider);
-    const providerBanks = await adapter.getBanks();
+    const providerBanks: Array<{
+      id: string;
+      name: string;
+      country: string;
+      logoUrl?: string;
+      supportedPaymentMethods: string[];
+      metadata?: any;
+    }> = await adapter.getBanks();
     
     // Standardize bank information
     const standardizedBanks: {[bankId: string]: StandardizedBankInfo} = {};
