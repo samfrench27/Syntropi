@@ -4,7 +4,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Save, Building2 } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import Card from '@/components/admin/Card';
 import { organizationAPI } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -81,11 +80,11 @@ export default function OrgAdminOrganizationPage() {
     const { name, value } = e.target;
     
     if (name.includes('.')) {
-      const [parent, child] = name.split('.');
+      const [parent, child] = name.split('.') as [keyof typeof formData, string];
       setFormData(prev => ({
         ...prev,
         [parent]: {
-          ...prev[parent as keyof typeof prev],
+          ...(prev[parent] as Record<string, any>),
           [child]: value
         }
       }));
@@ -102,8 +101,14 @@ export default function OrgAdminOrganizationPage() {
     setSaving(true);
     setError(null);
 
+    if (!currentUser?.organizationId) {
+      setError('No organization associated with current user');
+      setSaving(false);
+      return;
+    }
+    
     try {
-      await organizationAPI.updateOrganization(currentUser!.organizationId, formData);
+      await organizationAPI.updateOrganization(currentUser.organizationId, formData);
       // Refresh organization data
       await fetchOrganization();
       alert('Organization updated successfully');
@@ -145,7 +150,6 @@ export default function OrgAdminOrganizationPage() {
   if (loading) {
     return (
       <div className="p-6">
-        <Header title="Organization Settings" />
         <div className="flex justify-center my-12">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
         </div>
@@ -156,7 +160,6 @@ export default function OrgAdminOrganizationPage() {
   if (error) {
     return (
       <div className="p-6">
-        <Header title="Organization Settings" />
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4">
           {error}
           <button 
@@ -171,207 +174,203 @@ export default function OrgAdminOrganizationPage() {
   }
 
   return (
-    <div>
-      <Header title="Organization Settings" />
-      
-      <main className="p-6">
-        <div className="max-w-4xl mx-auto">
-          <Card>
-            <form onSubmit={handleSubmit}>
-              <Card.Header 
-                title="Organization Details" 
-                description={`Created on ${new Date(organization.createdAt).toLocaleDateString()}`}
-              />
+    <main className="p-6">
+      <div className="max-w-4xl mx-auto">
+        <Card>
+          <form onSubmit={handleSubmit}>
+            <Card.Header 
+              title="Organization Details" 
+              description={`Created on ${new Date(organization.createdAt).toLocaleDateString()}`}
+            />
+            
+            <Card.Body className="space-y-6">
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                  {error}
+                </div>
+              )}
               
-              <Card.Body className="space-y-6">
-                {error && (
-                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    {error}
-                  </div>
-                )}
-                
-                <div className="flex items-center gap-4">
-                  <div className="bg-blue-100 p-4 rounded-full text-blue-600">
-                    <Building2 size={32} />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold">{organization.name}</h2>
-                    <div className="mt-1">
-                      Plan: {renderPlanBadge(organization.plan)}
-                    </div>
+              <div className="flex items-center gap-4">
+                <div className="bg-blue-100 p-4 rounded-full text-blue-600">
+                  <Building2 size={32} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold">{organization.name}</h2>
+                  <div className="mt-1">
+                    Plan: {renderPlanBadge(organization.plan)}
                   </div>
                 </div>
-                
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2">
-                  <div>
-                    <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700 mb-1">
-                      Contact Email*
-                    </label>
-                    <input
-                      type="email"
-                      id="contactEmail"
-                      name="contactEmail"
-                      value={formData.contactEmail}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="billingEmail" className="block text-sm font-medium text-gray-700 mb-1">
-                      Billing Email
-                    </label>
-                    <input
-                      type="email"
-                      id="billingEmail"
-                      name="billingEmail"
-                      value={formData.billingEmail}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Leave blank to use contact email for billing</p>
-                  </div>
+              </div>
+              
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2">
+                <div>
+                  <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700 mb-1">
+                    Contact Email*
+                  </label>
+                  <input
+                    type="email"
+                    id="contactEmail"
+                    name="contactEmail"
+                    value={formData.contactEmail}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
                 </div>
                 
-                <div className="space-y-4 pt-4 border-t border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-900">Address Information</h3>
-                  
+                <div>
+                  <label htmlFor="billingEmail" className="block text-sm font-medium text-gray-700 mb-1">
+                    Billing Email
+                  </label>
+                  <input
+                    type="email"
+                    id="billingEmail"
+                    name="billingEmail"
+                    value={formData.billingEmail}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Leave blank to use contact email for billing</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4 pt-4 border-t border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">Address Information</h3>
+                
+                <div>
+                  <label htmlFor="address.street" className="block text-sm font-medium text-gray-700 mb-1">
+                    Street Address
+                  </label>
+                  <input
+                    type="text"
+                    id="address.street"
+                    name="address.street"
+                    value={formData.address.street}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <label htmlFor="address.street" className="block text-sm font-medium text-gray-700 mb-1">
-                      Street Address
+                    <label htmlFor="address.city" className="block text-sm font-medium text-gray-700 mb-1">
+                      City
                     </label>
                     <input
                       type="text"
-                      id="address.street"
-                      name="address.street"
-                      value={formData.address.street}
+                      id="address.city"
+                      name="address.city"
+                      value={formData.address.city}
                       onChange={handleChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
-                      <label htmlFor="address.city" className="block text-sm font-medium text-gray-700 mb-1">
-                        City
-                      </label>
-                      <input
-                        type="text"
-                        id="address.city"
-                        name="address.city"
-                        value={formData.address.city}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="address.state" className="block text-sm font-medium text-gray-700 mb-1">
-                        State/Province
-                      </label>
-                      <input
-                        type="text"
-                        id="address.state"
-                        name="address.state"
-                        value={formData.address.state}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
-                      <label htmlFor="address.zipCode" className="block text-sm font-medium text-gray-700 mb-1">
-                        Postal/Zip Code
-                      </label>
-                      <input
-                        type="text"
-                        id="address.zipCode"
-                        name="address.zipCode"
-                        value={formData.address.zipCode}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="address.country" className="block text-sm font-medium text-gray-700 mb-1">
-                        Country
-                      </label>
-                      <input
-                        type="text"
-                        id="address.country"
-                        name="address.country"
-                        value={formData.address.country}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
+                  <div>
+                    <label htmlFor="address.state" className="block text-sm font-medium text-gray-700 mb-1">
+                      State/Province
+                    </label>
+                    <input
+                      type="text"
+                      id="address.state"
+                      name="address.state"
+                      value={formData.address.state}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
                   </div>
                 </div>
                 
-                <div className="space-y-4 pt-4 border-t border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-900">Integration Settings</h3>
-                  
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <label htmlFor="settings.webhookUrl" className="block text-sm font-medium text-gray-700 mb-1">
-                      Webhook URL
+                    <label htmlFor="address.zipCode" className="block text-sm font-medium text-gray-700 mb-1">
+                      Postal/Zip Code
                     </label>
                     <input
-                      type="url"
-                      id="settings.webhookUrl"
-                      name="settings.webhookUrl"
-                      value={formData.settings.webhookUrl}
+                      type="text"
+                      id="address.zipCode"
+                      name="address.zipCode"
+                      value={formData.address.zipCode}
                       onChange={handleChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="https://example.com/webhook"
                     />
-                    <p className="text-xs text-gray-500 mt-1">URL to receive event notifications</p>
                   </div>
                   
-                  <div className="bg-gray-50 p-4 rounded border border-gray-200">
-                    <h4 className="font-medium text-sm">Available Integration Providers</h4>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {organization.settings?.allowedProviders?.map((provider: string) => (
-                        <span key={provider} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {provider}
-                        </span>
-                      )) || (
-                        <p className="text-sm text-gray-500">No providers configured</p>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Contact support to enable additional providers
-                    </p>
+                  <div>
+                    <label htmlFor="address.country" className="block text-sm font-medium text-gray-700 mb-1">
+                      Country
+                    </label>
+                    <input
+                      type="text"
+                      id="address.country"
+                      name="address.country"
+                      value={formData.address.country}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
                   </div>
                 </div>
-              </Card.Body>
+              </div>
               
-              <Card.Footer className="flex justify-end">
-                <button
-                  type="submit"
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
-                  disabled={saving}
-                >
-                  {saving ? (
-                    <>
-                      <span className="animate-spin mr-2">⟳</span>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save size={16} className="mr-2" />
-                      Save Changes
-                    </>
-                  )}
-                </button>
-              </Card.Footer>
-            </form>
-          </Card>
-        </div>
-      </main>
-    </div>
+              <div className="space-y-4 pt-4 border-t border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">Integration Settings</h3>
+                
+                <div>
+                  <label htmlFor="settings.webhookUrl" className="block text-sm font-medium text-gray-700 mb-1">
+                    Webhook URL
+                  </label>
+                  <input
+                    type="url"
+                    id="settings.webhookUrl"
+                    name="settings.webhookUrl"
+                    value={formData.settings.webhookUrl}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="https://example.com/webhook"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">URL to receive event notifications</p>
+                </div>
+                
+                <div className="bg-gray-50 p-4 rounded border border-gray-200">
+                  <h4 className="font-medium text-sm">Available Integration Providers</h4>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {organization.settings?.allowedProviders?.map((provider: string) => (
+                      <span key={provider} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {provider}
+                      </span>
+                    )) || (
+                      <p className="text-sm text-gray-500">No providers configured</p>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Contact support to enable additional providers
+                  </p>
+                </div>
+              </div>
+            </Card.Body>
+            
+            <Card.Footer className="flex justify-end">
+              <button
+                type="submit"
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <span className="animate-spin mr-2">⟳</span>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} className="mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </button>
+            </Card.Footer>
+          </form>
+        </Card>
+      </div>
+    </main>
   );
 }
