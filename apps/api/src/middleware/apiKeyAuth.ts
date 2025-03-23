@@ -6,7 +6,6 @@ import { Activity } from '../models/activity.model';
 import { createError } from './errorHandler';
 import mongoose, { Document, Types } from 'mongoose';
 
-
 // Extended Request interface to add apiKey property
 interface ExtendedRequest extends Request {
   apiKey?: {
@@ -16,13 +15,31 @@ interface ExtendedRequest extends Request {
     permissions: string[];
     environment: string;
   };
+  user?: {
+    userId: string;
+    role: string;
+    organizationId: string | Types.ObjectId;
+  };
+}
+
+// Define explicit interface for ApiKey document with _id typed
+interface ApiKeyDocument extends Document {
+  _id: Types.ObjectId;
+  name: string;
+  key: string;
+  organization: Types.ObjectId | { _id: Types.ObjectId; name: string };
+  environment: string;
+  permissions: string[];
+  createdBy: Types.ObjectId;
+  lastUsed?: Date;
+  isActive: boolean;
 }
 
 /**
  * API Key authentication middleware
- * @param requiredPermissions Optional array of permissions that the API key must have
+ * @param requiredPermission Optional permission that the API key must have ('read', 'write', or 'webhooks')
  */
-export const apiKeyAuth = (requiredPermissions?: string[]) => {
+export const apiKeyAuth = (requiredPermission?: string) => {
   return async (req: ExtendedRequest, res: Response, next: NextFunction) => {
     try {
       // Get API key from header
@@ -32,7 +49,7 @@ export const apiKeyAuth = (requiredPermissions?: string[]) => {
         return next(createError('API key is required', 401));
       }
       
-      // Find API key in database
+      // Find API key in database with explicit typing
       const apiKey = await ApiKey.findOne({ 
         key: apiKeyHeader,
         isActive: true
@@ -42,8 +59,15 @@ export const apiKeyAuth = (requiredPermissions?: string[]) => {
         return next(createError('Invalid API key', 401));
       }
       
+      // Cast to our explicit type with _id
+      const typedApiKey = apiKey as unknown as ApiKeyDocument;
+      
       // Get organization
-      const organization = await Organization.findById(apiKey.organization);
+      const organization = await Organization.findById(
+        typeof typedApiKey.organization === 'object' && typedApiKey.organization._id
+          ? typedApiKey.organization._id
+          : typedApiKey.organization
+      );
       
       if (!organization) {
         return next(createError('Organization not found', 404));
@@ -55,43 +79,43 @@ export const apiKeyAuth = (requiredPermissions?: string[]) => {
       }
       
       // Check permissions if required
-      if (requiredPermissions && requiredPermissions.length > 0) {
-        // Check if API key has all required permissions
-        const hasAllPermissions = requiredPermissions.every(permission => 
-          apiKey.permissions.includes(permission)
-        );
+      if (requiredPermission) {
+        const hasRequiredPermission = typedApiKey.permissions.includes(requiredPermission);
         
-        // If key has 'all' permission, allow access regardless
-        const hasAllAccess = apiKey.permissions.includes('all');
-        
-        if (!hasAllPermissions && !hasAllAccess) {
-          return next(createError('Insufficient permissions for this operation', 403));
+        if (!hasRequiredPermission) {
+          return next(createError(`Insufficient permissions for this operation. Required: ${requiredPermission}`, 403));
         }
       }
       
       // Update last used timestamp
-      apiKey.lastUsed = new Date();
-      await apiKey.save();
+      typedApiKey.lastUsed = new Date();
+      await typedApiKey.save();
+      
+      // Extract organization ID safely
+      const organizationId = typeof typedApiKey.organization === 'object' && typedApiKey.organization._id
+        ? typedApiKey.organization._id.toString()
+        : typedApiKey.organization.toString();
       
       // Attach API key and organization info to request for later use
       req.apiKey = {
-        id: (apiKey._id as Types.ObjectId).toString(),
-        name: apiKey.name,
-        organizationId: (organization._id as Types.ObjectId).toString(),
-        permissions: apiKey.permissions,
-        environment: apiKey.environment
+        id: typedApiKey._id.toString(),
+        name: typedApiKey.name,
+        organizationId,
+        permissions: typedApiKey.permissions,
+        environment: typedApiKey.environment
       };
       
       // Log API usage (asynchronously)
       Activity.create({
-        user: apiKey.createdBy,
-        organization: organization._id,
+        user: typedApiKey.createdBy,
+        organization: typeof typedApiKey.organization === 'object' && typedApiKey.organization._id
+          ? typedApiKey.organization._id
+          : typedApiKey.organization,
         action: 'api.access',
         details: {
           endpoint: req.originalUrl,
           method: req.method,
-          apiKeyId: apiKey._id,
-          permissions: apiKey.permissions
+          apiKeyId: typedApiKey._id.toString()
         },
         ipAddress: req.ip,
         userAgent: req.get('user-agent')
