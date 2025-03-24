@@ -4,7 +4,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Search, RefreshCw, Edit, Trash2, Database, Globe, Server } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import { providerAPI } from '@/lib/api';
 import { isSuperAdmin } from '@/lib/auth';
 import Card from '@/components/admin/Card';
@@ -125,7 +124,6 @@ export default function ProvidersPage() {
   if (error) {
     return (
       <div className="p-6">
-        <Header title="Providers" />
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4">
           {error}
           <button 
@@ -140,9 +138,7 @@ export default function ProvidersPage() {
   }
 
   return (
-    <div>
-      <Header title="Open Banking Providers" />
-      
+    <div>     
       <main className="p-6">
         <PageHeader
           title="Providers"

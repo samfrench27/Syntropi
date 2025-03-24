@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, Plus, X } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import Card from '@/components/admin/Card';
 import { providerAPI } from '@/lib/api';
 import { isSuperAdmin } from '@/lib/auth';
@@ -97,7 +96,6 @@ export default function CreateProviderPage() {
   if (!isSuperAdminUser) {
     return (
       <div className="p-6">
-        <Header title="Create Provider" />
         <div className="flex justify-center my-12">
           <div className="text-center">
             <p className="text-red-600 font-medium">Admin access required</p>
@@ -109,9 +107,7 @@ export default function CreateProviderPage() {
   }
 
   return (
-    <div>
-      <Header title="Add Provider" />
-      
+    <div>      
       <main className="p-6">
         <div className="mb-6">
           <button

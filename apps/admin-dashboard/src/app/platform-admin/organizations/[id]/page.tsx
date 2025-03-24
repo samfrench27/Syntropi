@@ -3,7 +3,6 @@
 import React, { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, Users, Key, Activity } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import Card from '@/components/admin/Card';
 import { organizationAPI, userAPI, apiKeyAPI } from '@/lib/api';
 import { isSuperAdmin } from '@/lib/auth';
@@ -246,7 +245,6 @@ export default function OrganizationDetailsPage({ params }: { params: { id: stri
   if (loading) {
     return (
       <div className="p-6">
-        <Header title="Organization Details" />
         <div className="flex justify-center my-12">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
         </div>
@@ -257,7 +255,6 @@ export default function OrganizationDetailsPage({ params }: { params: { id: stri
   if (error) {
     return (
       <div className="p-6">
-        <Header title="Organization Details" />
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4">
           {error}
           <button 
@@ -274,7 +271,6 @@ export default function OrganizationDetailsPage({ params }: { params: { id: stri
   if (!organization) {
     return (
       <div className="p-6">
-        <Header title="Organization Details" />
         <div className="text-center py-12">
           <p className="text-gray-700">Organization not found</p>
           <button
@@ -289,9 +285,7 @@ export default function OrganizationDetailsPage({ params }: { params: { id: stri
   }
 
   return (
-    <div>
-      <Header title={`Organization: ${organization.name}`} />
-      
+    <div>  
       <main className="p-6">
         <div className="mb-6">
           <button

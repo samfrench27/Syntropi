@@ -4,7 +4,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Save, Copy, AlertCircle } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import Card from '@/components/admin/Card';
 import { apiKeyAPI, organizationAPI } from '@/lib/api';
 
@@ -96,9 +95,7 @@ export default function CreateApiKeyPage() {
   };
 
   return (
-    <div>
-      <Header title="Create API Key" />
-      
+    <div>      
       <main className="p-6">
         <div className="mb-6">
           <button

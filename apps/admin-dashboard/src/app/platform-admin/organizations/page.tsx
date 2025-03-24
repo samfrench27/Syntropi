@@ -4,7 +4,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Search, Filter, RefreshCw, Edit, Trash2, MoreHorizontal, Building } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import { organizationAPI } from '@/lib/api';
 import { isSuperAdmin } from '@/lib/auth';
 import Card from '@/components/admin/Card';
@@ -137,7 +136,6 @@ export default function OrganizationsPage() {
   if (error) {
     return (
       <div className="p-6">
-        <Header title="Organizations" />
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4">
           {error}
           <button 
@@ -153,8 +151,6 @@ export default function OrganizationsPage() {
 
   return (
     <div>
-      <Header title="Organizations" />
-      
       <main className="p-6">
         <PageHeader
           title="Organizations"

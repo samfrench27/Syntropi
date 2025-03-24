@@ -4,7 +4,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Search, RefreshCw, EyeOff, Copy, Building2, User, Key, Eye } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import { apiKeyAPI, organizationAPI } from '@/lib/api';
 import Card from '@/components/admin/Card';
 import PageHeader from '@/components/admin/PageHeader';
@@ -145,7 +144,6 @@ export default function ApiKeysPage() {
   if (error) {
     return (
       <div className="p-6">
-        <Header title="API Keys" />
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4">
           {error}
           <button 
@@ -161,8 +159,6 @@ export default function ApiKeysPage() {
 
   return (
     <div>
-      <Header title="API Keys" />
-      
       <main className="p-6">
         <PageHeader
           title="API Keys"

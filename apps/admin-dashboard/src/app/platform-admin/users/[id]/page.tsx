@@ -4,7 +4,6 @@
 import React, { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, Building2, Activity, Key } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import Card from '@/components/admin/Card';
 import { userAPI, organizationAPI } from '@/lib/api';
 import { isSuperAdmin } from '@/lib/auth';
@@ -245,7 +244,6 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
   if (loading && !isCreateMode) {
     return (
       <div className="p-6">
-        <Header title="User Details" />
         <div className="flex justify-center my-12">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
         </div>
@@ -256,7 +254,6 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
   if (error) {
     return (
       <div className="p-6">
-        <Header title="User Details" />
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4">
           {error}
           <button 
@@ -273,7 +270,6 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
   if (!user && !isCreateMode) {
   return (
     <div className="p-6">
-      <Header title="User Details" />
       <div className="text-center py-12">
         <p className="text-gray-700">User not found</p>
         <button
@@ -289,8 +285,6 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header title={isCreateMode ? "Create New User" : `User: ${user?.firstName} ${user?.lastName}`} />
-      
       <main className="p-6 flex-1 overflow-auto">
         <div className="mb-6">
           <button
