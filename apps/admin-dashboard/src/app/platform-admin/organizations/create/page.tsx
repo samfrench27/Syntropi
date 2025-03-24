@@ -4,7 +4,6 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import Card from '@/components/admin/Card';
 import { organizationAPI } from '@/lib/api';
 
@@ -81,8 +80,6 @@ export default function CreateOrganizationPage() {
 
   return (
     <div>
-      <Header title="Create Organization" />
-      
       <main className="p-6 overflow auto">
         <div className="mb-6">
           <button

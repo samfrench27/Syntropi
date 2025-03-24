@@ -4,7 +4,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Save } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import Card from '@/components/admin/Card';
 import { userAPI, organizationAPI } from '@/lib/api';
 import { isSuperAdmin } from '@/lib/auth';
@@ -100,8 +99,6 @@ export default function CreateUserPage() {
 
   return (
     <div>
-      <Header title="Create User" />
-      
       <main className="p-6">
         <div className="mb-6">
           <button

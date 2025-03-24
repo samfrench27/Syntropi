@@ -4,7 +4,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, EyeOff, ClipboardCheck, Building2, User, Clock, Calendar, Activity } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import Card from '@/components/admin/Card';
 import { apiKeyAPI } from '@/lib/api';
 
@@ -135,7 +134,6 @@ export default function ApiKeyDetailsPage({ params }: { params: { id: string } }
   if (loading) {
     return (
       <div className="p-6">
-        <Header title="API Key Details" />
         <div className="flex justify-center my-12">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
         </div>
@@ -146,7 +144,6 @@ export default function ApiKeyDetailsPage({ params }: { params: { id: string } }
   if (error) {
     return (
       <div className="p-6">
-        <Header title="API Key Details" />
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4">
           {error}
           <button 
@@ -163,7 +160,6 @@ export default function ApiKeyDetailsPage({ params }: { params: { id: string } }
   if (!apiKey) {
     return (
       <div className="p-6">
-        <Header title="API Key Details" />
         <div className="text-center py-12">
           <p className="text-gray-700">API key not found</p>
           <button
@@ -179,8 +175,6 @@ export default function ApiKeyDetailsPage({ params }: { params: { id: string } }
 
   return (
     <div>
-      <Header title={`API Key: ${apiKey.name}`} />
-      
       <main className="p-6">
         <div className="mb-6">
           <button
