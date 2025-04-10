@@ -37,7 +37,7 @@ export default function RoleBasedRoute({
       } else if (user.role === 'admin') {
         router.push('/org-admin/dashboard');  
       } else {
-        router.push('/dashboard');
+        router.push('/client-dashboard/dashboard');
       }
     }
   }, [user, loading, router, allowedRoles, redirectPath]);  

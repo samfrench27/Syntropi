@@ -7,12 +7,12 @@ import { Key, Activity } from 'lucide-react';
 const navItems = [
   {
     name: 'API Keys',
-    href: '/api-keys',
+    href: '/client-dashboard/api-keys',
     icon: Key,
   },
   {
     name: 'Activity Logs',
-    href: '/activities',
+    href: '/client-dashboard/activities',
     icon: Activity,
   },
 ];
@@ -22,7 +22,7 @@ export default function ClientSidebar() {
   
   const isActive = (href: string) => {
     // Special case for dashboard
-    if (href === '/dashboard' && pathname === '/') {
+    if (href === '/client-dashboard/dashboard' && pathname === '/client-dashboard') {
       return true;
     }
     

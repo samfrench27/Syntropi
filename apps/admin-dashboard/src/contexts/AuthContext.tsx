@@ -224,7 +224,7 @@ const ensureOrganizationId = (userData: any): User => {
         } else if (userData.role === 'admin') {
           router.push('/org-admin/dashboard');
         } else {
-          router.push('/dashboard');
+          router.push('/client-dashboard/dashboard');
         }
       }, 300); // Increased delay to allow for organization fetch
     } catch (error) {
