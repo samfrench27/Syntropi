@@ -19,11 +19,11 @@ export default function PlatformAdminLayout({
 
   // Get the current page title based on the path
   const getPageTitle = () => {
-    if (!pathname) return 'Platform Dashboard';
+    if (!pathname) return 'Dashboard';
     
     // For dashboard, use a specific title
     if (pathname === '/platform-admin' || pathname === '/platform-admin/dashboard') {
-      return 'Platform Dashboard';
+      return 'Dashboard';
     }
     
     // Get the last part of the path
@@ -42,7 +42,12 @@ export default function PlatformAdminLayout({
 
   return (
     <RoleBasedRoute allowedRoles={['superadmin']}>
-      <div className="flex flex-col h-screen bg-gray-50">
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        background: 'linear-gradient(to bottom right, rgba(79, 140, 255, 0.03), rgba(159, 92, 255, 0.03))'
+      }}>
         {/* Header contains the logo and user profile */}
         <Header title={getPageTitle()} />
         
