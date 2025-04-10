@@ -54,84 +54,80 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="mt-8 w-full max-w-md">
-      <div className="bg-surface p-8 rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold mb-6 text-center text-text-primary">Login</h2>
-        
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-        
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="email" className="block text-text-primary font-medium mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={email}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              style={{ 
-                outline: 'none',
-              }}
-              onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(79, 140, 255, 0.3)'}
-              onBlur={(e) => e.target.style.boxShadow = 'none'}
-              required
-            />
-          </div>
-          
-          <div className="mb-6">
-            <label htmlFor="password" className="block text-text-primary font-medium mb-2">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={password}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              style={{ 
-                outline: 'none',
-              }}
-              onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(79, 140, 255, 0.3)'}
-              onBlur={(e) => e.target.style.boxShadow = 'none'}
-              required
-            />
-          </div>
-          
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%', 
-              background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
-              color: 'white',
-              padding: '0.5rem 1rem',
-              borderRadius: '0.375rem',
-              opacity: loading ? '0.5' : '1',
-              transition: 'opacity 150ms'
-            }}
-            className="focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-        
-        <div className="mt-4 text-center">
-          <Link 
-            href="/forgot-password" 
-            style={{ color: '#4F8CFF' }}
-            className="hover:opacity-80 transition-opacity"
-          >
-            Forgot your password?
-          </Link>
+    <div className="w-full">
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
         </div>
+      )}
+      
+      <form onSubmit={handleSubmit}>
+        <div className="mb-4">
+          <label htmlFor="email" className="block text-text-primary font-medium mb-2">
+            Email
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            value={email}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            style={{ 
+              outline: 'none',
+            }}
+            onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(79, 140, 255, 0.3)'}
+            onBlur={(e) => e.target.style.boxShadow = 'none'}
+            required
+          />
+        </div>
+        
+        <div className="mb-6">
+          <label htmlFor="password" className="block text-text-primary font-medium mb-2">
+            Password
+          </label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            value={password}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            style={{ 
+              outline: 'none',
+            }}
+            onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(79, 140, 255, 0.3)'}
+            onBlur={(e) => e.target.style.boxShadow = 'none'}
+            required
+          />
+        </div>
+        
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            width: '100%', 
+            background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
+            color: 'white',
+            padding: '0.5rem 1rem',
+            borderRadius: '0.375rem',
+            opacity: loading ? '0.5' : '1',
+            transition: 'opacity 150ms'
+          }}
+          className="focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:cursor-not-allowed"
+        >
+          {loading ? 'Signing in...' : 'Sign In'}
+        </button>
+      </form>
+      
+      <div className="mt-4 text-center">
+        <Link 
+          href="/forgot-password" 
+          style={{ color: '#4F8CFF' }}
+          className="hover:opacity-80 transition-opacity"
+        >
+          Forgot your password?
+        </Link>
       </div>
     </div>
   );
