@@ -75,7 +75,12 @@ export default function LoginForm() {
               name="email"
               value={email}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-syntropi-blue"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              style={{ 
+                outline: 'none',
+              }}
+              onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(79, 140, 255, 0.3)'}
+              onBlur={(e) => e.target.style.boxShadow = 'none'}
               required
             />
           </div>
@@ -90,7 +95,12 @@ export default function LoginForm() {
               name="password"
               value={password}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-syntropi-blue"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              style={{ 
+                outline: 'none',
+              }}
+              onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(79, 140, 255, 0.3)'}
+              onBlur={(e) => e.target.style.boxShadow = 'none'}
               required
             />
           </div>
@@ -98,14 +108,27 @@ export default function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-syntropi-gradient text-white py-2 px-4 rounded-md hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-syntropi-purple focus:ring-offset-2 disabled:opacity-50"
+            style={{
+              width: '100%', 
+              background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
+              color: 'white',
+              padding: '0.5rem 1rem',
+              borderRadius: '0.375rem',
+              opacity: loading ? '0.5' : '1',
+              transition: 'opacity 150ms'
+            }}
+            className="focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:cursor-not-allowed"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
         
         <div className="mt-4 text-center">
-          <Link href="/forgot-password" className="text-syntropi-blue hover:text-syntropi-purple transition-colors">
+          <Link 
+            href="/forgot-password" 
+            style={{ color: '#4F8CFF' }}
+            className="hover:opacity-80 transition-opacity"
+          >
             Forgot your password?
           </Link>
         </div>
