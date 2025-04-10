@@ -1,0 +1,56 @@
+apis:
+  # Define a name for your API
+  syntropi:
+    # Path to your OpenAPI definition
+    root: ./openapi.yaml
+    theme:
+      openapi:
+        # Use the Syntropi color theme
+        theme:
+          colors:
+            primary:
+              main: '#5449DE' # Syntropi purple
+              light: '#EFEDFC' # Soft lavender
+              dark: '#3F38A6' # Darker purple
+            text:
+              primary: '#1A1A1A'
+              secondary: '#4A4A4A'
+            background:
+              primary: '#FFFFFF'
+              light: '#F7F7F7'
+        sidebar:
+          width: '300px'
+          backgroundColor: '#F7F7F7'
+        typography:
+          fontFamily: 'Inter, -apple-system, system-ui, sans-serif'
+          fontSize: '16px'
+          lineHeight: '1.5'
+          headings:
+            fontFamily: 'Inter, -apple-system, system-ui, sans-serif'
+            fontWeight: '600'
+        
+        # Configure the logo
+        logo:
+          gutter: '20px'
+        rightPanel:
+          backgroundColor: '#2A2F45'
+          textColor: '#ffffff'
+
+# Configuring the redoc output format
+referenceDocs:
+  outputDir: ./build/reference
+  htmlTemplate: ./templates/index.html  # Will create this next
+  theme:
+    openapi:
+      hideInfoSection: false  # Show API information section
+      showConsole: true      # Show interactive console
+      expandResponses: "200,201"  # Auto-expand 200 and 201 responses
+      jsonSampleExpandLevel: 2  # Expand JSON samples to level 2
+      showExtensions: false  # Hide extensions
+      noAutoAuth: false  # Show auth section
+
+plugins:
+  - security  # Security plugin to check for potential security issues
+  - analytics:
+      gtm:
+        tagId: 'GTM-XXXXXXX'  # Replace with actual GTM tag ID if needed 

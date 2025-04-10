@@ -6,7 +6,13 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/server.js",
     "dev": "nodemon",
-    "build": "tsc"
+    "build": "tsc",
+    "docs:build": "redocly build-docs docs/openapi.yaml -o docs/build/index.html",
+    "docs:serve": "redocly preview-docs docs/openapi.yaml",
+    "docs:lint": "redocly lint docs/openapi.yaml",
+    "docs:bundle": "redocly bundle docs/openapi.yaml -o docs/dist/openapi.yaml",
+    "docs:static": "npx http-server docs/build -o -p 8081",
+    "docs:generate-client": "npx openapi-typescript-codegen --input docs/openapi.yaml --output docs/client"
   },
   "keywords": [],
   "author": "",
@@ -28,12 +34,14 @@
     "winston": "^3.13.0"
   },
   "devDependencies": {
+    "@redocly/cli": "^1.9.0",
     "@types/bcrypt": "^5.0.2",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.13.8",
     "nodemon": "^3.1.9",
+    "openapi-typescript-codegen": "^0.28.0",
     "swagger-ui-express": "^5.0.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"

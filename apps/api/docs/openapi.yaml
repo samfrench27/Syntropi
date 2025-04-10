@@ -1,0 +1,337 @@
+openapi: 3.0.0
+info:
+  title: Syntropi Banking API
+  description: |
+    API for accessing bank information across multiple providers.
+    This API allows you to retrieve bank information, filter by country, payment method, and provider.
+  version: 1.0.0
+  contact:
+    name: Syntropi Support
+    email: support@syntropi.com
+    url: https://syntropi.com/support
+  license:
+    name: Proprietary
+    url: https://syntropi.com/terms
+servers:
+  - url: https://api.syntropi.com/api
+    description: Production API
+  - url: https://api-staging.syntropi.com/api
+    description: Staging API
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key for authentication
+
+  schemas:
+    Bank:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "bank_001"
+        name:
+          type: string
+          example: "National Bank of Test"
+        country:
+          type: string
+          description: "ISO 3166-1 alpha-2 country code"
+          example: "GB"
+        logoUrl:
+          type: string
+          format: uri
+          example: "https://example.com/logos/national-bank.png"
+        supportedPaymentMethods:
+          type: array
+          items:
+            type: string
+          example: ["sepa", "faster_payments", "chaps"]
+        providerMappings:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              providerId:
+                type: string
+                example: "token_bank_001"
+              supportedPaymentMethods:
+                type: array
+                items:
+                  type: string
+                example: ["sepa", "faster_payments"]
+              lastUpdated:
+                type: string
+                format: date-time
+              active:
+                type: boolean
+                example: true
+    
+    Provider:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "token"
+    
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 100
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        pages:
+          type: integer
+          example: 5
+    
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Invalid API key"
+
+    BankListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            banks:
+              type: array
+              items:
+                $ref: '#/components/schemas/Bank'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    
+    BankResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            bank:
+              $ref: '#/components/schemas/Bank'
+    
+    ProvidersResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            providers:
+              type: array
+              items:
+                type: string
+              example: ["token", "yapily", "truelayer", "tink"]
+    
+    SyncResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Bank synchronization completed"
+        data:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              created:
+                type: integer
+                example: 5
+              updated:
+                type: integer
+                example: 10
+              skipped:
+                type: integer
+                example: 2
+              total:
+                type: integer
+                example: 17
+
+paths:
+  /banks:
+    get:
+      operationId: listBanks
+      summary: List all banks
+      description: |
+        Returns a list of banks with optional filtering by country, provider, payment method, and search term.
+        Results are paginated.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: country
+          in: query
+          description: Filter by ISO 3166-1 alpha-2 country code
+          schema:
+            type: string
+            example: "GB"
+        - name: provider
+          in: query
+          description: Filter by banking provider
+          schema:
+            type: string
+            example: "token"
+        - name: paymentMethod
+          in: query
+          description: Filter by supported payment method
+          schema:
+            type: string
+            example: "sepa"
+        - name: search
+          in: query
+          description: Search term to filter bank names
+          schema:
+            type: string
+            example: "national"
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Number of results per page
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 500
+      responses:
+        '200':
+          description: List of banks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankListResponse'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /banks/providers:
+    get:
+      operationId: listProviders
+      summary: Get supported banking providers
+      description: Returns a list of all supported banking providers
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: List of providers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProvidersResponse'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /banks/{id}:
+    get:
+      operationId: getBankById
+      summary: Get bank details
+      description: Returns detailed information about a specific bank
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Bank ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bank details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankResponse'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Bank not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /banks/sync:
+    post:
+      operationId: syncBanks
+      summary: Sync banks from providers
+      description: |
+        Admin-only endpoint to synchronize bank information from providers.
+        Optional query parameter to specify which provider to sync.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: provider
+          in: query
+          description: Specific provider to sync (omit to sync all)
+          schema:
+            type: string
+            example: "token"
+      responses:
+        '200':
+          description: Sync results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResponse'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
