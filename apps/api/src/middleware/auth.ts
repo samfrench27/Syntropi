@@ -9,6 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 interface DecodedToken {
   userId: string;
   role: string;
+  organizationId?: string;
   iat: number;
   exp: number;
 }
@@ -37,7 +38,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     (req as any).user = {
       userId: decoded.userId,
       role: decoded.role,
-      organizationId: user.organization,
+      // Prefer organizationId from token, fallback to user.organization
+      organizationId: decoded.organizationId || user.organization,
     };
     
     next();

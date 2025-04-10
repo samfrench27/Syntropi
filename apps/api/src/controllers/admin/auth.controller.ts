@@ -11,7 +11,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '24h';
 
 // Generate JWT token for admin
-const generateAdminToken = (userId: string, role: string): string => {
+const generateAdminToken = (userId: string, role: string, organizationId?: string): string => {
   // Use environment variable for the secret key
   const secretKey = JWT_SECRET;
   
@@ -19,8 +19,18 @@ const generateAdminToken = (userId: string, role: string): string => {
     throw new Error('JWT_SECRET environment variable is not defined');
   }
   
+  // Include organizationId in the token payload if provided
+  const payload: { userId: string; role: string; organizationId?: string } = { 
+    userId, 
+    role 
+  };
+  
+  if (organizationId) {
+    payload.organizationId = organizationId;
+  }
+  
   return jwt.sign(
-    { userId, role }, 
+    payload, 
     secretKey,
     { expiresIn: '1h' } // Set an expiration time for the token
   );
@@ -57,8 +67,9 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     user.lastLogin = new Date();
     await user.save();
 
-    // Generate token
-    const token = generateAdminToken((user._id as any).toString(), user.role);
+    // Generate token with organizationId for user role
+    const organizationId = user.organization ? user.organization.toString() : undefined;
+    const token = generateAdminToken((user._id as any).toString(), user.role, organizationId);
 
     // Log activity
     await Activity.create({
@@ -83,6 +94,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          organizationId: organizationId
         }
       }
     });
