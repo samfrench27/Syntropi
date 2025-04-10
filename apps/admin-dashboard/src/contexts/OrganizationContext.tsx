@@ -4,6 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { organizationAPI } from '@/lib/api';
+import { clientOrganizationAPI } from '@/lib/clientApi';
 import { debugLog } from '@/lib/debug';
 import { getUserOrganizationId } from '@/lib/organizationFetcher';
 
@@ -94,24 +95,37 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
         }
       }
       
-      // Get organization ID using the dedicated fetcher
-      const orgId = await getUserOrganizationId(user.id);
+      let orgData;
+      let stats = {};
       
-      if (!orgId) {
-        debugLog('OrganizationContext', 'No organization ID found after all attempts', { 
-          userId: user.id
-        }, true);
-        setError('No organization ID found for user');
-        setLoading(false);
-        return;
+      // Use different API endpoints based on user role
+      if (user.role === 'user') {
+        debugLog('OrganizationContext', 'Fetching organization with client API for user role', {
+          userId: user.id,
+          role: user.role
+        });
+        // For users with 'user' role, use the client API
+        const response = await clientOrganizationAPI.getOrganization();
+        orgData = response.data.data.organization;
+        stats = response.data.data.stats || {};
+      } else {
+        // For admin users, first get org ID then use admin API
+        const orgId = await getUserOrganizationId(user.id);
+        
+        if (!orgId) {
+          debugLog('OrganizationContext', 'No organization ID found after all attempts', { 
+            userId: user.id
+          }, true);
+          setError('No organization ID found for user');
+          setLoading(false);
+          return;
+        }
+        
+        debugLog('OrganizationContext', 'Fetching organization data with admin API', { orgId });
+        const response = await organizationAPI.getOrganization(orgId);
+        orgData = response.data.data.organization;
+        stats = response.data.data.stats || {};
       }
-      
-      debugLog('OrganizationContext', 'Fetching organization data', { orgId });
-      
-      // Fetch the organization data
-      const response = await organizationAPI.getOrganization(orgId);
-      const orgData = response.data.data.organization;
-      const stats = response.data.data.stats || {};
       
       // Store the organization data
       const organizationData = {
