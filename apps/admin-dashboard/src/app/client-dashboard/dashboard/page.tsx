@@ -19,7 +19,7 @@ export default function ClientDashboardPage() {
   return (
     <main className="p-6 bg-background-light">
       <PageHeader
-        title="Client Dashboard"
+        title="Dashboard"
         description={`Welcome back${user?.firstName ? ', ' + user.firstName : ''}!`}
       />
 

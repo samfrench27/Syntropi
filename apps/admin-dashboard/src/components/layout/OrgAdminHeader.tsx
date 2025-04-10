@@ -55,8 +55,8 @@ export default function OrgAdminHeader({ title }: { title: string }) {
         padding: '0 1.5rem'
       }}>
         <div className="flex items-center">
-          {/* Logo - only visible in header now */}
-          <div className="mr-6">
+          {/* Logo and organization name in horizontal layout */}
+          <div className="flex items-center">
             <h1 style={{ 
               background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
               WebkitBackgroundClip: 'text',
@@ -66,17 +66,21 @@ export default function OrgAdminHeader({ title }: { title: string }) {
             }}>
               Syntropi
             </h1>
+            
             {currentOrganization?.name && (
-              <p style={{ fontSize: '0.75rem', color: '#6B7280' }}>
-                {currentOrganization.name}
-              </p>
+              <div className="ml-4 pl-4 border-l border-gray-300">
+                <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#6B7280' }}>
+                  {currentOrganization.name}
+                </span>
+              </div>
             )}
           </div>
           
           <h1 style={{ 
             fontSize: '1.25rem',
             fontWeight: 600,
-            color: '#374151'
+            color: '#374151',
+            marginLeft: '1.5rem'
           }}>
             {title}
           </h1>
