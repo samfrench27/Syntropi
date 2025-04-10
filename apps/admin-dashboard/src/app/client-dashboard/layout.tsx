@@ -77,7 +77,12 @@ export default function ClientLayout({
 
   return (
     <RoleBasedRoute allowedRoles={['user', 'admin']}>
-      <div className="flex flex-col h-screen bg-gray-50">
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        background: 'linear-gradient(to bottom right, rgba(79, 140, 255, 0.03), rgba(159, 92, 255, 0.03))'
+      }}>
         <ClientHeader title={getPageTitle()} />
         
         {/* Main content area with sidebar */}

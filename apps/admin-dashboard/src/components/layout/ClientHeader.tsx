@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { User, LogOut, X, Menu as MenuIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,7 +40,12 @@ export default function ClientHeader({ title }: ClientHeaderProps) {
   };
 
   return (
-    <header className="bg-surface shadow-sm z-10">
+    <header style={{
+      background: 'linear-gradient(to right, rgba(79, 140, 255, 0.03), rgba(159, 92, 255, 0.03))',
+      borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+      zIndex: 10
+    }}>
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo and Organization Name */}
@@ -51,18 +55,20 @@ export default function ClientHeader({ title }: ClientHeaderProps) {
                 href="/"
                 className="flex items-center"
               >
-                <Image 
-                  src="/syntropilogo.png" 
-                  alt="Syntropi Logo" 
-                  width={120} 
-                  height={32} 
-                  priority
-                />
+                <h1 style={{ 
+                  background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  fontSize: '1.5rem',
+                  fontWeight: 'bold' 
+                }}>
+                  Syntropi
+                </h1>
               </Link>
               
               {currentOrganization && (
                 <div className="ml-4 pl-4 border-l border-gray-300">
-                  <span className="text-sm font-medium text-text-primary">
+                  <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#6B7280' }}>
                     {currentOrganization.name}
                   </span>
                 </div>
@@ -72,7 +78,13 @@ export default function ClientHeader({ title }: ClientHeaderProps) {
           
           {/* Page Title - Hidden on mobile */}
           <div className="hidden md:flex items-center">
-            <h1 className="text-xl font-semibold text-text-primary">{title}</h1>
+            <h1 style={{ 
+              fontSize: '1.25rem',
+              fontWeight: 600,
+              color: '#374151'
+            }}>
+              {title}
+            </h1>
           </div>
           
           {/* User Profile Dropdown */}
@@ -81,14 +93,21 @@ export default function ClientHeader({ title }: ClientHeaderProps) {
               <div>
                 <button
                   type="button"
-                  className="flex items-center max-w-xs text-sm bg-soft-lavender rounded-full focus:outline-none focus:ring-2 focus:ring-syntropi-purple p-1"
+                  style={{
+                    background: 'linear-gradient(to right, rgba(79, 140, 255, 0.2), rgba(159, 92, 255, 0.2))',
+                    borderRadius: '9999px',
+                    padding: '0.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
                   id="user-menu-button"
                   aria-expanded="false"
                   aria-haspopup="true"
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                 >
                   <span className="sr-only">Open user menu</span>
-                  <User className="h-7 w-7 rounded-full p-1 text-syntropi-purple" />
+                  <User className="h-7 w-7 rounded-full p-1 text-syntropi-blue" />
                 </button>
               </div>
               

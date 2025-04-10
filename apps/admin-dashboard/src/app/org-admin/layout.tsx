@@ -78,7 +78,12 @@ export default function OrgAdminLayout({
 
   return (
     <RoleBasedRoute allowedRoles={['admin']}>
-      <div className="flex flex-col h-screen bg-gray-50">
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        background: 'linear-gradient(to bottom right, rgba(79, 140, 255, 0.03), rgba(159, 92, 255, 0.03))'
+      }}>
         {/* Use the specialized OrgAdminHeader that displays organization name */}
         <OrgAdminHeader title={getPageTitle()} />
         

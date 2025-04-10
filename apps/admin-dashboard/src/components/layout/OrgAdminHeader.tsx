@@ -42,17 +42,44 @@ export default function OrgAdminHeader({ title }: { title: string }) {
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 sticky top-0 z-10">
+      <header style={{
+        background: 'linear-gradient(to right, rgba(79, 140, 255, 0.03), rgba(159, 92, 255, 0.03))',
+        borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
+        height: '4rem',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 1.5rem'
+      }}>
         <div className="flex items-center">
           {/* Logo - only visible in header now */}
           <div className="mr-6">
-            <h1 className="text-xl font-bold text-blue-700">Syntropi</h1>
-            <p className="text-xs text-gray-500">
-              {currentOrganization?.name || 'Organization Admin'}
-            </p>
+            <h1 style={{ 
+              background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontSize: '1.5rem',
+              fontWeight: 'bold' 
+            }}>
+              Syntropi
+            </h1>
+            {currentOrganization?.name && (
+              <p style={{ fontSize: '0.75rem', color: '#6B7280' }}>
+                {currentOrganization.name}
+              </p>
+            )}
           </div>
           
-          <h1 className="text-xl font-semibold text-gray-800">{title}</h1>
+          <h1 style={{ 
+            fontSize: '1.25rem',
+            fontWeight: 600,
+            color: '#374151'
+          }}>
+            {title}
+          </h1>
         </div>
         
         <div className="flex items-center space-x-6">
@@ -63,7 +90,13 @@ export default function OrgAdminHeader({ title }: { title: string }) {
                 <Search size={18} />
               </div>
               <input
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none sm:text-sm"
+                style={{
+                  boxShadow: 'none',
+                  borderColor: 'rgba(209, 213, 219, 0.8)',
+                }}
+                onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(79, 140, 255, 0.3)'}
+                onBlur={(e) => e.target.style.boxShadow = 'none'}
                 type="search"
                 placeholder="Search"
               />
@@ -73,7 +106,13 @@ export default function OrgAdminHeader({ title }: { title: string }) {
           {/* Notification button */}
           <button
             type="button"
-            className="p-1.5 rounded-full text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            style={{
+              padding: '0.375rem',
+              borderRadius: '9999px',
+              color: '#9F5CFF',
+              transition: 'all 150ms'
+            }}
+            className="hover:bg-soft-lavender focus:outline-none"
           >
             <span className="sr-only">View notifications</span>
             <Bell size={20} />
@@ -83,14 +122,25 @@ export default function OrgAdminHeader({ title }: { title: string }) {
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center rounded-full hover:bg-gray-100 px-2 py-1 focus:outline-none transition-colors"
+              className="flex items-center rounded-full hover:bg-soft-lavender px-2 py-1 focus:outline-none transition-colors"
               aria-expanded={dropdownOpen}
               aria-haspopup="true"
             >
               <span className="hidden md:inline-block text-sm font-medium text-gray-700 mr-2">
                 {user?.firstName} {user?.lastName}
               </span>
-              <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
+              <div style={{
+                width: '2.25rem',
+                height: '2.25rem',
+                borderRadius: '9999px',
+                background: 'linear-gradient(to right, rgba(79, 140, 255, 0.2), rgba(159, 92, 255, 0.2))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#4F8CFF',
+                fontWeight: 600,
+                fontSize: '0.875rem'
+              }}>
                 {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
               </div>
             </button>
