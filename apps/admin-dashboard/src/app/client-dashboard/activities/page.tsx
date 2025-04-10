@@ -86,9 +86,9 @@ export default function ClientActivitiesPage() {
 
   const getActionCategoryColor = (action: string) => {
     if (action.startsWith('admin.')) {
-      return 'bg-purple-100 text-purple-800';
+      return 'bg-soft-lavender text-syntropi-purple';
     } else if (action.startsWith('user.')) {
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-[#E0F2FE] text-syntropi-blue';
     } else if (action.startsWith('organization.')) {
       return 'bg-green-100 text-green-800';
     } else if (action.startsWith('api.')) {
@@ -96,7 +96,7 @@ export default function ClientActivitiesPage() {
     } else if (action.startsWith('system.')) {
       return 'bg-red-100 text-red-800';
     } else if (action.startsWith('client.')) {
-      return 'bg-indigo-100 text-indigo-800';
+      return 'bg-[#E0F2FE] text-syntropi-blue';
     } else {
       return 'bg-gray-100 text-gray-800';
     }
@@ -155,7 +155,7 @@ export default function ClientActivitiesPage() {
   }
 
   return (
-    <main className="p-6">
+    <main className="p-6 bg-background-light">
       <PageHeader
         title="Activity Logs"
         description="View your account activity history"
@@ -165,20 +165,20 @@ export default function ClientActivitiesPage() {
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={18} className="text-gray-400" />
+              <Search size={18} className="text-text-secondary" />
             </div>
             <input
               type="text"
               placeholder="Search activities..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-syntropi-blue"
             />
           </div>
           
           <button
             onClick={fetchActivities}
-            className="flex items-center px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            className="flex items-center px-4 py-2 border border-gray-300 rounded-md hover:bg-soft-lavender text-text-primary"
           >
             <RefreshCw size={16} className="mr-2" />
             Refresh
@@ -190,7 +190,7 @@ export default function ClientActivitiesPage() {
             <select
               value={filterAction}
               onChange={(e) => setFilterAction(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-syntropi-blue"
             >
               <option value="">All Actions</option>
               {uniqueActions.map(action => (
@@ -206,14 +206,14 @@ export default function ClientActivitiesPage() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-syntropi-blue"
               placeholder="Start Date"
             />
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-syntropi-blue"
               placeholder="End Date"
             />
           </div>
@@ -222,7 +222,7 @@ export default function ClientActivitiesPage() {
             {(filterAction || startDate || endDate) && (
               <button
                 onClick={handleClearFilters}
-                className="px-4 py-2 text-blue-600 hover:text-blue-800 border border-blue-300 rounded-md hover:bg-blue-50"
+                className="px-4 py-2 text-syntropi-blue hover:text-syntropi-purple border border-syntropi-blue hover:border-syntropi-purple rounded-md hover:bg-soft-lavender transition-colors"
               >
                 Clear Filters
               </button>
@@ -241,7 +241,7 @@ export default function ClientActivitiesPage() {
         <EmptyState
           title="No activities found"
           description="Try adjusting your filters or check again later."
-          icon={<ActivityIcon size={24} />}
+          icon={<ActivityIcon size={24} className="text-syntropi-purple" />}
         />
       ) : (
         <>
@@ -249,15 +249,15 @@ export default function ClientActivitiesPage() {
             <Card.Body>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-background-light">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                         Action
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                         Time
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                         Details
                       </th>
                     </tr>
@@ -301,7 +301,7 @@ export default function ClientActivitiesPage() {
                   className={`px-4 py-2 border rounded-md text-sm font-medium ${
                     currentPage === 1
                       ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      : 'border-gray-300 text-text-primary hover:bg-soft-lavender'
                   }`}
                 >
                   Previous
@@ -312,7 +312,7 @@ export default function ClientActivitiesPage() {
                   className={`ml-3 px-4 py-2 border rounded-md text-sm font-medium ${
                     currentPage === totalPages
                       ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      : 'border-gray-300 text-text-primary hover:bg-soft-lavender'
                   }`}
                 >
                   Next

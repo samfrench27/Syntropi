@@ -98,8 +98,8 @@ export default function ClientApiKeysPage() {
 
   const renderEnvironmentBadge = (env: string) => {
     const badgeClass = env === 'production' 
-      ? 'bg-purple-100 text-purple-800' 
-      : 'bg-blue-100 text-blue-800';
+      ? 'bg-soft-lavender text-syntropi-purple' 
+      : 'bg-[#E0F2FE] text-syntropi-blue';
     
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass}`}>
@@ -144,7 +144,7 @@ export default function ClientApiKeysPage() {
         action={
           <button
             onClick={handleCreateApiKey}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="flex items-center px-4 py-2 bg-syntropi-gradient text-white rounded-md hover:opacity-90 transition-opacity"
           >
             <Plus size={16} className="mr-2" />
             New API Key
@@ -156,20 +156,20 @@ export default function ClientApiKeysPage() {
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={18} className="text-gray-400" />
+              <Search size={18} className="text-text-secondary" />
             </div>
             <input
               type="text"
               placeholder="Search API keys..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-syntropi-blue"
             />
           </div>
           
           <button
             onClick={fetchApiKeys}
-            className="flex items-center px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            className="flex items-center px-4 py-2 border border-gray-300 rounded-md hover:bg-soft-lavender text-text-primary"
           >
             <RefreshCw size={16} className="mr-2" />
             Refresh
@@ -197,11 +197,11 @@ export default function ClientApiKeysPage() {
         <EmptyState
           title="No API keys found"
           description="Get started by creating your first API key."
-          icon={<Key size={24} />}
+          icon={<Key size={24} className="text-syntropi-purple" />}
           action={
             <button
               onClick={handleCreateApiKey}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="flex items-center px-4 py-2 bg-syntropi-gradient text-white rounded-md hover:opacity-90 transition-opacity"
             >
               <Plus size={16} className="mr-2" />
               New API Key
@@ -212,21 +212,21 @@ export default function ClientApiKeysPage() {
         <Card>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-background-light">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                     Name
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                     Environment
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                     Status
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                     Created
                   </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-text-secondary uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -265,7 +265,7 @@ export default function ClientApiKeysPage() {
           
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+            <div className="px-6 py-4 bg-background-light border-t border-gray-200 flex items-center justify-between">
               <div className="flex-1 flex justify-between">
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -273,7 +273,7 @@ export default function ClientApiKeysPage() {
                   className={`px-4 py-2 border rounded-md text-sm font-medium ${
                     currentPage === 1
                       ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      : 'border-gray-300 text-text-primary hover:bg-soft-lavender'
                   }`}
                 >
                   Previous
@@ -284,7 +284,7 @@ export default function ClientApiKeysPage() {
                   className={`ml-3 px-4 py-2 border rounded-md text-sm font-medium ${
                     currentPage === totalPages
                       ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      : 'border-gray-300 text-text-primary hover:bg-soft-lavender'
                   }`}
                 >
                   Next

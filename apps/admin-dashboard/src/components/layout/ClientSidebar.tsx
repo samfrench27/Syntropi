@@ -31,11 +31,11 @@ export default function ClientSidebar() {
   };
 
   return (
-    <aside className="w-64 bg-white shadow-sm hidden md:block">
+    <aside className="w-64 bg-surface shadow-sm hidden md:block">
       <div className="h-full flex flex-col">
         <div className="flex-1 overflow-y-auto py-4 px-3">
           <nav className="space-y-1 px-2">
-            <div className="mb-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <div className="mb-2 px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">
               Client Dashboard
             </div>
             
@@ -45,13 +45,13 @@ export default function ClientSidebar() {
                 href={item.href}
                 className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
                   isActive(item.href)
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-soft-lavender text-syntropi-purple'
+                    : 'text-text-primary hover:bg-background-light hover:text-syntropi-blue'
                 }`}
               >
                 <item.icon
                   className={`mr-3 flex-shrink-0 h-5 w-5 ${
-                    isActive(item.href) ? 'text-blue-500' : 'text-gray-400'
+                    isActive(item.href) ? 'text-syntropi-purple' : 'text-text-secondary'
                   }`}
                 />
                 <span className="truncate">{item.name}</span>

@@ -17,7 +17,7 @@ export default function ClientDashboardPage() {
   }, [user]);
 
   return (
-    <main className="p-6">
+    <main className="p-6 bg-background-light">
       <PageHeader
         title="Client Dashboard"
         description={`Welcome back${user?.firstName ? ', ' + user.firstName : ''}!`}
@@ -30,12 +30,12 @@ export default function ClientDashboardPage() {
         >
           <Card>
             <Card.Body className="flex items-center">
-              <div className="p-3 rounded-full bg-blue-100 mr-4">
-                <Key className="h-8 w-8 text-blue-600" />
+              <div className="p-3 rounded-full bg-soft-lavender mr-4">
+                <Key className="h-8 w-8 text-syntropi-purple" />
               </div>
               <div>
-                <h3 className="text-lg font-medium text-gray-900">API Keys</h3>
-                <p className="text-gray-600">Manage your API keys to access Syntropi services</p>
+                <h3 className="text-lg font-medium text-text-primary">API Keys</h3>
+                <p className="text-text-secondary">Manage your API keys to access Syntropi services</p>
               </div>
             </Card.Body>
           </Card>
@@ -47,12 +47,12 @@ export default function ClientDashboardPage() {
         >
           <Card>
             <Card.Body className="flex items-center">
-              <div className="p-3 rounded-full bg-purple-100 mr-4">
-                <Activity className="h-8 w-8 text-purple-600" />
+              <div className="p-3 rounded-full bg-soft-lavender mr-4">
+                <Activity className="h-8 w-8 text-syntropi-purple" />
               </div>
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Activity Logs</h3>
-                <p className="text-gray-600">View your recent account activities</p>
+                <h3 className="text-lg font-medium text-text-primary">Activity Logs</h3>
+                <p className="text-text-secondary">View your recent account activities</p>
               </div>
             </Card.Body>
           </Card>

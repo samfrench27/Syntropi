@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Menu, User, LogOut, X, Menu as MenuIcon } from 'lucide-react';
+import { User, LogOut, X, Menu as MenuIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 
@@ -40,7 +41,7 @@ export default function ClientHeader({ title }: ClientHeaderProps) {
   };
 
   return (
-    <header className="bg-white shadow-sm z-10">
+    <header className="bg-surface shadow-sm z-10">
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo and Organization Name */}
@@ -50,14 +51,18 @@ export default function ClientHeader({ title }: ClientHeaderProps) {
                 href="/"
                 className="flex items-center"
               >
-                <span className="text-xl font-bold text-blue-600">
-                  Syntropi
-                </span>
+                <Image 
+                  src="/syntropilogo.png" 
+                  alt="Syntropi Logo" 
+                  width={120} 
+                  height={32} 
+                  priority
+                />
               </Link>
               
               {currentOrganization && (
                 <div className="ml-4 pl-4 border-l border-gray-300">
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-text-primary">
                     {currentOrganization.name}
                   </span>
                 </div>
@@ -67,7 +72,7 @@ export default function ClientHeader({ title }: ClientHeaderProps) {
           
           {/* Page Title - Hidden on mobile */}
           <div className="hidden md:flex items-center">
-            <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
+            <h1 className="text-xl font-semibold text-text-primary">{title}</h1>
           </div>
           
           {/* User Profile Dropdown */}
@@ -76,39 +81,39 @@ export default function ClientHeader({ title }: ClientHeaderProps) {
               <div>
                 <button
                   type="button"
-                  className="flex items-center max-w-xs text-sm bg-blue-50 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 p-1"
+                  className="flex items-center max-w-xs text-sm bg-soft-lavender rounded-full focus:outline-none focus:ring-2 focus:ring-syntropi-purple p-1"
                   id="user-menu-button"
                   aria-expanded="false"
                   aria-haspopup="true"
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                 >
                   <span className="sr-only">Open user menu</span>
-                  <User className="h-7 w-7 rounded-full p-1 text-blue-600" />
+                  <User className="h-7 w-7 rounded-full p-1 text-syntropi-purple" />
                 </button>
               </div>
               
               {/* Dropdown */}
               {userMenuOpen && (
                 <div
-                  className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
+                  className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-surface ring-1 ring-black ring-opacity-5 focus:outline-none"
                   role="menu"
                   aria-orientation="vertical"
                   aria-labelledby="user-menu-button"
                   tabIndex={-1}
                 >
-                  <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-100">
+                  <div className="px-4 py-2 text-sm text-text-primary border-b border-gray-100">
                     <div className="font-medium">{getUserDisplayName()}</div>
-                    <div className="text-xs text-gray-500 truncate">
+                    <div className="text-xs text-text-secondary truncate">
                       {user?.email}
                     </div>
                   </div>
                   
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    className="w-full flex items-center px-4 py-2 text-sm text-text-primary hover:bg-soft-lavender"
                     role="menuitem"
                   >
-                    <LogOut className="mr-3 h-4 w-4 text-gray-500" aria-hidden="true" />
+                    <LogOut className="mr-3 h-4 w-4 text-text-secondary" aria-hidden="true" />
                     Sign out
                   </button>
                 </div>
@@ -119,7 +124,7 @@ export default function ClientHeader({ title }: ClientHeaderProps) {
             <div className="md:hidden flex items-center ml-4">
               <button
                 type="button"
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                className="inline-flex items-center justify-center p-2 rounded-md text-text-secondary hover:text-text-primary hover:bg-soft-lavender focus:outline-none focus:ring-2 focus:ring-inset focus:ring-syntropi-purple"
                 aria-controls="mobile-menu"
                 aria-expanded="false"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -141,15 +146,15 @@ export default function ClientHeader({ title }: ClientHeaderProps) {
         <div className="md:hidden" id="mobile-menu">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <Link
-              href="/api-keys"
-              className="text-gray-700 hover:bg-gray-100 block px-3 py-2 rounded-md text-base font-medium"
+              href="/client-dashboard/api-keys"
+              className="text-text-primary hover:bg-soft-lavender block px-3 py-2 rounded-md text-base font-medium"
               onClick={() => setMobileMenuOpen(false)}
             >
               API Keys
             </Link>
             <Link
-              href="/activities"
-              className="text-gray-700 hover:bg-gray-100 block px-3 py-2 rounded-md text-base font-medium"
+              href="/client-dashboard/activities"
+              className="text-text-primary hover:bg-soft-lavender block px-3 py-2 rounded-md text-base font-medium"
               onClick={() => setMobileMenuOpen(false)}
             >
               Activity Logs
