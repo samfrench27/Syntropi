@@ -37,12 +37,10 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       return next(createError('Invalid credentials', 401));
     }
 
-    // Check if user is admin
-    if (user.role !== 'admin' && user.role !== 'superadmin') {
-      return next(createError('Admin access required', 403));
+    // Check if user is not a valid role
+    if (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'user') {
+      return next(createError('Invalid user role', 403));
     }
-
-    
 
     // Check if user is active
     if (user.status !== 'active') {

@@ -9,7 +9,7 @@ export default function AuthLayout({
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="text-center">
             <h1 className="text-3xl font-extrabold text-blue-600">Syntropi</h1>
-            <p className="mt-2 text-gray-600">Admin Dashboard</p>
+            <p className="mt-2 text-gray-600">User Portal</p>
           </div>
           {children}
         </div>
