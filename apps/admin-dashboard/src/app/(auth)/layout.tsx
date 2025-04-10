@@ -17,6 +17,7 @@ export default function AuthLayout({
                 width={200} 
                 height={60} 
                 priority
+                unoptimized
               />
             </div>
             <p className="mt-2 text-text-secondary">User Portal</p>
