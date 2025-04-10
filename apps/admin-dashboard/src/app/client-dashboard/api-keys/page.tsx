@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Plus, Search, RefreshCw, Key } from 'lucide-react';
 import { apiKeyAPI } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import Card from '@/components/admin/Card';
 import PageHeader from '@/components/admin/PageHeader';
 import EmptyState from '@/components/admin/EmptyState';
@@ -35,10 +36,20 @@ export default function ClientApiKeysPage() {
   
   const router = useRouter();
   const { user: currentUser } = useAuth();
+  const { refreshOrganization } = useOrganization();
   
   useEffect(() => {
     fetchApiKeys();
   }, [currentPage, searchTerm, filterEnv]);
+
+  const handleRefreshOrganization = async () => {
+    try {
+      await refreshOrganization();
+      fetchApiKeys();
+    } catch (err) {
+      console.error('Failed to refresh organization data:', err);
+    }
+  };
 
   const fetchApiKeys = async () => {
     setLoading(true);
@@ -123,12 +134,20 @@ export default function ClientApiKeysPage() {
   if (error) {
     return (
       <div className="p-6">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4">
-          {error}
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <div className="text-red-600 mb-4 text-lg font-medium">{error}</div>
           <button 
-            onClick={fetchApiKeys}
-            className="ml-4 text-red-700 hover:text-red-900 underline"
+            onClick={handleRefreshOrganization}
+            style={{
+              background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
+              color: 'white',
+              padding: '0.5rem 1.5rem',
+              borderRadius: '0.375rem',
+              transition: 'opacity 150ms'
+            }}
+            className="inline-flex items-center hover:opacity-90"
           >
+            <RefreshCw size={16} className="mr-2" />
             Try Again
           </button>
         </div>

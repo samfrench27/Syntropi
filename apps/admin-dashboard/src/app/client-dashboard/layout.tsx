@@ -44,11 +44,11 @@ export default function ClientLayout({
   
   // Get the current page title based on the path
   const getPageTitle = () => {
-    if (!pathname) return 'Client Dashboard';
+    if (!pathname) return 'Dashboard';
     
     // For dashboard path
     if (pathname === '/client-dashboard' || pathname === '/client-dashboard/dashboard') {
-      return 'Client Dashboard';
+      return 'Dashboard';
     }
     
     // Get the last part of the path

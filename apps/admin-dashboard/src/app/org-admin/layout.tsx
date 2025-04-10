@@ -45,11 +45,11 @@ export default function OrgAdminLayout({
   
   // Get the current page title based on the path
   const getPageTitle = () => {
-    if (!pathname) return 'Organization Dashboard';
+    if (!pathname) return 'Dashboard';
     
     // For dashboard or organization path
     if (pathname === '/org-admin' || pathname === '/org-admin/dashboard') {
-      return 'Organization Dashboard';
+      return 'Dashboard';
     }
     
     // Get the last part of the path
