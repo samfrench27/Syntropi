@@ -44,8 +44,16 @@ export default function Header({ title }: { title: string }) {
         <div className="flex items-center">
           {/* Logo - only visible in header now */}
           <div className="mr-6">
-            <h1 className="text-xl font-bold text-blue-700">Syntropi</h1>
-            <p className="text-xs text-gray-500">Platform Admin</p>
+            <h1 style={{ 
+              background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontSize: '1.25rem',
+              fontWeight: 'bold' 
+            }}>
+              Syntropi
+            </h1>
+            <p style={{ fontSize: '0.75rem', color: '#6B7280' }}>Platform Admin</p>
           </div>
           
           <h1 className="text-xl font-semibold text-gray-800">{title}</h1>
@@ -225,7 +233,11 @@ export default function Header({ title }: { title: string }) {
                     <div>
                       <button
                         type="button"
-                        className="w-full flex justify-center items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        className="w-full flex justify-center items-center px-4 py-2 rounded-md hover:opacity-90 text-white"
+                        style={{
+                          background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
+                          transition: 'opacity 150ms'
+                        }}
                       >
                         <User size={16} className="mr-2" />
                         Update Profile
@@ -314,7 +326,11 @@ export default function Header({ title }: { title: string }) {
                       <div className="mt-4">
                         <button
                           type="button"
-                          className="w-full flex justify-center items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                          className="w-full flex justify-center items-center px-4 py-2 rounded-md hover:opacity-90 text-white"
+                          style={{
+                            background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
+                            transition: 'opacity 150ms'
+                          }}
                         >
                           Update Password
                         </button>

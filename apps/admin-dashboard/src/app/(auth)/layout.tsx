@@ -1,5 +1,5 @@
 // src/app/(auth)/layout.tsx
-import Image from 'next/image';
+import React from 'react';
 
 export default function AuthLayout({
     children,
@@ -11,16 +11,17 @@ export default function AuthLayout({
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="text-center">
             <div className="flex justify-center mb-4">
-              <Image 
-                src="/syntropilogo.png" 
-                alt="Syntropi Logo" 
-                width={200} 
-                height={60} 
-                priority
-                unoptimized
-              />
+              <h1 style={{ 
+                background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontSize: '2rem',
+                fontWeight: 'bold'
+              }}>
+                Syntropi
+              </h1>
             </div>
-            <p className="mt-2 text-text-secondary">User Portal</p>
+            <p style={{ color: '#6B7280' }}>User Portal</p>
           </div>
           {children}
         </div>
