@@ -1,15 +1,17 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, MouseEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, RefreshCw, Calendar, Filter, User, Building2, Code, Shield, Settings, 
-         Activity as ActivityIcon } from 'lucide-react';
+         Activity as ActivityIcon, ArrowRight } from 'lucide-react';
 import { activityAPI } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import Card from '@/components/admin/Card';
 import PageHeader from '@/components/admin/PageHeader';
 import EmptyState from '@/components/admin/EmptyState';
-
+import { toast } from 'react-hot-toast';
+import { format } from 'date-fns';
 
 interface ActivityLog {
   _id: string;
@@ -38,42 +40,63 @@ export default function ClientActivitiesPage() {
   const [endDate, setEndDate] = useState<string>('');
   
   const router = useRouter();
-  const { user: currentUser } = useAuth();
+  const { user } = useAuth();
+  const { currentOrganization, loading: orgLoading, error: orgError } = useOrganization();
   
-  useEffect(() => {
-    fetchActivities();
-  }, [currentPage, searchTerm, filterAction, startDate, endDate]);
+  const itemsPerPage = 10;
 
-  const fetchActivities = async () => {
+  const fetchActivities = async (page = 1) => {
+    if (!currentOrganization?._id) return;
+    
     setLoading(true);
     setError(null);
     
-    if (!currentUser?.organizationId) {
-      setError('No organization associated with current user');
-      setLoading(false);
-      return;
-    }
-    
     try {
-      const response = await activityAPI.getActivities({
-        page: currentPage,
-        limit: 20,
-        organizationId: currentUser.organizationId,
-        action: filterAction || undefined,
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
-        // Only get the current user's activities
-        userId: currentUser.id
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: itemsPerPage.toString(),
+        organizationId: currentOrganization._id
       });
       
-      setActivities(response.data.data.activities);
-      setTotalPages(response.data.data.pagination.pages);
-    } catch (err: any) {
-      console.error('Failed to fetch activities:', err);
-      setError(err.response?.data?.error?.message || 'Failed to fetch activity logs');
+      if (searchTerm) params.append('search', searchTerm);
+      if (filterAction) params.append('action', filterAction);
+      if (startDate) params.append('startDate', new Date(startDate).toISOString());
+      if (endDate) params.append('endDate', new Date(endDate).toISOString());
+      
+      const response = await fetch(`/api/activities?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch activities');
+      }
+      
+      const data = await response.json();
+      
+      setActivities(data.activities || []);
+      setTotalPages(Math.ceil(data.total / itemsPerPage) || 1);
+      setCurrentPage(page);
+    } catch (err: unknown) {
+      console.error('Error fetching activities:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch activities';
+      setError(errorMessage);
+      toast.error('Failed to fetch activities');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchActivities(currentPage);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchActivities(1); // Reset to first page on search
   };
 
   const handleClearFilters = () => {
@@ -81,8 +104,16 @@ export default function ClientActivitiesPage() {
     setFilterAction('');
     setStartDate('');
     setEndDate('');
-    setCurrentPage(1);
+    fetchActivities(1); // Reset to first page
   };
+
+  const areFiltersActive = searchTerm || filterAction || startDate || endDate;
+
+  useEffect(() => {
+    if (currentOrganization?._id && !orgLoading) {
+      fetchActivities(currentPage);
+    }
+  }, [currentOrganization, orgLoading, currentPage]);
 
   const getActionCategoryColor = (action: string) => {
     if (action.startsWith('admin.')) {
@@ -138,13 +169,27 @@ export default function ClientActivitiesPage() {
 
   const uniqueActions = Array.from(new Set(activities.map(a => a.action))).sort();
 
+  const handlePreviousPage = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (currentPage > 1) {
+      fetchActivities(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (currentPage < totalPages) {
+      fetchActivities(currentPage + 1);
+    }
+  };
+
   if (error) {
     return (
       <div className="p-6">
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4">
           {error}
           <button 
-            onClick={fetchActivities}
+            onClick={() => fetchActivities(1)}
             className="ml-4 text-red-700 hover:text-red-900 underline"
           >
             Try Again
@@ -177,7 +222,7 @@ export default function ClientActivitiesPage() {
           </div>
           
           <button
-            onClick={fetchActivities}
+            onClick={() => fetchActivities(currentPage)}
             className="flex items-center px-4 py-2 border border-gray-300 rounded-md hover:bg-soft-lavender text-text-primary"
           >
             <RefreshCw size={16} className="mr-2" />
@@ -234,7 +279,7 @@ export default function ClientActivitiesPage() {
       {loading ? (
         <div className="py-8">
           <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-syntropi-purple"></div>
           </div>
         </div>
       ) : activities.length === 0 ? (
@@ -296,24 +341,16 @@ export default function ClientActivitiesPage() {
             <div className="mt-4 flex items-center justify-between">
               <div className="flex-1 flex justify-between">
                 <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  onClick={handlePreviousPage}
                   disabled={currentPage === 1}
-                  className={`px-4 py-2 border rounded-md text-sm font-medium ${
-                    currentPage === 1
-                      ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                      : 'border-gray-300 text-text-primary hover:bg-soft-lavender'
-                  }`}
+                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-text-primary hover:bg-soft-lavender"
                 >
                   Previous
                 </button>
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  onClick={handleNextPage}
                   disabled={currentPage === totalPages}
-                  className={`ml-3 px-4 py-2 border rounded-md text-sm font-medium ${
-                    currentPage === totalPages
-                      ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                      : 'border-gray-300 text-text-primary hover:bg-soft-lavender'
-                  }`}
+                  className="relative inline-flex items-center px-4 py-2 ml-3 border border-gray-300 text-text-primary hover:bg-soft-lavender"
                 >
                   Next
                 </button>
