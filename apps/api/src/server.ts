@@ -18,7 +18,7 @@ import adminProviderRoutes from './routes/admin/provider.routes';
 import clientAuthRoutes from './routes/client/auth.routes';
 import clientApiKeyRoutes from './routes/client/apiKey.routes';
 import clientOrganizationRoutes from './routes/client/organization.routes';
-import stubbedBankRoutes from './routes/public/stubbed-bank.routes';
+import bankRoutes from './routes/public/bank.routes'; // Using real bank routes
 
 dotenv.config();
 
@@ -42,7 +42,7 @@ app.use('/api/admin/providers', adminProviderRoutes);
 app.use('/api/client/auth', clientAuthRoutes);
 app.use('/api/client/api-keys', clientApiKeyRoutes);
 app.use('/api/client/organization', clientOrganizationRoutes);
-app.use('/api/banks', stubbedBankRoutes); // Added stubbed bank routes
+app.use('/api/banks', bankRoutes); // Using real bank routes
 
 // Health check endpoint
 app.get('/health', (req, res) => {
