@@ -9,6 +9,9 @@
   --background-rgb: 249, 249, 251;
   --syntropi-blue: #5449DE;
   --syntropi-purple: #B63FDE;
+  --syntropi-border: #E5E7EB;
+  --text-primary: #1A1A1A;
+  --syntropi-soft-lavender: #F5F3FF;
 }
 
 body {
@@ -41,16 +44,37 @@ body {
   outline: none;
   box-shadow: 0 0 0 2px rgba(84, 73, 222, 0.5);
 }
-  
-@layer components {
-  .btn-secondary {
-    @apply px-6 py-3 bg-white border border-syntropi-border text-text-primary 
-    font-semibold rounded-md transition-all duration-300 hover:bg-syntropi-soft-lavender 
-    focus:outline-none focus:ring-2 focus:ring-syntropi-blue focus:ring-opacity-50;
-  }
 
+/* Convert btn-secondary from @apply to standard CSS */
+.btn-secondary {
+  padding: 0.75rem 1.5rem;
+  background-color: white;
+  border: 1px solid var(--syntropi-border);
+  color: var(--text-primary);
+  font-weight: 600;
+  border-radius: 0.375rem;
+  transition: all 300ms;
+}
+
+.btn-secondary:hover {
+  background-color: var(--syntropi-soft-lavender);
+}
+
+.btn-secondary:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(84, 73, 222, 0.5);
+}
+
+/* Convert section from @apply to standard CSS */
+.section {
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+}
+
+@media (min-width: 768px) {
   .section {
-    @apply py-16 md:py-24;
+    padding-top: 6rem;
+    padding-bottom: 6rem;
   }
 }
 
