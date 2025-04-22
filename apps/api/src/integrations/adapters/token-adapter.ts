@@ -54,23 +54,24 @@ function mapPaymentMethods(supportedLocalInstruments: string[]): string[] {
 // Fetch banks from Token.io API
 export const getBanks = async () => {
   try {
-    logger.info('Fetching banks from Token.io API');
+    logger.info('Fetching banks from Token.io API - GB only');
     
-    // Get banks for multiple countries
-    const countries = ['GB', 'DE', 'FR', 'ES', 'IT', 'NL'];
+    // Get banks for GB only
+    const country = 'GB';
     const allBanks: TokenBank[] = [];
     
-    for (const country of countries) {
-      const response = await axios.get<TokenBankResponse>(`https://api.token.io/v2/banks?countries=${country}`);
-      allBanks.push(...response.data.banks);
-    }
+    // Only fetch GB banks
+    const response = await axios.get<TokenBankResponse>(`https://api.token.io/v2/banks?countries=${country}`);
+    allBanks.push(...response.data.banks);
+    
+    logger.info(`Fetched ${allBanks.length} banks from GB`);
     
     // Convert to our standardized format
     return allBanks.map(bank => ({
       id: bank.id,
       name: cleanBankName(bank.name),
-      // Take the first country as primary, or default to 'UNKNOWN'
-      country: bank.countries && bank.countries.length > 0 ? bank.countries[0] : 'UNKNOWN',
+      // Make sure all banks are set to GB country code
+      country: 'GB',
       logoUrl: bank.logoUri,
       supportedPaymentMethods: mapPaymentMethods(bank.supportedLocalInstruments || []),
       metadata: {
