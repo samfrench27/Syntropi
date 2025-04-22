@@ -9,6 +9,8 @@ import { winstonLogger as logger } from '../utils/logger';
 
 // Interface for standardized bank info across providers
 interface StandardizedBankInfo {
+  id: string;         // Friendly ID (gb-bankname format)
+  originalId?: string; // Original provider ID
   name: string;
   country: string;
   logoUrl?: string;
@@ -43,6 +45,7 @@ export const fetchBanksFromProvider = async (provider: string): Promise<{[bankId
     const adapter = getProviderAdapter(provider);
     const providerBanks: Array<{
       id: string;
+      originalId?: string;
       name: string;
       country: string;
       logoUrl?: string;
@@ -55,6 +58,8 @@ export const fetchBanksFromProvider = async (provider: string): Promise<{[bankId
     
     for (const bank of providerBanks) {
       standardizedBanks[bank.id] = {
+        id: bank.id,
+        originalId: bank.originalId,
         name: bank.name,
         country: bank.country,
         logoUrl: bank.logoUrl,
@@ -86,11 +91,18 @@ export const syncBanksFromProviders = async (providers?: string[]): Promise<any>
       let skipped = 0;
       
       // Process each bank
-      for (const [providerId, bankInfo] of Object.entries(providerBanks)) {
-        // Look for existing bank by name and country (potential match)
+      for (const [friendlyId, bankInfo] of Object.entries(providerBanks)) {
+        // First check if bank already exists by syntropi_id
         let existingBank = await Bank.findOne({
-          [`providerMappings.${provider}.providerId`]: providerId
+          syntropi_id: friendlyId
         });
+        
+        if (!existingBank && bankInfo.originalId) {
+          // Try to find by provider ID if original ID is available
+          existingBank = await Bank.findOne({
+            [`providerMappings.${provider}.providerId`]: bankInfo.originalId
+          });
+        }
         
         if (!existingBank) {
           // Try to find by name and country as a fuzzy match
@@ -99,6 +111,8 @@ export const syncBanksFromProviders = async (providers?: string[]): Promise<any>
             country: bankInfo.country
           });
         }
+        
+        const providerId = bankInfo.originalId || friendlyId;
         
         if (existingBank) {
           // Ensure providerMappings is initialized
@@ -114,6 +128,11 @@ export const syncBanksFromProviders = async (providers?: string[]): Promise<any>
             active: true,
             metadata: bankInfo.metadata
           };
+          
+          // Update syntropi_id if it doesn't exist
+          if (!existingBank.syntropi_id) {
+            existingBank.syntropi_id = friendlyId;
+          }
           
           // Update the bank's overall supported payment methods
           const allMethods = new Set([
@@ -132,6 +151,7 @@ export const syncBanksFromProviders = async (providers?: string[]): Promise<any>
         } else {
           // Create new bank
           const newBank = new Bank({
+            syntropi_id: friendlyId,
             name: bankInfo.name,
             country: bankInfo.country,
             logoUrl: bankInfo.logoUrl,
@@ -224,9 +244,19 @@ export const getBanks = async (filters: any = {}, page = 1, limit = 100) => {
   };
 };
 
-// Get a specific bank
+// Get a specific bank - can find by MongoDB ID or syntropi_id
 export const getBank = async (bankId: string) => {
-  const bank = await Bank.findById(bankId);
+  // Try to find by syntropi_id first
+  let bank = await Bank.findOne({ syntropi_id: bankId });
+  
+  // If not found, try MongoDB ID
+  if (!bank) {
+    try {
+      bank = await Bank.findById(bankId);
+    } catch (error) {
+      // Not a valid MongoDB ID, just let it return null
+    }
+  }
   
   if (!bank || !bank.active) {
     throw createError('Bank not found', 404);

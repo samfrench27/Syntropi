@@ -6,7 +6,7 @@ import { createError } from '../../middleware/errorHandler';
 // Helper function to simplify bank data for client response
 const simplifyBankData = (bank: any) => {
   return {
-    id: bank._id || bank.id,
+    id: bank.syntropi_id || bank._id.toString(), // Prefer syntropi_id, fall back to MongoDB ID
     name: bank.name,
     country: bank.country,
     logoUrl: bank.logoUrl,

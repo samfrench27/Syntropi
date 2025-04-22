@@ -2,19 +2,20 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IBank extends Document {
-  name: string;                // Display name of the bank
-  displayName?: string;        // Optional customized display name
-  logoUrl?: string;            // URL to the bank's logo
-  country: string;             // Country code (e.g., GB, DE)
+  syntropi_id: string;       // Our friendly ID (gb-bankname format)
+  name: string;              // Display name of the bank
+  displayName?: string;      // Optional customized display name
+  logoUrl?: string;          // URL to the bank's logo
+  country: string;           // Country code (e.g., GB, DE)
   supportedPaymentMethods: string[]; // What payment methods this bank supports
-  active: boolean;             // Whether this bank is active in our system
-  providerMappings: {          // Mapping to different provider bank IDs
+  active: boolean;           // Whether this bank is active in our system
+  providerMappings: {        // Mapping to different provider bank IDs
     [provider: string]: {
-      providerId: string;      // ID in the provider's system
+      providerId: string;    // ID in the provider's system
       supportedPaymentMethods: string[];
       lastUpdated: Date;
-      active: boolean;         // Whether this provider mapping is active
-      metadata?: any;          // Provider-specific data
+      active: boolean;       // Whether this provider mapping is active
+      metadata?: any;        // Provider-specific data
     }
   };
   createdAt: Date;
@@ -23,6 +24,12 @@ export interface IBank extends Document {
 
 const bankSchema = new Schema<IBank>(
   {
+    syntropi_id: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
     name: {
       type: String,
       required: true,
@@ -76,6 +83,7 @@ const bankSchema = new Schema<IBank>(
 );
 
 // Create indexes for efficient queries
+bankSchema.index({ syntropi_id: 1 });
 bankSchema.index({ country: 1 });
 bankSchema.index({ active: 1 });
 bankSchema.index({ name: 'text' });

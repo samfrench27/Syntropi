@@ -51,6 +51,37 @@ function mapPaymentMethods(supportedLocalInstruments: string[]): string[] {
     .filter(method => method); // Filter out undefined values
 }
 
+// Generate a friendly bank ID in the format gb-[bankname]
+function generateFriendlyBankId(bank: TokenBank): string {
+  // Clean the bank name and convert to lowercase
+  const cleanName = cleanBankName(bank.name)
+    .toLowerCase()
+    // Replace spaces and special characters with hyphens
+    .replace(/[^a-z0-9]+/g, '-')
+    // Remove leading/trailing hyphens
+    .replace(/^-+|-+$/g, '')
+    // Collapse multiple hyphens into one
+    .replace(/-+/g, '-');
+  
+  // Add country code prefix
+  const countryCode = 'gb';
+  
+  // Handle business accounts
+  const isBusiness = bank.name.toLowerCase().includes('business') || 
+                     bank.name.toLowerCase().includes('commercial') ||
+                     bank.name.toLowerCase().includes('corporate');
+  
+  // Create the ID
+  let friendlyId = `${countryCode}-${cleanName}`;
+  
+  // Add business suffix if applicable
+  if (isBusiness) {
+    friendlyId += '-business';
+  }
+  
+  return friendlyId;
+}
+
 // Fetch banks from Token.io API
 export const getBanks = async () => {
   try {
@@ -68,7 +99,8 @@ export const getBanks = async () => {
     
     // Convert to our standardized format
     return allBanks.map(bank => ({
-      id: bank.id,
+      id: generateFriendlyBankId(bank),
+      originalId: bank.id, // Keep original ID for reference
       name: cleanBankName(bank.name),
       // Make sure all banks are set to GB country code
       country: 'GB',
@@ -90,7 +122,8 @@ export const getBanks = async () => {
           fundsConfirmation: bank.supportsFundsConfirmation
         },
         rank: bank.rank,
-        scaMethods: bank.scaMethods
+        scaMethods: bank.scaMethods,
+        originalProviderId: bank.id // Store the original provider ID
       }
     }));
   } catch (error) {
