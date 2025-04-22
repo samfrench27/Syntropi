@@ -5,9 +5,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 // Components
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import Hero from '@/components/Hero';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import Hero from '../components/Hero';
 
 export default function Home() {
   const revealRefs = useRef<HTMLDivElement[]>([]);
@@ -49,7 +49,7 @@ export default function Home() {
         <div className="container mx-auto px-6">
           <div ref={addToRefs} className="text-center mb-16 animate-reveal">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Built for <span className="gradient-text">modern businesses</span></h2>
-            <p className="text-syntropi-text-secondary max-w-2xl mx-auto">
+            <p className="text-text-secondary max-w-2xl mx-auto">
               Powerful features that help you streamline payment workflows and enhance your financial operations
             </p>
           </div>
@@ -82,7 +82,7 @@ export default function Home() {
                   <Image src={feature.icon} alt={feature.title} width={28} height={28} />
                 </div>
                 <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
-                <p className="text-syntropi-text-secondary">{feature.description}</p>
+                <p className="text-text-secondary">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -90,7 +90,7 @@ export default function Home() {
       </section>
       
       {/* CTA Section */}
-      <section className="section bg-syntropi-gradient text-white">
+      <section className="section bg-gradient-to-r from-syntropi-blue to-syntropi-purple text-white">
         <div className="container mx-auto px-6">
           <div className="max-w-4xl mx-auto text-center">
             <div ref={addToRefs} className="animate-reveal">
@@ -111,7 +111,7 @@ export default function Home() {
         <div className="container mx-auto px-6">
           <div ref={addToRefs} className="text-center mb-16 animate-reveal">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Trusted by <span className="gradient-text">industry leaders</span></h2>
-            <p className="text-syntropi-text-secondary max-w-2xl mx-auto">
+            <p className="text-text-secondary max-w-2xl mx-auto">
               See what our customers are saying about their experience with Syntropi
             </p>
           </div>
@@ -137,8 +137,8 @@ export default function Home() {
                 className="bg-white p-8 rounded-xl border border-syntropi-border shadow-sm animate-reveal"
                 style={{ animationDelay: `${index * 150}ms` }}
               >
-                <blockquote className="text-syntropi-text-primary text-lg italic mb-6">
-                  "{testimonial.quote}"
+                <blockquote className="text-text-primary text-lg italic mb-6">
+                  &ldquo;{testimonial.quote}&rdquo;
                 </blockquote>
                 <div className="flex items-center">
                   <div className="w-12 h-12 rounded-full overflow-hidden mr-4 bg-syntropi-soft-lavender">
@@ -152,7 +152,7 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="font-semibold">{testimonial.author}</p>
-                    <p className="text-syntropi-text-secondary text-sm">{testimonial.position}</p>
+                    <p className="text-text-secondary text-sm">{testimonial.position}</p>
                   </div>
                 </div>
               </div>
