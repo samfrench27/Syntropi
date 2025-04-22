@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Syntropi API Reference</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.redocly.com/redoc/v2.4.0/bundles/redoc.standalone.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      }
+      #custom-navbar {
+        background: white;
+        padding: 16px 40px;
+        display: flex;
+        align-items: center;
+        color: #1A1A1A;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+      #custom-navbar .logo-container {
+        display: flex;
+        align-items: center;
+        font-weight: bold;
+        font-size: 1.5rem;
+        margin-right: 40px;
+        background: linear-gradient(to right, #4F8CFF, #9F5CFF);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
+      }
+      #custom-navbar .spacer {
+        flex: 1;
+      }
+      #custom-navbar .action-buttons {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      #custom-navbar .contact-button {
+        color: #1A1A1A;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 16px;
+        padding: 8px 16px;
+        border-radius: 50px;
+        border: 1px solid #E5E7EB;
+        transition: all 0.2s ease;
+      }
+      #custom-navbar .contact-button:hover {
+        background-color: #F9FAFB;
+        border-color: #D1D5DB;
+      }
+      #custom-navbar .signin-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(90deg, #4F8CFF 0%, #9F5CFF 100%);
+        color: white;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 16px;
+        padding: 8px 16px;
+        border-radius: 50px;
+        transition: all 0.2s ease;
+      }
+      #custom-navbar .signin-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(84, 73, 222, 0.15);
+      }
+      #custom-navbar .signin-button svg {
+        height: 16px;
+        width: 16px;
+      }
+      /* Apply more specific styles to overwrite redoc defaults */
+      body [role="navigation"] h3 {
+        color: #4F8CFF !important;
+      }
+      body [role="search"] input {
+        border-color: #4F8CFF !important;
+      }
+      body [role="search"] input:focus {
+        border-color: #9F5CFF !important;
+      }
+      /* Force dark code samples with lighter background */
+      body redoc .http-verb {
+        color: white !important;
+      }
+      /* Elevate buttons and sections */
+      body .operation-button {
+        background-color: #4F8CFF !important;
+      }
+      body .operation-button:hover {
+        background-color: #3F71CC !important;
+      }
+      /* Overwrite code example styles */
+      body pre {
+        background-color: #1E1E1E !important;
+      }
+      body code {
+        font-family: 'SF Mono', 'Monaco', 'Consolas', monospace !important;
+      }
+      /* Improve response sections */
+      body .response-controls > div {
+        background-color: #f8f9fa !important;
+      }
+      body .response-controls__accept > div {
+        color: #4F8CFF !important;
+      }
+    </style>
+    <!-- ReDoc doesn't change outer page styles -->
+    <meta name="theme-color" content="#4F8CFF" />
+  </head>
+  <body>
+    <div id="custom-navbar">
+      <a href="https://syntropi.com" class="logo-container">
+        Syntropi
+      </a>
+      <div class="spacer"></div>
+      <div class="action-buttons">
+        <a href="https://syntropi.com/contact" class="contact-button">Contact us</a>
+        <a href="https://dashboard.syntropi.co.uk" class="signin-button">
+          Sign in
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
+          </svg>
+        </a>
+      </div>
+    </div>
+    
+    <!-- Redoc element with your theme -->
+    <div id="redoc-container"></div>
+    
+    <script>
+      // Customize Redoc initialization with better control
+      window.addEventListener('load', () => {
+        const redocEl = document.getElementById('redoc-container');
+        const navbarHeight = document.getElementById('custom-navbar').offsetHeight;
+        
+        Redoc.init('./openapi.yaml', {
+          scrollYOffset: navbarHeight, // Dynamically calculate navbar height
+          hideHostname: false,
+          expandResponses: '200,201',
+          jsonSampleExpandLevel: 2,
+          hideSchemaTitles: false,
+          hideOneOfExamples: false,
+          requiredPropsFirst: true,
+          sortPropsAlphabetically: false,
+          noAutoAuth: false,
+          pathInMiddlePanel: false,
+          hideLoading: false,
+          suppressWarnings: false,
+          showSecuritySchemeDescription: true,
+          theme: {
+            colors: {
+              primary: {
+                main: '#4F8CFF',
+                light: '#EFF6FF',
+                dark: '#3F71CC'
+              },
+              success: {
+                main: '#10B981',
+                dark: '#059669'
+              },
+              warning: {
+                main: '#FBBF24',
+                dark: '#D97706'
+              },
+              error: {
+                main: '#EF4444',
+                dark: '#DC2626'
+              },
+              text: {
+                primary: '#1F2937',
+                secondary: '#4B5563'
+              }
+            },
+            typography: {
+              fontFamily: 'Inter, -apple-system, system-ui, sans-serif',
+              fontSize: '16px',
+              headings: {
+                fontFamily: 'Inter, -apple-system, system-ui, sans-serif',
+                fontWeight: '600'
+              },
+              code: {
+                fontFamily: 'SF Mono, Monaco, Consolas, monospace',
+                fontSize: '14px'
+              }
+            },
+            sidebar: {
+              backgroundColor: '#FFFFFF',
+              textColor: '#1F2937',
+              activeTextColor: '#4F8CFF',
+              groupItems: {
+                textTransform: 'none'
+              }
+            }
+          }
+        }, redocEl);
+      });
+    </script>
+  </body>
+</html> 

@@ -18,6 +18,10 @@ servers:
   - url: https://api-staging.syntropi.com/api
     description: Staging API
 
+tags:
+  - name: Banks
+    description: Operations related to bank information and synchronization
+
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -183,6 +187,8 @@ paths:
       description: |
         Returns a list of banks with optional filtering by country, provider, payment method, and search term.
         Results are paginated.
+      tags:
+        - Banks
       security:
         - ApiKeyAuth: []
       parameters:
@@ -250,6 +256,8 @@ paths:
       operationId: listProviders
       summary: Get supported banking providers
       description: Returns a list of all supported banking providers
+      tags:
+        - Banks
       security:
         - ApiKeyAuth: []
       responses:
@@ -271,6 +279,8 @@ paths:
       operationId: getBankById
       summary: Get bank details
       description: Returns detailed information about a specific bank
+      tags:
+        - Banks
       security:
         - ApiKeyAuth: []
       parameters:
@@ -307,6 +317,8 @@ paths:
       description: |
         Admin-only endpoint to synchronize bank information from providers.
         Optional query parameter to specify which provider to sync.
+      tags:
+        - Banks
       security:
         - ApiKeyAuth: []
       parameters:

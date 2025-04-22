@@ -89,7 +89,7 @@ export const syncBanksFromProviders = async (providers?: string[]): Promise<any>
       for (const [providerId, bankInfo] of Object.entries(providerBanks)) {
         // Look for existing bank by name and country (potential match)
         let existingBank = await Bank.findOne({
-          'providerMappings.${provider}.providerId': providerId
+          [`providerMappings.${provider}.providerId`]: providerId
         });
         
         if (!existingBank) {
@@ -101,8 +101,12 @@ export const syncBanksFromProviders = async (providers?: string[]): Promise<any>
         }
         
         if (existingBank) {
+          // Ensure providerMappings is initialized
+          if (!existingBank.providerMappings) {
+            existingBank.providerMappings = {};
+          }
+          
           // Update existing bank's provider mapping
-          existingBank.providerMappings = existingBank.providerMappings || {};
           existingBank.providerMappings[provider] = {
             providerId,
             supportedPaymentMethods: bankInfo.supportedPaymentMethods,
@@ -113,7 +117,7 @@ export const syncBanksFromProviders = async (providers?: string[]): Promise<any>
           
           // Update the bank's overall supported payment methods
           const allMethods = new Set([
-            ...existingBank.supportedPaymentMethods,
+            ...(existingBank.supportedPaymentMethods || []),
             ...bankInfo.supportedPaymentMethods
           ]);
           existingBank.supportedPaymentMethods = Array.from(allMethods);
