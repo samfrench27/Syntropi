@@ -71,12 +71,15 @@ export function generateFriendlyBankId(bank: TokenBank): string {
                      bank.name.toLowerCase().includes('commercial') ||
                      bank.name.toLowerCase().includes('corporate');
   
-  // Create the ID
-  let friendlyId = `${countryCode}-${cleanName}`;
+  // Create the ID, avoiding duplicate business term
+  let friendlyId;
   
-  // Add business suffix if applicable, but only if it's not already ending with business
-  if (isBusiness && !cleanName.endsWith('business')) {
-    friendlyId += '-business';
+  if (isBusiness) {
+    // Remove any existing business term from the cleaned name
+    const nameWithoutBusiness = cleanName.replace(/-?business-?/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+    friendlyId = `${countryCode}-${nameWithoutBusiness}-business`;
+  } else {
+    friendlyId = `${countryCode}-${cleanName}`;
   }
   
   return friendlyId;
