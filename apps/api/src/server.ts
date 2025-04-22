@@ -3,8 +3,10 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
-import { logger } from './utils/logger';
+import { logger as loggerMiddleware } from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
+import { winstonLogger } from './utils/logger';
+import { syncBanksFromProviders } from './services/bank.service';
 
 // Import routes
 import adminAuthRoutes from './routes/admin/auth.routes';
@@ -28,7 +30,7 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/syntro
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
-app.use(logger);
+app.use(loggerMiddleware);
 
 // Routes
 app.use('/api/admin/auth', adminAuthRoutes);
@@ -68,8 +70,17 @@ const startServer = async () => {
     await mongoose.connect(MONGODB_URI);
     console.log('Connected to MongoDB');
     
-    app.listen(PORT, () => {
+    app.listen(PORT, async () => {
       console.log(`Server running on port ${PORT}`);
+      
+      // Auto-sync banks on server start - only for token provider to limit load
+      try {
+        winstonLogger.info('Starting automatic bank sync for token provider...');
+        const result = await syncBanksFromProviders(['token']);
+        winstonLogger.info('Automatic bank sync completed:', result);
+      } catch (error) {
+        winstonLogger.error('Error in automatic bank sync:', error);
+      }
     });
   } catch (error) {
     console.error('Failed to connect to MongoDB', error);
