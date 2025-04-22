@@ -3,6 +3,35 @@ import { Request, Response, NextFunction } from 'express';
 import * as bankService from '../../services/bank.service';
 import { createError } from '../../middleware/errorHandler';
 
+// Helper function to simplify bank data for client response
+const simplifyBankData = (bank: any) => {
+  return {
+    id: bank._id || bank.id,
+    name: bank.name,
+    country: bank.country,
+    logoUrl: bank.logoUrl,
+    supportedPaymentMethods: bank.supportedPaymentMethods || [],
+    active: bank.active,
+    // Only include relevant metadata, not provider-specific details
+    features: bank.providerMappings ? {
+      accountAccess: getFeatureSupport(bank, 'accountList'),
+      accountBalance: getFeatureSupport(bank, 'accountBalance'),
+      transactions: getFeatureSupport(bank, 'transactionList'),
+      payments: getFeatureSupport(bank, 'singlePayment')
+    } : {}
+  };
+};
+
+// Helper to check if any provider supports a feature
+const getFeatureSupport = (bank: any, feature: string) => {
+  if (!bank.providerMappings) return false;
+  
+  // Check if any provider supports the feature
+  return Object.values(bank.providerMappings).some((provider: any) => {
+    return provider.metadata?.supportedFeatures?.[feature] === true;
+  });
+};
+
 // Get all banks with filtering
 export const getBanks = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -10,7 +39,6 @@ export const getBanks = async (req: Request, res: Response, next: NextFunction) 
     const limit = parseInt(req.query.limit as string) || 100;
     
     const filters = {
-      country: req.query.country as string,
       provider: req.query.provider as string,
       paymentMethod: req.query.paymentMethod as string,
       search: req.query.search as string
@@ -18,9 +46,15 @@ export const getBanks = async (req: Request, res: Response, next: NextFunction) 
     
     const result = await bankService.getBanks(filters, page, limit);
     
+    // Simplify the response for clients
+    const simplifiedBanks = result.banks.map(simplifyBankData);
+    
     res.status(200).json({
       success: true,
-      data: result
+      data: {
+        banks: simplifiedBanks,
+        pagination: result.pagination
+      }
     });
   } catch (error) {
     next(error);
@@ -34,9 +68,12 @@ export const getBank = async (req: Request, res: Response, next: NextFunction) =
     
     const bank = await bankService.getBank(id);
     
+    // Simplify the response for clients
+    const simplifiedBank = simplifyBankData(bank);
+    
     res.status(200).json({
       success: true,
-      data: { bank }
+      data: { bank: simplifiedBank }
     });
   } catch (error) {
     next(error);

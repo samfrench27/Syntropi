@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import { logger as loggerMiddleware } from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
 import { winstonLogger } from './utils/logger';
-import { syncBanksFromProviders } from './services/bank.service';
+import { syncBanksFromProviders, cleanupNonGBBanks } from './services/bank.service';
 
 // Import routes
 import adminAuthRoutes from './routes/admin/auth.routes';
@@ -72,6 +72,15 @@ const startServer = async () => {
     
     app.listen(PORT, async () => {
       console.log(`Server running on port ${PORT}`);
+      
+      // First clean up any non-GB banks
+      try {
+        winstonLogger.info('Starting cleanup of non-GB banks...');
+        const deleteCount = await cleanupNonGBBanks();
+        winstonLogger.info(`Cleaned up ${deleteCount} non-GB banks`);
+      } catch (cleanupError) {
+        winstonLogger.error('Error cleaning up non-GB banks:', cleanupError);
+      }
       
       // Auto-sync banks on server start - only for token provider to limit load
       try {

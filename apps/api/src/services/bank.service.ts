@@ -185,11 +185,10 @@ export const syncBanksFromProviders = async (providers?: string[]): Promise<any>
 export const getBanks = async (filters: any = {}, page = 1, limit = 100) => {
   const query: any = { active: true };
   
-  // Apply filters
-  if (filters.country) {
-    query.country = filters.country.toUpperCase();
-  }
+  // Always filter for GB banks only
+  query.country = 'GB';
   
+  // Apply additional filters
   if (filters.provider) {
     query[`providerMappings.${filters.provider}.active`] = true;
   }
@@ -253,4 +252,17 @@ export const getBankProviderInfo = async (bankId: string, provider: string) => {
     supportedPaymentMethods: bank.providerMappings[provider].supportedPaymentMethods,
     metadata: bank.providerMappings[provider].metadata
   };
+};
+
+// Cleanup function to remove banks from non-GB countries
+export const cleanupNonGBBanks = async () => {
+  try {
+    logger.info('Cleaning up non-GB banks from database');
+    const result = await Bank.deleteMany({ country: { $ne: 'GB' } });
+    logger.info(`Deleted ${result.deletedCount} non-GB banks`);
+    return result.deletedCount;
+  } catch (error) {
+    logger.error('Error cleaning up non-GB banks:', error);
+    throw error;
+  }
 };
