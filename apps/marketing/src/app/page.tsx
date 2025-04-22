@@ -44,47 +44,85 @@ export default function Home() {
       {/* Hero Section */}
       <Hero />
       
-      {/* Features Section */}
+      {/* About Section */}
       <section className="section bg-white">
         <div className="container mx-auto px-6">
-          <div ref={addToRefs} className="text-center mb-16 animate-reveal">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Built for <span className="gradient-text">modern businesses</span></h2>
-            <p className="text-text-secondary max-w-2xl mx-auto">
-              Powerful features that help you streamline payment workflows and enhance your financial operations
+          <div ref={addToRefs} className="text-center mb-12 animate-reveal">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">What is <span className="gradient-text">Syntropi</span>?</h2>
+            <p className="text-text-secondary max-w-3xl mx-auto text-lg">
+              Syntropi is a modern payment infrastructure platform designed to help businesses process 
+              payments faster, more securely, and with less overhead. Our API-first approach makes 
+              integration simple for developers while providing powerful tools for finance teams.
             </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                title: 'Real-time Payments',
-                description: 'Process and settle payments instantly, 24/7, without traditional banking delays',
-                icon: '/icons/lightning.svg'
-              },
-              {
-                title: 'Developer-friendly API',
-                description: 'Easily integrate our platform with your existing systems using our robust API',
-                icon: '/icons/code.svg'
-              },
-              {
-                title: 'Enhanced Security',
-                description: 'Enterprise-grade security with advanced encryption and fraud protection',
-                icon: '/icons/shield.svg'
-              }
-            ].map((feature, index) => (
-              <div 
-                key={index} 
-                ref={addToRefs} 
-                className="bg-white p-8 rounded-xl border border-syntropi-border shadow-sm card-hover animate-reveal"
-                style={{ animationDelay: `${index * 150}ms` }}
-              >
-                <div className="w-14 h-14 bg-syntropi-soft-lavender rounded-lg flex items-center justify-center mb-6">
-                  <Image src={feature.icon} alt={feature.title} width={28} height={28} />
-                </div>
-                <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
-                <p className="text-text-secondary">{feature.description}</p>
-              </div>
-            ))}
+          <div className="grid md:grid-cols-2 gap-12 items-center mb-20">
+            <div ref={addToRefs} className="animate-reveal">
+              <h3 className="text-2xl font-bold mb-4">For Businesses</h3>
+              <ul className="space-y-4">
+                <li className="flex items-start">
+                  <div className="bg-syntropi-soft-lavender p-1 rounded-full mr-3 mt-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-syntropi-purple" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-text-primary">Reduce payment processing costs by up to 50%</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="bg-syntropi-soft-lavender p-1 rounded-full mr-3 mt-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-syntropi-purple" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-text-primary">Settle transactions in real-time, not days</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="bg-syntropi-soft-lavender p-1 rounded-full mr-3 mt-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-syntropi-purple" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-text-primary">Comprehensive dashboard for finance teams</span>
+                </li>
+              </ul>
+            </div>
+            
+            <div ref={addToRefs} className="animate-reveal" style={{ animationDelay: '150ms' }}>
+              <h3 className="text-2xl font-bold mb-4">For Developers</h3>
+              <ul className="space-y-4">
+                <li className="flex items-start">
+                  <div className="bg-syntropi-soft-lavender p-1 rounded-full mr-3 mt-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-syntropi-purple" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-text-primary">Simple, well-documented RESTful API</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="bg-syntropi-soft-lavender p-1 rounded-full mr-3 mt-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-syntropi-purple" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-text-primary">SDKs for popular languages (JavaScript, Python, Ruby, PHP)</span>
+                </li>
+                <li className="flex items-start">
+                  <div className="bg-syntropi-soft-lavender p-1 rounded-full mr-3 mt-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-syntropi-purple" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <span className="text-text-primary">Sandbox environment for testing</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          
+          <div ref={addToRefs} className="text-center animate-reveal">
+            <Link href="/client-dashboard/register" className="btn-primary text-lg px-8 py-4">
+              Start Your Free Trial
+            </Link>
+            <p className="mt-4 text-text-secondary">No credit card required. 14-day free trial.</p>
           </div>
         </div>
       </section>
@@ -98,9 +136,14 @@ export default function Home() {
               <p className="text-white/80 text-lg mb-8">
                 Join thousands of businesses already using Syntropi for their payment needs.
               </p>
-              <Link href="/client-dashboard" className="inline-block px-8 py-4 bg-white text-syntropi-blue font-semibold rounded-md hover:bg-opacity-90 transition-all">
-                Get Started Now
-              </Link>
+              <div className="flex flex-col sm:flex-row justify-center gap-4">
+                <Link href="/client-dashboard/register" className="inline-block px-8 py-4 bg-white text-syntropi-blue font-semibold rounded-md hover:bg-opacity-90 transition-all">
+                  Get Started Now
+                </Link>
+                <Link href="/api-docs" className="inline-block px-8 py-4 border border-white text-white font-semibold rounded-md hover:bg-white/10 transition-all">
+                  Read Documentation
+                </Link>
+              </div>
             </div>
           </div>
         </div>

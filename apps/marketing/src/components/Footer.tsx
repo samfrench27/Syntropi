@@ -14,7 +14,7 @@ export default function Footer() {
           <div className="md:col-span-1">
             <Link href="/" className="inline-block mb-6">
               <Image 
-                src="/logo.svg" 
+                src="/syntropilogo.png" 
                 alt="Syntropi Logo" 
                 width={140} 
                 height={36}

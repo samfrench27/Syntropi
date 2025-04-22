@@ -28,7 +28,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <Image 
-              src="/logo.svg" 
+              src="/syntropilogo.png" 
               alt="Syntropi Logo" 
               width={140} 
               height={36} 
@@ -38,21 +38,21 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="#features" className="text-syntropi-text-primary hover:text-syntropi-purple transition-colors">
+            <Link href="#features" className="text-text-primary hover:text-syntropi-purple transition-colors">
               Features
             </Link>
-            <Link href="/api-docs" className="text-syntropi-text-primary hover:text-syntropi-purple transition-colors">
+            <Link href="/api-docs" className="text-text-primary hover:text-syntropi-purple transition-colors">
               API Docs
             </Link>
-            <Link href="/about" className="text-syntropi-text-primary hover:text-syntropi-purple transition-colors">
+            <Link href="/about" className="text-text-primary hover:text-syntropi-purple transition-colors">
               About
             </Link>
-            <Link href="/client-dashboard/login" className="text-syntropi-text-primary hover:text-syntropi-purple transition-colors">
+            <Link href="/client-dashboard/login" className="text-text-primary hover:text-syntropi-purple transition-colors">
               Login
             </Link>
             <Link 
               href="/client-dashboard/register" 
-              className="px-5 py-2 bg-syntropi-gradient text-white rounded-md hover:opacity-90 transition-opacity"
+              className="px-5 py-2 bg-gradient-to-r from-syntropi-blue to-syntropi-purple text-white rounded-md hover:opacity-90 transition-opacity"
             >
               Sign Up
             </Link>
@@ -60,7 +60,7 @@ export default function Navbar() {
 
           {/* Mobile Menu Button */}
           <button 
-            className="md:hidden text-syntropi-text-primary"
+            className="md:hidden text-text-primary"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? (
@@ -82,35 +82,35 @@ export default function Navbar() {
           <div className="container mx-auto px-6 py-4 flex flex-col space-y-4">
             <Link 
               href="#features" 
-              className="block py-2 text-syntropi-text-primary hover:text-syntropi-purple"
+              className="block py-2 text-text-primary hover:text-syntropi-purple"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Features
             </Link>
             <Link 
               href="/api-docs" 
-              className="block py-2 text-syntropi-text-primary hover:text-syntropi-purple"
+              className="block py-2 text-text-primary hover:text-syntropi-purple"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               API Docs
             </Link>
             <Link 
               href="/about" 
-              className="block py-2 text-syntropi-text-primary hover:text-syntropi-purple"
+              className="block py-2 text-text-primary hover:text-syntropi-purple"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               About
             </Link>
             <Link 
               href="/client-dashboard/login" 
-              className="block py-2 text-syntropi-text-primary hover:text-syntropi-purple"
+              className="block py-2 text-text-primary hover:text-syntropi-purple"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Login
             </Link>
             <Link 
               href="/client-dashboard/register" 
-              className="block py-2 px-4 bg-syntropi-gradient text-white rounded-md w-full text-center"
+              className="block py-2 px-4 bg-gradient-to-r from-syntropi-blue to-syntropi-purple text-white rounded-md w-full text-center"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Sign Up

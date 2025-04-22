@@ -54,99 +54,56 @@ export default function Hero() {
             </div>
           </div>
           
-          {/* Dashboard Preview */}
-          <div 
-            className={`mt-16 relative transition-all duration-1000 ease-out delay-300 transform ${
-              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
-            }`}
-          >
-            <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100">
-              <div className="relative w-full h-[400px] sm:h-[500px]">
-                <div className="bg-white rounded-xl border border-syntropi-border p-4 shadow-lg">
-                  <div className="bg-soft-lavender rounded-t-lg p-3 mb-4 flex items-center">
-                    <div className="flex space-x-2">
-                      <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                      <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                      <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                    </div>
-                    <div className="text-syntropi-blue text-sm font-medium ml-4">Syntropi Dashboard</div>
-                  </div>
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="col-span-1">
-                      <div className="bg-gray-100 rounded-lg p-3 h-full">
-                        <div className="h-6 w-24 bg-syntropi-light-blue rounded mb-4"></div>
-                        <div className="space-y-2">
-                          <div className="h-4 w-full bg-gray-200 rounded"></div>
-                          <div className="h-4 w-full bg-gray-200 rounded"></div>
-                          <div className="h-4 w-full bg-gray-200 rounded"></div>
-                          <div className="h-4 w-full bg-gray-200 rounded"></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-span-3">
-                      <div className="bg-white border border-gray-200 rounded-lg p-4">
-                        <div className="bg-gradient-to-r from-syntropi-blue to-syntropi-purple h-8 w-32 rounded mb-4"></div>
-                        <div className="grid grid-cols-3 gap-4 mb-4">
-                          <div className="bg-soft-lavender h-20 rounded p-3">
-                            <div className="h-4 w-16 bg-white rounded mb-2"></div>
-                            <div className="h-6 w-24 bg-white rounded"></div>
-                          </div>
-                          <div className="bg-soft-lavender h-20 rounded p-3">
-                            <div className="h-4 w-16 bg-white rounded mb-2"></div>
-                            <div className="h-6 w-24 bg-white rounded"></div>
-                          </div>
-                          <div className="bg-soft-lavender h-20 rounded p-3">
-                            <div className="h-4 w-16 bg-white rounded mb-2"></div>
-                            <div className="h-6 w-24 bg-white rounded"></div>
-                          </div>
-                        </div>
-                        <div className="border border-gray-200 rounded-lg">
-                          <div className="grid grid-cols-4 gap-4 p-3 border-b border-gray-200 bg-gray-50">
-                            <div className="h-4 w-full bg-gray-200 rounded"></div>
-                            <div className="h-4 w-full bg-gray-200 rounded"></div>
-                            <div className="h-4 w-full bg-gray-200 rounded"></div>
-                            <div className="h-4 w-full bg-gray-200 rounded"></div>
-                          </div>
-                          <div className="p-3">
-                            <div className="space-y-3">
-                              <div className="grid grid-cols-4 gap-4">
-                                <div className="h-4 w-full bg-gray-100 rounded"></div>
-                                <div className="h-4 w-full bg-gray-100 rounded"></div>
-                                <div className="h-4 w-full bg-gray-100 rounded"></div>
-                                <div className="h-4 w-full bg-gray-100 rounded"></div>
-                              </div>
-                              <div className="grid grid-cols-4 gap-4">
-                                <div className="h-4 w-full bg-gray-100 rounded"></div>
-                                <div className="h-4 w-full bg-gray-100 rounded"></div>
-                                <div className="h-4 w-full bg-gray-100 rounded"></div>
-                                <div className="h-4 w-full bg-gray-100 rounded"></div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+          {/* Key Benefits */}
+          <div className={`mt-20 grid md:grid-cols-3 gap-8 transition-all duration-1000 ease-out delay-300 transform ${
+            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
+          }`}>
+            <div className="bg-white rounded-xl shadow-md p-6 border border-syntropi-border">
+              <div className="w-12 h-12 rounded-full bg-syntropi-soft-lavender flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-syntropi-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
               </div>
+              <h3 className="text-xl font-semibold mb-2">Lightning Fast</h3>
+              <p className="text-text-secondary">Process transactions in milliseconds with our high-performance infrastructure</p>
             </div>
             
-            {/* Stats */}
-            <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 w-[90%] max-w-3xl">
-              <div className="bg-white shadow-xl rounded-xl p-6 grid grid-cols-3 gap-4">
-                <div className="text-center">
-                  <p className="text-4xl font-bold text-syntropi-blue">99.9%</p>
-                  <p className="text-text-secondary text-sm mt-1">Uptime</p>
-                </div>
-                <div className="text-center border-x border-gray-100">
-                  <p className="text-4xl font-bold text-syntropi-purple">50ms</p>
-                  <p className="text-text-secondary text-sm mt-1">Average Response</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-4xl font-bold text-syntropi-blue">10k+</p>
-                  <p className="text-text-secondary text-sm mt-1">API Requests/sec</p>
-                </div>
+            <div className="bg-white rounded-xl shadow-md p-6 border border-syntropi-border">
+              <div className="w-12 h-12 rounded-full bg-syntropi-soft-lavender flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-syntropi-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
               </div>
+              <h3 className="text-xl font-semibold mb-2">Bank-Grade Security</h3>
+              <p className="text-text-secondary">Enterprise security with advanced encryption and fraud protection</p>
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-md p-6 border border-syntropi-border">
+              <div className="w-12 h-12 rounded-full bg-syntropi-soft-lavender flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-syntropi-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Developer Friendly</h3>
+              <p className="text-text-secondary">Simple, well-documented API that integrates with your existing systems</p>
+            </div>
+          </div>
+          
+          {/* Stats */}
+          <div className={`mt-16 bg-white shadow-xl rounded-xl p-6 grid grid-cols-3 gap-4 transition-all duration-1000 ease-out delay-500 transform ${
+            isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
+          }`}>
+            <div className="text-center">
+              <p className="text-4xl font-bold text-syntropi-blue">99.9%</p>
+              <p className="text-text-secondary text-sm mt-1">Uptime</p>
+            </div>
+            <div className="text-center border-x border-gray-100">
+              <p className="text-4xl font-bold text-syntropi-purple">50ms</p>
+              <p className="text-text-secondary text-sm mt-1">Avg Response</p>
+            </div>
+            <div className="text-center">
+              <p className="text-4xl font-bold text-syntropi-blue">10k+</p>
+              <p className="text-text-secondary text-sm mt-1">API Requests/sec</p>
             </div>
           </div>
         </div>
