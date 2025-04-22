@@ -20,7 +20,7 @@ body {
   font-family: 'Inter', sans-serif;
 }
 
-/* Removed @apply with gradient utilities */
+/* Basic styling without complex animations */
 .gradient-text {
   color: transparent;
   background-clip: text;
@@ -37,7 +37,7 @@ body {
 }
 
 .btn-primary:hover {
-  box-shadow: 0 10px 15px -3px rgba(84, 73, 222, 0.2);
+  opacity: 0.9;
 }
 
 .btn-primary:focus {
@@ -65,7 +65,7 @@ body {
   box-shadow: 0 0 0 2px rgba(84, 73, 222, 0.5);
 }
 
-/* Convert section from @apply to standard CSS */
+/* Simple section padding */
 .section {
   padding-top: 4rem;
   padding-bottom: 4rem;
@@ -83,7 +83,7 @@ body {
   background: linear-gradient(90deg, var(--syntropi-blue) 0%, var(--syntropi-purple) 100%);
 }
 
-/* Custom animations */
+/* Simple reveal animation */
 .animate-reveal {
   opacity: 0;
   transform: translateY(20px);
