@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authAPI } from '@/lib/api';
-import { isAuthenticated } from '@/lib/auth';
+import { isAuthenticated, getUser } from '@/lib/auth';
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -14,7 +14,17 @@ export default function Home() {
       try {
         // Check if there's a logged-in user
         if (isAuthenticated()) {
-          router.push('/dashboard');
+          // Get the user to determine their role
+          const user = getUser();
+          
+          // Redirect based on role
+          if (user?.role === 'superadmin') {
+            router.push('/platform-admin/dashboard');
+          } else if (user?.role === 'admin') {
+            router.push('/org-admin/dashboard');
+          } else {
+            router.push('/client-dashboard/dashboard');
+          }
           return;
         }
 
