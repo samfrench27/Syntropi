@@ -149,14 +149,7 @@ export default function ClientApiKeysPage() {
           <div className="text-red-600 mb-4 text-lg font-medium">{error || orgError}</div>
           <button 
             onClick={handleRefreshOrganization}
-            style={{
-              background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
-              color: 'white',
-              padding: '0.5rem 1.5rem',
-              borderRadius: '0.375rem',
-              transition: 'opacity 150ms'
-            }}
-            className="inline-flex items-center hover:opacity-90"
+            className="inline-flex items-center btn-gradient px-4 py-2 rounded-md hover:opacity-90"
           >
             <RefreshCw size={16} className="mr-2" />
             Try Again

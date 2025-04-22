@@ -9,22 +9,23 @@ module.exports = {
     extend: {
       colors: {
         // Primary gradient colors
-        'syntropi-blue': '#4F8CFF',
-        'syntropi-purple': '#9F5CFF',
+        'syntropi-blue': '#5449DE',
+        'syntropi-purple': '#B63FDE',
         
         // Neutral colors
-        'background-light': '#F9FAFB',
+        'background-light': '#F9F9FB',
         'surface': '#FFFFFF',
-        'text-primary': '#1F2937',
-        'text-secondary': '#6B7280',
+        'text-primary': '#1A1A1A',
+        'text-secondary': '#4A4A4A',
         
         // Accent colors
-        'teal-accent': '#38BDF8',
-        'midnight-blue': '#1E3A8A',
-        'soft-lavender': '#E0D7FF',
+        'syntropi-light-blue': '#EFEDFC',
+        'syntropi-soft-lavender': '#F5F3FF',
+        'syntropi-dark-blue': '#3F38A6',
+        'syntropi-border': '#E5E7EB',
       },
       backgroundImage: {
-        'syntropi-gradient': 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
+        'syntropi-gradient': 'linear-gradient(to right, #5449DE, #B63FDE)',
       },
     },
   },
