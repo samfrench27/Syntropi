@@ -190,7 +190,7 @@ export default function ClientActivitiesPage() {
           {error}
           <button 
             onClick={() => fetchActivities(1)}
-            className="ml-4 text-red-700 hover:text-red-900 underline"
+            className="ml-4 px-3 py-1 bg-white border border-red-400 rounded-md text-red-700 hover:bg-red-50 transition-colors"
           >
             Try Again
           </button>
@@ -223,7 +223,7 @@ export default function ClientActivitiesPage() {
           
           <button
             onClick={() => fetchActivities(currentPage)}
-            className="flex items-center px-4 py-2 border border-gray-300 rounded-md hover:bg-soft-lavender text-text-primary"
+            className="flex items-center px-4 py-2 btn-secondary rounded-md"
           >
             <RefreshCw size={16} className="mr-2" />
             Refresh
@@ -267,7 +267,7 @@ export default function ClientActivitiesPage() {
             {(filterAction || startDate || endDate) && (
               <button
                 onClick={handleClearFilters}
-                className="px-4 py-2 text-syntropi-blue hover:text-syntropi-purple border border-syntropi-blue hover:border-syntropi-purple rounded-md hover:bg-soft-lavender transition-colors"
+                className="px-4 py-2 text-syntropi-blue hover:text-syntropi-purple btn-secondary transition-colors"
               >
                 Clear Filters
               </button>
@@ -343,14 +343,18 @@ export default function ClientActivitiesPage() {
                 <button
                   onClick={handlePreviousPage}
                   disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-text-primary hover:bg-soft-lavender"
+                  className={`relative inline-flex items-center px-4 py-2 btn-secondary ${
+                    currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
                   Previous
                 </button>
                 <button
                   onClick={handleNextPage}
                   disabled={currentPage === totalPages}
-                  className="relative inline-flex items-center px-4 py-2 ml-3 border border-gray-300 text-text-primary hover:bg-soft-lavender"
+                  className={`relative inline-flex items-center px-4 py-2 ml-3 btn-secondary ${
+                    currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
                   Next
                 </button>

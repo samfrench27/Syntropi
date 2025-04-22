@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -20,10 +21,31 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
 }
 
 .card-body-scroll {
   max-height: 70vh;
   overflow-y: auto;
+}
+
+.btn-gradient {
+  background-image: linear-gradient(to right, #5449DE, #B63FDE);
+  color: white;
+  transition: opacity 0.2s ease;
+}
+
+.btn-gradient:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  background-color: white;
+  border: 1px solid #E5E7EB;
+  color: #4A4A4A;
+  transition: background-color 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background-color: #F5F3FF;
 }

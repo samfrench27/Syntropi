@@ -36,26 +36,29 @@ export default function ClientApiKeysPage() {
   
   const router = useRouter();
   const { user: currentUser } = useAuth();
-  const { refreshOrganization } = useOrganization();
+  const { currentOrganization, loading: orgLoading, error: orgError, refreshOrganization } = useOrganization();
   
   useEffect(() => {
-    fetchApiKeys();
-  }, [currentPage, searchTerm, filterEnv]);
+    if (!orgLoading && currentOrganization) {
+      fetchApiKeys();
+    }
+  }, [currentPage, searchTerm, filterEnv, currentOrganization, orgLoading]);
 
   const handleRefreshOrganization = async () => {
     try {
       await refreshOrganization();
-      fetchApiKeys();
     } catch (err) {
       console.error('Failed to refresh organization data:', err);
     }
   };
 
   const fetchApiKeys = async () => {
+    if (orgLoading) return;
+    
     setLoading(true);
     setError(null);
     
-    if (!currentUser?.organizationId) {
+    if (!currentOrganization?._id) {
       setError('No organization associated with current user');
       setLoading(false);
       return;
@@ -65,13 +68,13 @@ export default function ClientApiKeysPage() {
       const response = await apiKeyAPI.getApiKeys({
         page: currentPage,
         limit: 10,
-        organizationId: currentUser.organizationId,
+        organizationId: currentOrganization._id,
         environment: filterEnv as any || undefined
       });
       
       // Filter API keys client-side to only show keys created by this user
       const filteredApiKeys = response.data.data.apiKeys.filter(
-        (key: ApiKey) => key.createdBy._id === currentUser.id
+        (key: ApiKey) => key.createdBy._id === currentUser?.id
       );
       
       setApiKeys(filteredApiKeys);
@@ -131,11 +134,19 @@ export default function ClientApiKeysPage() {
     );
   };
 
-  if (error) {
+  if (orgLoading) {
+    return (
+      <div className="flex justify-center my-12">
+        <RefreshCw size={24} className="animate-spin text-syntropi-blue" />
+      </div>
+    );
+  }
+
+  if (orgError || error) {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <div className="text-red-600 mb-4 text-lg font-medium">{error}</div>
+          <div className="text-red-600 mb-4 text-lg font-medium">{error || orgError}</div>
           <button 
             onClick={handleRefreshOrganization}
             style={{
@@ -163,7 +174,7 @@ export default function ClientApiKeysPage() {
         action={
           <button
             onClick={handleCreateApiKey}
-            className="flex items-center px-4 py-2 bg-syntropi-gradient text-white rounded-md hover:opacity-90 transition-opacity"
+            className="flex items-center px-4 py-2 btn-gradient rounded-md"
           >
             <Plus size={16} className="mr-2" />
             New API Key
@@ -188,7 +199,7 @@ export default function ClientApiKeysPage() {
           
           <button
             onClick={fetchApiKeys}
-            className="flex items-center px-4 py-2 border border-gray-300 rounded-md hover:bg-soft-lavender text-text-primary"
+            className="flex items-center px-4 py-2 btn-secondary rounded-md"
           >
             <RefreshCw size={16} className="mr-2" />
             Refresh
@@ -199,7 +210,7 @@ export default function ClientApiKeysPage() {
           <select
             value={filterEnv}
             onChange={(e) => setFilterEnv(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-syntropi-blue"
           >
             <option value="">All Environments</option>
             <option value="sandbox">Sandbox</option>
@@ -210,7 +221,7 @@ export default function ClientApiKeysPage() {
       
       {loading ? (
         <div className="flex justify-center my-12">
-          <RefreshCw size={24} className="animate-spin text-blue-600" />
+          <RefreshCw size={24} className="animate-spin text-syntropi-purple" />
         </div>
       ) : apiKeys.length === 0 ? (
         <EmptyState
@@ -220,7 +231,7 @@ export default function ClientApiKeysPage() {
           action={
             <button
               onClick={handleCreateApiKey}
-              className="flex items-center px-4 py-2 bg-syntropi-gradient text-white rounded-md hover:opacity-90 transition-opacity"
+              className="flex items-center px-4 py-2 btn-gradient rounded-md"
             >
               <Plus size={16} className="mr-2" />
               New API Key
@@ -270,7 +281,7 @@ export default function ClientApiKeysPage() {
                       {apiKey.isActive && (
                         <button
                           onClick={() => handleRevokeApiKey(apiKey._id)}
-                          className="text-red-600 hover:text-red-900 ml-3"
+                          className="text-red-500 hover:text-red-700 transition-colors ml-3"
                         >
                           Revoke
                         </button>
