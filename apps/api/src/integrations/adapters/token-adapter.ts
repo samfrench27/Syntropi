@@ -52,7 +52,7 @@ function mapPaymentMethods(supportedLocalInstruments: string[]): string[] {
 }
 
 // Generate a friendly bank ID in the format gb-[bankname]
-function generateFriendlyBankId(bank: TokenBank): string {
+export function generateFriendlyBankId(bank: TokenBank): string {
   // Clean the bank name and convert to lowercase
   const cleanName = cleanBankName(bank.name)
     .toLowerCase()
@@ -74,8 +74,8 @@ function generateFriendlyBankId(bank: TokenBank): string {
   // Create the ID
   let friendlyId = `${countryCode}-${cleanName}`;
   
-  // Add business suffix if applicable
-  if (isBusiness) {
+  // Add business suffix if applicable, but only if it's not already ending with business
+  if (isBusiness && !cleanName.endsWith('business')) {
     friendlyId += '-business';
   }
   
