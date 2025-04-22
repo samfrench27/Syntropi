@@ -71,18 +71,23 @@ export function generateFriendlyBankId(bank: TokenBank): string {
                      bank.name.toLowerCase().includes('commercial') ||
                      bank.name.toLowerCase().includes('corporate');
   
-  // Create the ID, avoiding duplicate business term
-  let friendlyId;
-  
   if (isBusiness) {
-    // Remove any existing business term from the cleaned name
-    const nameWithoutBusiness = cleanName.replace(/-?business-?/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
-    friendlyId = `${countryCode}-${nameWithoutBusiness}-business`;
+    // Split name into parts and filter out business-related terms
+    const parts = cleanName.split('-');
+    const filteredParts = parts.filter(part => 
+      part !== 'business' && 
+      part !== 'commercial' && 
+      part !== 'corporate'
+    );
+    
+    // Reconstruct name without business terms
+    const nameWithoutBusiness = filteredParts.join('-');
+    
+    // Create the ID with business suffix
+    return `${countryCode}-${nameWithoutBusiness}-business`;
   } else {
-    friendlyId = `${countryCode}-${cleanName}`;
+    return `${countryCode}-${cleanName}`;
   }
-  
-  return friendlyId;
 }
 
 // Fetch banks from Token.io API
