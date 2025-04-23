@@ -57,7 +57,7 @@ export default function ClientDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load dashboard data
+  // Load dashboard data on component mount
   useEffect(() => {
     // If the user isn't authenticated, wait for auth
     if (!user) return;
@@ -68,9 +68,14 @@ export default function ClientDashboardPage() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      // Get API Keys count
-      const apiKeysResponse = await apiKeyAPI.getApiKeys({ limit: 0 });
+      // Get API Keys count - filter by user ID if available
+      const apiKeysResponse = await apiKeyAPI.getApiKeys({ 
+        limit: 0,
+        // Optional: Only fetch keys for the current user if API supports it
+        ...(user?.id && { userId: user.id })
+      });
       setApiKeys(apiKeysResponse.data.data.pagination.total || 0);
       
       // Get data for the last 7 days
@@ -97,7 +102,9 @@ export default function ClientDashboardPage() {
         limit: 0,
         action: 'api.access',
         startDate: yesterday.toISOString(),
-        endDate: endDate.toISOString()
+        endDate: endDate.toISOString(),
+        // Optional: Only fetch activities for current user if API supports it
+        ...(user?.id && { userId: user.id })
       });
       
       setApiCallsCount(last24HoursResponse.data.data.pagination.total || 0);
@@ -107,7 +114,9 @@ export default function ClientDashboardPage() {
         limit: 1000,
         action: 'api.access',
         startDate: startDate.toISOString(),
-        endDate: endDate.toISOString()
+        endDate: endDate.toISOString(),
+        // Optional: Only fetch activities for current user if API supports it
+        ...(user?.id && { userId: user.id })
       });
       
       const activities = apiCallsResponse.data.data.activities || [];
@@ -129,9 +138,24 @@ export default function ClientDashboardPage() {
       
       setApiCallsData(chartData);
       setError(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch dashboard data', err);
-      setError('Failed to load dashboard data');
+      // More detailed error message
+      setError(err?.response?.data?.message || 'Failed to load dashboard data. Please try again later.');
+      
+      // Ensure we have default data for the chart even when there's an error
+      if (apiCallsData.length === 0) {
+        setApiCallsData(
+          Array.from({ length: 7 }, (_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - (6 - i));
+            return {
+              date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+              count: 0
+            };
+          })
+        );
+      }
     } finally {
       setLoading(false);
     }
