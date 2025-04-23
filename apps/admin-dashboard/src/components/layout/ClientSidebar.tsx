@@ -50,6 +50,7 @@ export default function ClientSidebar() {
   
   // Navigation items for client dashboard
   const navigation = [
+    { href: '/client-dashboard/dashboard', icon: <BarChart size={20} />, label: 'Dashboard' },
     { href: '/client-dashboard/api-keys', icon: <Key size={20} />, label: 'API Keys' },
     { href: '/client-dashboard/activities', icon: <Activity size={20} />, label: 'Activity Logs' },
   ];
@@ -81,6 +82,9 @@ export default function ClientSidebar() {
         } lg:static`}
       >
         <div className="overflow-auto flex-1 p-4">
+          <div className="mb-4 px-4 text-xs font-semibold text-text-secondary uppercase tracking-wider">
+            Client Dashboard
+          </div>
           <nav className="space-y-1">
             {navigation.map((item) => (
               <NavItem 
