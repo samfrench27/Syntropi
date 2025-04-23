@@ -2,16 +2,29 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Search, Settings, User, LogOut, Shield, HelpCircle } from 'lucide-react';
+import { Bell, Search, Settings, User, LogOut, Shield, HelpCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { userAPI } from '@/lib/api';
 
 export default function OrgAdminHeader({ title }: { title: string }) {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const { currentOrganization } = useOrganization();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
+  const [modalAnimation, setModalAnimation] = useState('');
+  
+  // Form states
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -26,6 +39,14 @@ export default function OrgAdminHeader({ title }: { title: string }) {
     };
   }, []);
 
+  // Set form values when user data changes
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.firstName || '');
+      setLastName(user.lastName || '');
+    }
+  }, [user]);
+
   const handleLogout = () => {
     logout();
     setDropdownOpen(false);
@@ -34,10 +55,52 @@ export default function OrgAdminHeader({ title }: { title: string }) {
   const openModal = (modalType: string) => {
     setModalOpen(modalType);
     setDropdownOpen(false);
+    setModalAnimation('animate-fadeIn');
+    // Reset notification when opening modal
+    setNotification(null);
   };
 
   const closeModal = () => {
-    setModalOpen(null);
+    setModalAnimation('animate-fadeOut');
+    setTimeout(() => {
+      setModalOpen(null);
+      setModalAnimation('');
+    }, 300);
+  };
+  
+  const handleUpdateProfile = async () => {
+    if (!user || !user.id) return;
+    
+    try {
+      setIsUpdating(true);
+      
+      await userAPI.updateUser(user.id, {
+        firstName,
+        lastName
+      });
+      
+      // Refresh user data
+      await refreshUser();
+      
+      // Show success message
+      setNotification({
+        type: 'success',
+        message: 'Profile updated successfully'
+      });
+      
+      // Hide notification after 3 seconds
+      setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to update profile', error);
+      setNotification({
+        type: 'error',
+        message: 'Failed to update profile. Please try again.'
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -213,213 +276,274 @@ export default function OrgAdminHeader({ title }: { title: string }) {
         </div>
       </header>
 
-      {/* Modal Overlay */}
+      {/* Modal with animation and backdrop blur */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-gray-700 bg-opacity-20 backdrop-blur-[2px] z-30 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-800">
-                {modalOpen === 'profile' && 'My Profile'}
-                {modalOpen === 'settings' && 'Settings'}
-                {modalOpen === 'security' && 'Security'}
-                {modalOpen === 'help' && 'Help & Support'}
-              </h2>
-              <button 
-                onClick={closeModal}
-                className="text-gray-400 hover:text-gray-500 hover:bg-gray-100 p-1.5 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <span className="sr-only">Close</span>
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-6">
-              {modalOpen === 'profile' && (
-                <div className="space-y-6">
-                  <div className="flex items-center">
-                    <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-xl mr-6">
-                      {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-medium">{user?.firstName} {user?.lastName}</h3>
-                      <p className="text-sm text-gray-500">{user?.role}</p>
-                      <p className="text-sm text-gray-500">{user?.email}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        First Name
-                      </label>
-                      <input
-                        type="text"
-                        defaultValue={user?.firstName}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Last Name
-                      </label>
-                      <input
-                        type="text"
-                        defaultValue={user?.lastName}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <button
-                      type="button"
-                      className="w-full flex justify-center items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    >
-                      <User size={16} className="mr-2" />
-                      Update Profile
-                    </button>
-                  </div>
+        <>
+          {/* Semi-transparent backdrop with blur */}
+          <div 
+            className={`fixed inset-0 bg-gray-600 bg-opacity-30 backdrop-blur-sm z-30 transition-opacity duration-300 ${modalAnimation === 'animate-fadeOut' ? 'opacity-0' : 'opacity-100'}`}
+            onClick={closeModal}
+          ></div>
+          
+          {/* Modal content with animation */}
+          <div className="fixed inset-0 z-40 flex items-center justify-center p-4 pointer-events-none">
+            <div 
+              ref={modalRef}
+              className={`bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-auto pointer-events-auto transition-all duration-300 ${
+                modalAnimation === 'animate-fadeIn' ? 'opacity-100 scale-100 translate-y-0' : 
+                modalAnimation === 'animate-fadeOut' ? 'opacity-0 scale-95 -translate-y-4' : 
+                'opacity-0 scale-95 -translate-y-4'
+              }`}
+            >
+              <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  {modalOpen === 'profile' && 'My Profile'}
+                  {modalOpen === 'settings' && 'Settings'}
+                  {modalOpen === 'security' && 'Security'}
+                  {modalOpen === 'help' && 'Help & Support'}
+                </h2>
+                <button 
+                  onClick={closeModal}
+                  className="text-gray-400 hover:text-gray-500 hover:bg-gray-100 p-1.5 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <span className="sr-only">Close</span>
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              {/* Notification message */}
+              {notification && (
+                <div className={`mx-6 mt-4 p-3 rounded-md flex items-center ${
+                  notification.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                }`}>
+                  {notification.type === 'success' ? (
+                    <CheckCircle size={18} className="text-green-500 mr-2" />
+                  ) : (
+                    <svg className="h-5 w-5 text-red-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
+                  <span>{notification.message}</span>
                 </div>
               )}
               
-              {modalOpen === 'settings' && (
-                <div className="space-y-4">
-                  <p>Settings content will be displayed here</p>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Language
-                      </label>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option>English</option>
-                        <option>Spanish</option>
-                        <option>French</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Time Zone
-                      </label>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option>UTC</option>
-                        <option>America/New_York</option>
-                        <option>Europe/London</option>
-                        <option>Asia/Tokyo</option>
-                      </select>
-                    </div>
-                    
+              <div className="p-6">
+                {modalOpen === 'profile' && (
+                  <div className="space-y-6">
                     <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="darkMode"
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <label htmlFor="darkMode" className="ml-2 block text-sm text-gray-700">
-                        Enable Dark Mode
-                      </label>
+                      <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-xl mr-6">
+                        {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-medium">{user?.firstName} {user?.lastName}</h3>
+                        <p className="text-sm text-gray-500">{user?.role}</p>
+                        <p className="text-sm text-gray-500">{user?.email}</p>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              )}
-              
-              {modalOpen === 'security' && (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Change Password</h3>
-                    <div className="space-y-4">
+                    
+                    <div className="grid grid-cols-2 gap-6">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Current Password
+                          First Name
                         </label>
                         <input
-                          type="password"
+                          type="text"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                       
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          New Password
+                          Last Name
                         </label>
                         <input
-                          type="password"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Confirm New Password
-                        </label>
-                        <input
-                          type="password"
+                          type="text"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                     </div>
                     
-                    <div className="mt-4">
+                    <div>
                       <button
                         type="button"
-                        className="w-full flex justify-center items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        onClick={handleUpdateProfile}
+                        disabled={isUpdating}
+                        className="w-full flex justify-center items-center px-4 py-2 rounded-md hover:opacity-90 text-white"
+                        style={{
+                          background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
+                          transition: 'opacity 150ms'
+                        }}
                       >
-                        Update Password
+                        {isUpdating ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <User size={16} className="mr-2" />
+                            Update Profile
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
-                  
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <h3 className="text-lg font-medium mb-2">Two-Factor Authentication</h3>
-                    <p className="text-sm text-gray-600 mb-3">Add an extra layer of security to your account</p>
-                    <button
-                      type="button"
-                      className="px-4 py-2 border border-gray-300 rounded-md text-blue-700 hover:bg-blue-50"
-                    >
-                      Set Up Two-Factor Authentication
-                    </button>
+                )}
+                
+                {/* Settings Modal Content */}
+                {modalOpen === 'settings' && (
+                  <div className="space-y-4">
+                    <p>Settings content will be displayed here</p>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Language
+                        </label>
+                        <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                          <option>English</option>
+                          <option>Spanish</option>
+                          <option>French</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Time Zone
+                        </label>
+                        <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                          <option>UTC</option>
+                          <option>America/New_York</option>
+                          <option>Europe/London</option>
+                          <option>Asia/Tokyo</option>
+                        </select>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="darkMode"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor="darkMode" className="ml-2 block text-sm text-gray-700">
+                          Enable Dark Mode
+                        </label>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+                
+                {/* Security Modal Content */}
+                {modalOpen === 'security' && (
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Change Password</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Current Password
+                          </label>
+                          <input
+                            type="password"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            New Password
+                          </label>
+                          <input
+                            type="password"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Confirm New Password
+                          </label>
+                          <input
+                            type="password"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          className="w-full flex justify-center items-center px-4 py-2 rounded-md hover:opacity-90 text-white"
+                          style={{
+                            background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
+                            transition: 'opacity 150ms'
+                          }}
+                        >
+                          Update Password
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <h3 className="text-lg font-medium mb-2">Two-Factor Authentication</h3>
+                      <p className="text-sm text-gray-600 mb-3">Add an extra layer of security to your account</p>
+                      <button
+                        type="button"
+                        className="px-4 py-2 border border-gray-300 rounded-md text-blue-700 hover:bg-blue-50"
+                      >
+                        Set Up Two-Factor Authentication
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Help Modal Content */}
+                {modalOpen === 'help' && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Help & Support</h3>
+                    <div className="bg-gray-50 p-4 rounded border border-gray-200">
+                      <h4 className="font-medium mb-2">Documentation</h4>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Check our comprehensive documentation to find answers to common questions.
+                      </p>
+                      <a href="#" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        View Documentation
+                      </a>
+                    </div>
+                    
+                    <div className="bg-gray-50 p-4 rounded border border-gray-200">
+                      <h4 className="font-medium mb-2">Contact Support</h4>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Need help? Our support team is ready to assist you.
+                      </p>
+                      <a href="mailto:support@syntropi.com" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        support@syntropi.com
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
               
-              {modalOpen === 'help' && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Help & Support</h3>
-                  <div className="bg-gray-50 p-4 rounded border border-gray-200">
-                    <h4 className="font-medium mb-2">Documentation</h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      Check our comprehensive documentation to find answers to common questions.
-                    </p>
-                    <a href="#" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                      View Documentation
-                    </a>
-                  </div>
-                  
-                  <div className="bg-gray-50 p-4 rounded border border-gray-200">
-                    <h4 className="font-medium mb-2">Contact Support</h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      Need help? Our support team is ready to assist you.
-                    </p>
-                    <a href="mailto:support@syntropi.com" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                      support@syntropi.com
-                    </a>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                Close
-              </button>
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </>
   );
