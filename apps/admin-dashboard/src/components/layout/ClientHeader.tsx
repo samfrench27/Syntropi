@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, LogOut, X, Menu as MenuIcon, Bell, Search, CheckCircle } from 'lucide-react';
+import { User, LogOut, X, Menu as MenuIcon, Bell, Search, CheckCircle, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { userAPI } from '@/lib/api';
@@ -168,6 +168,17 @@ export default function ClientHeader({ title }: ClientHeaderProps) {
         </div>
         
         <div className="flex items-center space-x-6">
+          {/* API Documentation Link */}
+          <a 
+            href="https://www.developer.syntropi.co.uk" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="hidden md:flex items-center text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+          >
+            API Docs
+            <ExternalLink size={14} className="ml-1" />
+          </a>
+          
           {/* Search */}
           <div className="max-w-md w-64 lg:w-80">
             <div className="relative text-gray-400 focus-within:text-gray-600">
