@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Card from '@/components/admin/Card';
 import PageHeader from '@/components/admin/PageHeader';
-import { apiKeyAPI, activityAPI } from '@/lib/api';
+import { organizationAPI, activityAPI } from '@/lib/api';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -70,13 +70,12 @@ export default function ClientDashboardPage() {
       setLoading(true);
       setError(null);
       
-      // Get API Keys count - filter by user ID if available
-      const apiKeysResponse = await apiKeyAPI.getApiKeys({ 
-        limit: 0,
-        // Optional: Only fetch keys for the current user if API supports it
-        ...(user?.id && { userId: user.id })
-      });
-      setApiKeys(apiKeysResponse.data.data.pagination.total || 0);
+      // Get current organization data (includes API key count)
+      const orgResponse = await organizationAPI.getCurrentOrganization();
+      const organizationData = orgResponse.data.data;
+      
+      // Set API key count from organization data
+      setApiKeys(organizationData.stats?.apiKeyCount || 0);
       
       // Get data for the last 7 days
       const endDate = new Date();
@@ -98,25 +97,21 @@ export default function ClientDashboardPage() {
       const yesterday = new Date(endDate);
       yesterday.setDate(yesterday.getDate() - 1);
       
-      const last24HoursResponse = await activityAPI.getActivities({
+      const last24HoursResponse = await activityAPI.getClientActivities({
         limit: 0,
         action: 'api.access',
         startDate: yesterday.toISOString(),
-        endDate: endDate.toISOString(),
-        // Optional: Only fetch activities for current user if API supports it
-        ...(user?.id && { userId: user.id })
+        endDate: endDate.toISOString()
       });
       
       setApiCallsCount(last24HoursResponse.data.data.pagination.total || 0);
       
       // Fetch data for API calls chart
-      const apiCallsResponse = await activityAPI.getActivities({
+      const apiCallsResponse = await activityAPI.getClientActivities({
         limit: 1000,
         action: 'api.access',
         startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        // Optional: Only fetch activities for current user if API supports it
-        ...(user?.id && { userId: user.id })
+        endDate: endDate.toISOString()
       });
       
       const activities = apiCallsResponse.data.data.activities || [];
