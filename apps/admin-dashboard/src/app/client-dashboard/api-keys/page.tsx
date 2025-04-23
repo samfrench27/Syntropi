@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Search, RefreshCw, Key } from 'lucide-react';
-import { apiKeyAPI } from '@/lib/api';
+import { clientAPIKeyAPI } from '@/lib/clientApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import Card from '@/components/admin/Card';
@@ -65,24 +65,19 @@ export default function ClientApiKeysPage() {
     }
     
     try {
-      const response = await apiKeyAPI.getApiKeys({
+      const response = await clientAPIKeyAPI.getApiKeys({
         page: currentPage,
         limit: 10,
-        organizationId: currentOrganization._id,
         environment: filterEnv as any || undefined
       });
       
-      // Filter API keys client-side to only show keys created by this user
-      const filteredApiKeys = response.data.data.apiKeys.filter(
-        (key: ApiKey) => key.createdBy._id === currentUser?.id
-      );
+      // Show all API keys for the organization, not just ones created by current user
+      const apiKeysData = response.data.data.apiKeys;
+      setApiKeys(apiKeysData);
       
-      setApiKeys(filteredApiKeys);
-      
-      // Adjust total pages based on client-side filtering
-      const totalItems = response.data.data.pagination.total;
-      const filteredTotal = Math.ceil(filteredApiKeys.length / 10);
-      setTotalPages(filteredTotal > 0 ? filteredTotal : 1);
+      // Use the total from the API response
+      const totalPages = response.data.data.pagination.pages || 1;
+      setTotalPages(totalPages);
     } catch (err: any) {
       console.error('Failed to fetch API keys:', err);
       setError(err.response?.data?.error?.message || 'Failed to fetch API keys');
@@ -101,7 +96,7 @@ export default function ClientApiKeysPage() {
     }
 
     try {
-      await apiKeyAPI.revokeApiKey(id);
+      await clientAPIKeyAPI.revokeApiKey(id);
       // Refresh the list after revocation
       fetchApiKeys();
     } catch (err: any) {
