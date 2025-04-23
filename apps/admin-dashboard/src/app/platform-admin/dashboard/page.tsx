@@ -13,7 +13,16 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import Card from '@/components/admin/Card';
-import { organizationAPI, userAPI } from '@/lib/api';
+import { organizationAPI, userAPI, apiKeyAPI, activityAPI } from '@/lib/api';
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
+} from 'recharts';
 
 interface DashboardStats {
   organizationCount: number;
@@ -21,6 +30,11 @@ interface DashboardStats {
   apiKeyCount: number;
   activeApiCalls: number;
   systemStatus: 'healthy' | 'warning' | 'critical';
+}
+
+interface ApiCallData {
+  date: string;
+  count: number;
 }
 
 interface StatCardProps {
@@ -50,7 +64,8 @@ export default function PlatformAdminDashboardPage() {
     activeApiCalls: 0,
     systemStatus: 'healthy',
   });
-  
+  const [apiCallsData, setApiCallsData] = useState<ApiCallData[]>([]);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -59,18 +74,39 @@ export default function PlatformAdminDashboardPage() {
     const fetchDashboardData = async () => {
       try {
         // Fetch basic data from existing endpoints
-        const [orgsResponse, usersResponse] = await Promise.all([
+        const [orgsResponse, usersResponse, apiKeysResponse, activitiesResponse] = await Promise.all([
           organizationAPI.getOrganizations({ limit: 0 }),
-          userAPI.getUsers({ limit: 0 })
+          userAPI.getUsers({ limit: 0 }),
+          apiKeyAPI.getApiKeys({ limit: 0 }),
+          activityAPI.getActivities({ 
+            limit: 10,
+            action: 'api.access'
+          })
         ]);
+        
+        // Count API calls in the last 24 hours
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const apiCallsResponse = await activityAPI.getActivities({
+          limit: 0,
+          action: 'api.access',
+          startDate: yesterday.toISOString(),
+          endDate: now.toISOString()
+        });
         
         setStats({
           organizationCount: orgsResponse.data.data.pagination.total || 0,
           userCount: usersResponse.data.data.pagination.total || 0,
-          apiKeyCount: 12, // Mock data
-          activeApiCalls: 1247, // Mock data
+          apiKeyCount: apiKeysResponse.data.data.pagination.total || 0,
+          activeApiCalls: apiCallsResponse.data.data.pagination.total || 0,
           systemStatus: 'healthy',
         });
+        
+        // Set recent activities
+        setRecentActivities(activitiesResponse.data.data.activities || []);
+        
+        // Fetch data for API calls chart
+        await fetchApiCallsChartData();
       } catch (err) {
         console.error('Failed to fetch dashboard data', err);
         setError('Failed to load dashboard data');
@@ -81,6 +117,55 @@ export default function PlatformAdminDashboardPage() {
 
     fetchDashboardData();
   }, []);
+  
+  const fetchApiCallsChartData = async () => {
+    try {
+      // Get data for the last 7 days
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7);
+      
+      // Prepare the array of dates for the last 7 days
+      const chartData: ApiCallData[] = [];
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        chartData.push({
+          date: date.toISOString().split('T')[0],
+          count: 0
+        });
+      }
+      
+      // Fetch data for each day
+      const response = await activityAPI.getActivities({
+        limit: 1000,
+        action: 'api.access',
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      });
+      
+      const activities = response.data.data.activities || [];
+      
+      // Count activities per day
+      activities.forEach((activity: any) => {
+        const activityDate = new Date(activity.createdAt).toISOString().split('T')[0];
+        const dataPoint = chartData.find(item => item.date === activityDate);
+        if (dataPoint) {
+          dataPoint.count++;
+        }
+      });
+      
+      // Format dates to be more readable
+      chartData.forEach(data => {
+        const date = new Date(data.date);
+        data.date = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      });
+      
+      setApiCallsData(chartData);
+    } catch (err) {
+      console.error('Failed to fetch API calls chart data', err);
+    }
+  };
 
   // Stat card component for dashboard metrics
   const StatCard = ({ 
@@ -143,6 +228,30 @@ export default function PlatformAdminDashboardPage() {
       </div>
     );
   };
+  
+  // Format activity for display
+  const formatActivity = (activity: any) => {
+    if (!activity) return null;
+    
+    let title = 'Unknown Activity';
+    let description = '';
+    
+    switch (activity.action) {
+      case 'api.access':
+        title = 'API Access';
+        description = `Endpoint: ${activity.details?.endpoint || 'Unknown'}, Method: ${activity.details?.method || 'Unknown'}`;
+        break;
+      case 'user.login':
+        title = 'User Login';
+        description = `User: ${activity.user?.firstName || ''} ${activity.user?.lastName || ''}`;
+        break;
+      default:
+        title = activity.action.replace(/\./g, ' › ').replace(/^./, (str: string) => str.toUpperCase());
+        description = `Organization: ${activity.organization?.name || 'Unknown'}`;
+    }
+    
+    return { title, description };
+  };
 
   if (error) {
     return (
@@ -204,10 +313,53 @@ export default function PlatformAdminDashboardPage() {
                   </div>
                 ))}
               </div>
+            ) : recentActivities.length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  {recentActivities.slice(0, 5).map((activity) => {
+                    const formattedActivity = formatActivity(activity);
+                    return (
+                      <div key={activity._id} className="flex items-start space-x-3">
+                        <div className="p-2 bg-blue-100 rounded-full text-blue-600">
+                          <Activity size={16} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{formattedActivity?.title}</p>
+                          <p className="text-xs text-gray-500">{formattedActivity?.description}</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(activity.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="h-56">
+                  <p className="text-sm font-medium mb-2">API Calls (Last 7 days)</p>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={apiCallsData}
+                      margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Area 
+                        type="monotone" 
+                        dataKey="count" 
+                        stroke="#6366F1" 
+                        fill="#818CF8" 
+                        name="API Calls"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             ) : (
               <div className="text-center text-gray-500 py-16">
                 <Activity size={36} className="mx-auto mb-2 opacity-40" />
-                <p>Activity data will appear here</p>
+                <p>No recent activity to display</p>
               </div>
             )}
           </Card.Body>
@@ -251,7 +403,7 @@ export default function PlatformAdminDashboardPage() {
         <Card>
           <Card.Header title="Provider Status" />
           <Card.Body>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Token.io</span>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -287,23 +439,33 @@ export default function PlatformAdminDashboardPage() {
           <Card.Header title="Recent Alerts" />
           <Card.Body>
             <div className="space-y-4">
-              <div className="flex items-start">
-                <div className="mt-1 mr-3 flex-shrink-0">
-                  <AlertTriangle size={18} className="text-yellow-500" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium">TrueLayer API Degraded Performance</h4>
-                  <p className="text-xs text-gray-500 mt-1">Mar 1, 2025 - 14:32</p>
+              <div className="rounded-md bg-yellow-50 p-3">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-yellow-800">TrueLayer API Degraded Performance</h3>
+                    <div className="mt-1 text-sm text-yellow-700">
+                      <p>Mar 1, 2025 - 14:32</p>
+                    </div>
+                  </div>
                 </div>
               </div>
               
-              <div className="flex items-start">
-                <div className="mt-1 mr-3 flex-shrink-0">
-                  <AlertTriangle size={18} className="text-green-500" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium">Database Maintenance Completed</h4>
-                  <p className="text-xs text-gray-500 mt-1">Mar 1, 2025 - 08:15</p>
+              <div className="rounded-md bg-green-50 p-3">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-green-800">Database Maintenance Completed</h3>
+                    <div className="mt-1 text-sm text-green-700">
+                      <p>Mar 1, 2025 - 08:15</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
