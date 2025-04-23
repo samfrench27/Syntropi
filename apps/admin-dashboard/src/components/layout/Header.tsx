@@ -1,15 +1,28 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Search, Settings, User, LogOut, Shield, HelpCircle } from 'lucide-react';
+import { Bell, Search, Settings, User, LogOut, Shield, HelpCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import { userAPI } from '@/lib/api';
 
 export default function Header({ title }: { title: string }) {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
+  const [modalAnimation, setModalAnimation] = useState('');
+  
+  // Form states
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -24,6 +37,14 @@ export default function Header({ title }: { title: string }) {
     };
   }, []);
 
+  // Set form values when user data changes
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.firstName || '');
+      setLastName(user.lastName || '');
+    }
+  }, [user]);
+
   const handleLogout = () => {
     logout();
     setDropdownOpen(false);
@@ -32,10 +53,52 @@ export default function Header({ title }: { title: string }) {
   const openModal = (modalType: string) => {
     setModalOpen(modalType);
     setDropdownOpen(false);
+    setModalAnimation('animate-fadeIn');
+    // Reset notification when opening modal
+    setNotification(null);
   };
 
   const closeModal = () => {
-    setModalOpen(null);
+    setModalAnimation('animate-fadeOut');
+    setTimeout(() => {
+      setModalOpen(null);
+      setModalAnimation('');
+    }, 300);
+  };
+  
+  const handleUpdateProfile = async () => {
+    if (!user || !user.id) return;
+    
+    try {
+      setIsUpdating(true);
+      
+      await userAPI.updateUser(user.id, {
+        firstName,
+        lastName
+      });
+      
+      // Refresh user data
+      await refreshUser();
+      
+      // Show success message
+      setNotification({
+        type: 'success',
+        message: 'Profile updated successfully'
+      });
+      
+      // Hide notification after 3 seconds
+      setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to update profile', error);
+      setNotification({
+        type: 'error',
+        message: 'Failed to update profile. Please try again.'
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -202,18 +265,25 @@ export default function Header({ title }: { title: string }) {
         </div>
       </header>
 
-      {/* Modal Overlay - Using a more transparent overlay for better background visibility */}
+      {/* Modal with animation and backdrop blur */}
       {modalOpen && (
         <>
-          {/* Semi-transparent backdrop */}
+          {/* Semi-transparent backdrop with blur */}
           <div 
-            className="fixed inset-0 bg-gray-600 bg-opacity-50 z-30"
+            className={`fixed inset-0 bg-gray-600 bg-opacity-30 backdrop-blur-sm z-30 transition-opacity duration-300 ${modalAnimation === 'animate-fadeOut' ? 'opacity-0' : 'opacity-100'}`}
             onClick={closeModal}
           ></div>
           
-          {/* Modal content */}
+          {/* Modal content with animation */}
           <div className="fixed inset-0 z-40 flex items-center justify-center p-4 pointer-events-none">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-auto pointer-events-auto">
+            <div 
+              ref={modalRef}
+              className={`bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-auto pointer-events-auto transition-all duration-300 ${
+                modalAnimation === 'animate-fadeIn' ? 'opacity-100 scale-100 translate-y-0' : 
+                modalAnimation === 'animate-fadeOut' ? 'opacity-0 scale-95 -translate-y-4' : 
+                'opacity-0 scale-95 -translate-y-4'
+              }`}
+            >
               <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-gray-800">
                   {modalOpen === 'profile' && 'My Profile'}
@@ -231,6 +301,23 @@ export default function Header({ title }: { title: string }) {
                   </svg>
                 </button>
               </div>
+              
+              {/* Notification message */}
+              {notification && (
+                <div className={`mx-6 mt-4 p-3 rounded-md flex items-center ${
+                  notification.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                }`}>
+                  {notification.type === 'success' ? (
+                    <CheckCircle size={18} className="text-green-500 mr-2" />
+                  ) : (
+                    <svg className="h-5 w-5 text-red-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
+                  <span>{notification.message}</span>
+                </div>
+              )}
+              
               <div className="p-6">
                 {modalOpen === 'profile' && (
                   <div className="space-y-6">
@@ -252,7 +339,8 @@ export default function Header({ title }: { title: string }) {
                         </label>
                         <input
                           type="text"
-                          defaultValue={user?.firstName}
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
@@ -263,7 +351,8 @@ export default function Header({ title }: { title: string }) {
                         </label>
                         <input
                           type="text"
-                          defaultValue={user?.lastName}
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
@@ -272,14 +361,28 @@ export default function Header({ title }: { title: string }) {
                     <div>
                       <button
                         type="button"
+                        onClick={handleUpdateProfile}
+                        disabled={isUpdating}
                         className="w-full flex justify-center items-center px-4 py-2 rounded-md hover:opacity-90 text-white"
                         style={{
                           background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
                           transition: 'opacity 150ms'
                         }}
                       >
-                        <User size={16} className="mr-2" />
-                        Update Profile
+                        {isUpdating ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <User size={16} className="mr-2" />
+                            Update Profile
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
