@@ -82,9 +82,6 @@ export default function ClientSidebar() {
         } lg:static`}
       >
         <div className="overflow-auto flex-1 p-4">
-          <div className="mb-4 px-4 text-xs font-semibold text-text-secondary uppercase tracking-wider">
-            Client Dashboard
-          </div>
           <nav className="space-y-1">
             {navigation.map((item) => (
               <NavItem 
