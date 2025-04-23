@@ -1,7 +1,7 @@
 // src/app/org-admin/dashboard/page.tsx
 'use client';
 
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Users, 
@@ -15,6 +15,31 @@ import {
 import Card from '@/components/admin/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { activityAPI } from '@/lib/api';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Filler,
+  Legend,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Filler,
+  Legend
+);
 
 interface StatCardProps {
   title: string;
@@ -28,10 +53,138 @@ interface StatCardProps {
   loading?: boolean;
 }
 
+interface ApiCallData {
+  date: string;
+  count: number;
+}
+
 export default function OrgAdminDashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { currentOrganization, loading, error, refreshOrganization } = useOrganization();
+  const [apiCallsData, setApiCallsData] = useState<ApiCallData[]>([]);
+  const [apiCallsLoading, setApiCallsLoading] = useState(true);
+  const [apiCallsError, setApiCallsError] = useState<string | null>(null);
+  const [apiCallsCount, setApiCallsCount] = useState(0);
+
+  useEffect(() => {
+    if (currentOrganization && currentOrganization._id) {
+      fetchApiCallsData();
+    }
+  }, [currentOrganization]);
+
+  const fetchApiCallsData = async () => {
+    if (!currentOrganization) return;
+    
+    try {
+      setApiCallsLoading(true);
+      
+      // Get data for the last 7 days
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7);
+      
+      // Prepare the array of dates for the last 7 days
+      const chartData: ApiCallData[] = [];
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        chartData.push({
+          date: date.toISOString().split('T')[0],
+          count: 0
+        });
+      }
+      
+      // Count API calls in the last 24 hours
+      const yesterday = new Date(endDate);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      // Fetch data for each day
+      const params = {
+        limit: 1000,
+        action: 'api.access',
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        organizationId: currentOrganization._id
+      };
+      
+      const response = await activityAPI.getActivities(params);
+      const activities = response.data.data.activities || [];
+      
+      // Count activities per day
+      activities.forEach((activity: any) => {
+        const activityDate = new Date(activity.createdAt).toISOString().split('T')[0];
+        const dataPoint = chartData.find(item => item.date === activityDate);
+        if (dataPoint) {
+          dataPoint.count++;
+        }
+      });
+      
+      // Format dates to be more readable
+      chartData.forEach(data => {
+        const date = new Date(data.date);
+        data.date = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      });
+      
+      setApiCallsData(chartData);
+      
+      // Get 24h API call count
+      const last24HoursResponse = await activityAPI.getActivities({
+        limit: 0,
+        action: 'api.access',
+        startDate: yesterday.toISOString(),
+        endDate: endDate.toISOString(),
+        organizationId: currentOrganization._id
+      });
+      
+      setApiCallsCount(last24HoursResponse.data.data.pagination.total || 0);
+      setApiCallsError(null);
+    } catch (err) {
+      console.error('Failed to fetch API calls data', err);
+      setApiCallsError('Failed to load API usage data');
+    } finally {
+      setApiCallsLoading(false);
+    }
+  };
+
+  // Prepare chart data for Chart.js
+  const chartData = {
+    labels: apiCallsData.map(item => item.date),
+    datasets: [
+      {
+        fill: true,
+        label: 'API Calls',
+        data: apiCallsData.map(item => item.count),
+        borderColor: '#6366F1',
+        backgroundColor: 'rgba(129, 140, 248, 0.5)',
+        tension: 0.3,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        callbacks: {
+          title: (context: any) => context[0].label,
+          label: (context: any) => `${context.dataset.label}: ${context.raw}`,
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          precision: 0,
+        },
+      },
+    },
+    maintainAspectRatio: false,
+  };
 
   // Stat card component for dashboard metrics
   const StatCard = ({ 
@@ -73,6 +226,7 @@ export default function OrgAdminDashboardPage() {
   // Handle refresh button click
   const handleRefresh = async () => {
     await refreshOrganization();
+    fetchApiCallsData();
   };
 
   return (
@@ -99,16 +253,14 @@ export default function OrgAdminDashboardPage() {
           )}
         </div>
         
-        {error && (
-          <button
-            onClick={handleRefresh}
-            className="flex items-center px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-            disabled={loading}
-          >
-            <RefreshCw size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-        )}
+        <button
+          onClick={handleRefresh}
+          className="flex items-center px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+          disabled={loading || apiCallsLoading}
+        >
+          <RefreshCw size={16} className={`mr-2 ${(loading || apiCallsLoading) ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
       </div>
       
       {/* Error display if applicable */}
@@ -137,7 +289,7 @@ export default function OrgAdminDashboardPage() {
         />
         <StatCard 
           title="API Calls (24h)" 
-          value={254} // Mock data
+          value={apiCallsLoading ? '-' : apiCallsCount}
           change={{ value: 5.2, positive: true }}
           icon={<ArrowUpRight size={24} />} 
           onClick={() => router.push('/org-admin/activities')}
@@ -149,22 +301,37 @@ export default function OrgAdminDashboardPage() {
         <Card>
           <Card.Header title="Recent Activity" />
           <Card.Body className="h-64">
-            {loading ? (
-              <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex items-start space-x-3">
-                    <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse mt-2"></div>
-                    </div>
-                  </div>
-                ))}
+            {apiCallsLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : apiCallsError ? (
+              <div className="text-center text-red-500 py-16">
+                <p>{apiCallsError}</p>
+                <button 
+                  onClick={fetchApiCallsData}
+                  className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition"
+                >
+                  Try Again
+                </button>
               </div>
             ) : (
-              <div className="text-center text-gray-500 py-16">
-                <Activity size={36} className="mx-auto mb-2 opacity-40" />
-                <p>Recent activities will appear here</p>
+              <div className="h-full flex flex-col items-center justify-center">
+                <p className="text-sm font-medium mb-3">API Calls (Last 7 days)</p>
+                <div className="w-full max-w-xl h-52">
+                  <Line data={chartData} options={{
+                    ...chartOptions,
+                    elements: {
+                      line: {
+                        borderWidth: 2
+                      },
+                      point: {
+                        radius: 3,
+                        hoverRadius: 5
+                      }
+                    }
+                  }} />
+                </div>
               </div>
             )}
           </Card.Body>

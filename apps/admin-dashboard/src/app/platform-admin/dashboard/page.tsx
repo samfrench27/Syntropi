@@ -368,12 +368,7 @@ export default function PlatformAdminDashboardPage() {
                     plugins: {
                       ...chartOptions.plugins,
                       legend: {
-                        display: true,
-                        position: 'top',
-                        labels: {
-                          usePointStyle: true,
-                          boxWidth: 6
-                        }
+                        display: false
                       }
                     },
                     elements: {
