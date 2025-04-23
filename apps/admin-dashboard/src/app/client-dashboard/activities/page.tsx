@@ -52,39 +52,24 @@ export default function ClientActivitiesPage() {
     setError(null);
     
     try {
-      // Build query parameters
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: itemsPerPage.toString(),
-        organizationId: currentOrganization._id
+      // Use the client-specific endpoint
+      const response = await activityAPI.getClientActivities({
+        page,
+        limit: itemsPerPage,
+        organizationId: currentOrganization._id,
+        action: filterAction || undefined,
+        startDate: startDate ? new Date(startDate).toISOString() : undefined,
+        endDate: endDate ? new Date(endDate).toISOString() : undefined
       });
       
-      if (searchTerm) params.append('search', searchTerm);
-      if (filterAction) params.append('action', filterAction);
-      if (startDate) params.append('startDate', new Date(startDate).toISOString());
-      if (endDate) params.append('endDate', new Date(endDate).toISOString());
-      
-      const response = await fetch(`/api/activities?${params.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch activities');
-      }
-      
-      const data = await response.json();
-      
-      setActivities(data.activities || []);
-      setTotalPages(Math.ceil(data.total / itemsPerPage) || 1);
+      setActivities(response.data.data.activities || []);
+      setTotalPages(Math.ceil(response.data.data.pagination.total / itemsPerPage) || 1);
       setCurrentPage(page);
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Error fetching activities:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch activities';
+      const errorMessage = err.response?.data?.message || 'Failed to fetch activities';
       setError(errorMessage);
-      toast.error('Failed to fetch activities');
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

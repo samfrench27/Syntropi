@@ -190,15 +190,22 @@ export default function ClientHeader({ title }: ClientHeaderProps) {
         <div className="md:hidden absolute top-16 left-0 w-full bg-white shadow-lg z-10" id="mobile-menu">
           <div className="px-2 pt-2 pb-3 space-y-1">
             <Link
+              href="/client-dashboard/dashboard"
+              className="text-text-primary hover:bg-gray-100 block px-3 py-2 rounded-md text-base font-medium"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Dashboard
+            </Link>
+            <Link
               href="/client-dashboard/api-keys"
-              className="text-text-primary hover:bg-soft-lavender block px-3 py-2 rounded-md text-base font-medium"
+              className="text-text-primary hover:bg-gray-100 block px-3 py-2 rounded-md text-base font-medium"
               onClick={() => setMobileMenuOpen(false)}
             >
               API Keys
             </Link>
             <Link
               href="/client-dashboard/activities"
-              className="text-text-primary hover:bg-soft-lavender block px-3 py-2 rounded-md text-base font-medium"
+              className="text-text-primary hover:bg-gray-100 block px-3 py-2 rounded-md text-base font-medium"
               onClick={() => setMobileMenuOpen(false)}
             >
               Activity Logs

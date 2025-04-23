@@ -242,6 +242,16 @@ export const activityAPI = {
   }) => api.get('/admin/activities', { params }),
   
   getActivity: (id: string) => api.get(`/admin/activities/${id}`),
+
+  // Client-specific endpoint for the client dashboard
+  getClientActivities: (params?: {
+    page?: number;
+    limit?: number;
+    organizationId?: string;
+    action?: string;
+    startDate?: string;
+    endDate?: string;
+  }) => api.get('/client/activities', { params }),
 };
 
 // Provider management API

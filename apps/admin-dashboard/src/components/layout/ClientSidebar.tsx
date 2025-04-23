@@ -3,7 +3,7 @@
 import React, { ReactNode, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Key, Activity, Menu, X } from 'lucide-react';
+import { Key, Activity, Menu, X, BarChart } from 'lucide-react';
 
 interface NavItemProps {
   href: string;
@@ -19,7 +19,7 @@ const NavItem = ({ href, icon, label, active, onClick }: NavItemProps) => (
     href={href}
     className={`flex items-center px-4 py-3 rounded-md mb-1 ${
       active 
-        ? 'bg-soft-lavender text-syntropi-purple' 
+        ? 'bg-blue-100 text-blue-800' 
         : 'text-gray-700 hover:bg-gray-100'
     }`}
     onClick={onClick}
@@ -40,7 +40,7 @@ export default function ClientSidebar() {
   // Check if a path is active
   const isActive = (href: string) => {
     // Special case for dashboard
-    if (href === '/client-dashboard/dashboard' && pathname === '/client-dashboard') {
+    if (href === '/client-dashboard/dashboard' && (pathname === '/client-dashboard' || pathname === '/client-dashboard/dashboard')) {
       return true;
     }
     
@@ -50,6 +50,7 @@ export default function ClientSidebar() {
   
   // Navigation items for client dashboard
   const navigation = [
+    { href: '/client-dashboard/dashboard', icon: <BarChart size={20} />, label: 'Dashboard' },
     { href: '/client-dashboard/api-keys', icon: <Key size={20} />, label: 'API Keys' },
     { href: '/client-dashboard/activities', icon: <Activity size={20} />, label: 'Activity Logs' },
   ];
