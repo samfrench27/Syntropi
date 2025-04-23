@@ -14,15 +14,30 @@ import {
 } from 'lucide-react';
 import Card from '@/components/admin/Card';
 import { organizationAPI, userAPI, apiKeyAPI, activityAPI } from '@/lib/api';
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
-} from 'recharts';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Filler,
+  Legend,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Filler,
+  Legend
+);
 
 interface DashboardStats {
   organizationCount: number;
@@ -167,6 +182,45 @@ export default function PlatformAdminDashboardPage() {
     }
   };
 
+  // Prepare chart data for Chart.js
+  const chartData = {
+    labels: apiCallsData.map(item => item.date),
+    datasets: [
+      {
+        fill: true,
+        label: 'API Calls',
+        data: apiCallsData.map(item => item.count),
+        borderColor: '#6366F1',
+        backgroundColor: 'rgba(129, 140, 248, 0.5)',
+        tension: 0.3,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        callbacks: {
+          title: (context: any) => context[0].label,
+          label: (context: any) => `${context.dataset.label}: ${context.raw}`,
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          precision: 0,
+        },
+      },
+    },
+    maintainAspectRatio: false,
+  };
+
   // Stat card component for dashboard metrics
   const StatCard = ({ 
     title, 
@@ -302,64 +356,37 @@ export default function PlatformAdminDashboardPage() {
           <Card.Header title="Recent Activity" />
           <Card.Body className="h-64">
             {loading ? (
-              <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex items-start space-x-3">
-                    <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse mt-2"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : recentActivities.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="space-y-4">
-                  {recentActivities.slice(0, 5).map((activity) => {
-                    const formattedActivity = formatActivity(activity);
-                    return (
-                      <div key={activity._id} className="flex items-start space-x-3">
-                        <div className="p-2 bg-blue-100 rounded-full text-blue-600">
-                          <Activity size={16} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{formattedActivity?.title}</p>
-                          <p className="text-xs text-gray-500">{formattedActivity?.description}</p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {new Date(activity.createdAt).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="h-56">
-                  <p className="text-sm font-medium mb-2">API Calls (Last 7 days)</p>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={apiCallsData}
-                      margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <Tooltip />
-                      <Area 
-                        type="monotone" 
-                        dataKey="count" 
-                        stroke="#6366F1" 
-                        fill="#818CF8" 
-                        name="API Calls"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
+              <div className="flex items-center justify-center h-full">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
               </div>
             ) : (
-              <div className="text-center text-gray-500 py-16">
-                <Activity size={36} className="mx-auto mb-2 opacity-40" />
-                <p>No recent activity to display</p>
+              <div className="h-full flex flex-col items-center justify-center">
+                <p className="text-sm font-medium mb-3">API Calls (Last 7 days)</p>
+                <div className="w-full max-w-xl h-52">
+                  <Line data={chartData} options={{
+                    ...chartOptions,
+                    plugins: {
+                      ...chartOptions.plugins,
+                      legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                          usePointStyle: true,
+                          boxWidth: 6
+                        }
+                      }
+                    },
+                    elements: {
+                      line: {
+                        borderWidth: 2
+                      },
+                      point: {
+                        radius: 3,
+                        hoverRadius: 5
+                      }
+                    }
+                  }} />
+                </div>
               </div>
             )}
           </Card.Body>
