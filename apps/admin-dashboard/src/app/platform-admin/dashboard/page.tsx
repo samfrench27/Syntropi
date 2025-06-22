@@ -138,7 +138,7 @@ export default function PlatformAdminDashboardPage() {
       // Get data for the last 7 days
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 7);
+      startDate.setDate(startDate.getDate() - 6);
       
       // Prepare the array of dates for the last 7 days
       const chartData: ApiCallData[] = [];

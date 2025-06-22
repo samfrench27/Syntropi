@@ -1,39 +1,73 @@
-apis:
-  # Define a name for your API
-  syntropi:
-    # Path to your OpenAPI definition
-    root: ./openapi.yaml
-    theme:
-      logo:
-        url: 'https://syntropi.com/logo.png'
-        backgroundColor: '#5449DE'
-        altText: 'Syntropi API'
-      colors:
-        primary:
-          main: '#5449DE' # Syntropi purple
-          light: '#EFEDFC' # Soft lavender
-          dark: '#3F38A6' # Darker purple
-        text:
-          primary: '#1A1A1A'
-          secondary: '#4A4A4A'
-        http:
-          get: '#5449DE'
-          post: '#B63FDE'
-          put: '#47AEDE'
-          delete: '#ED6A5A'
-        background:
-          primary: '#FFFFFF'
-          secondary: '#F7F7F7'
-      typography:
-        fontSize: '16px'
-        lineHeight: '1.5'
-        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif'
-        headings:
-          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif'
-          fontWeight: 600
-      sidebar:
-        width: '300px'
-        backgroundColor: '#F7F7F7'
+openapi: redocly.yaml
+apiName: Syntropi Banking API
+oasDefinitionPath: openapi.yaml
+
+theme:
+  logo:
+    altText: Syntropi
+    href: 'https://syntropi.com'
+  
+  colors:
+    primary:
+      main: '#5449DE'
+      light: '#EFEDFC'
+      dark: '#3F38A6'
+    success:
+      main: '#5CB85C'
+      light: '#E8F6E8'
+      dark: '#4CAE4C'
+    warning:
+      main: '#F0AD4E'
+      light: '#FCF8E3'
+      dark: '#EEA236'
+    error:
+      main: '#D9534F'
+      light: '#F9E7E7'
+      dark: '#D43F3A'
+    text:
+      primary: '#1A1A1A'
+      secondary: '#5E5E5E'
+    http:
+      get: '#5449DE'
+      post: '#49A942'
+      put: '#F9BC08'
+      delete: '#E63946'
+  
+  typography:
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+    fontSize: '16px'
+    lineHeight: '1.5'
+    code:
+      fontFamily: 'Menlo, Monaco, Consolas, "Courier New", monospace'
+  
+  sidebar:
+    backgroundColor: '#FFFFFF'
+    textColor: '#1A1A1A'
+    activeTextColor: '#5449DE'
+    groupItems:
+      activeBackgroundColor: '#EFEDFC'
+      activeTextColor: '#5449DE'
+    level1Items:
+      activeBackgroundColor: '#EFEDFC'
+      activeTextColor: '#5449DE'
+    arrow:
+      color: '#5449DE'
+      size: '1.5em'
+
+referenceDocs:
+  htmlTemplate: ./templates/index.html
+  showConsole: true
+  layout:
+    showPagination: true
+  search:
+    enabled: true
+    indexHeadings: true
+  scrollspy:
+    enabled: true
+
+plugins:
+  - '@redocly/openapi-cli/plugins/security'
+  - '@redocly/openapi-cli/plugins/analytics'
 
 # Output configuration
 referenceDocs:
