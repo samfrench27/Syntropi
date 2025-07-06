@@ -14,15 +14,15 @@ info:
   version: 1.1.0
   contact:
     name: Syntropi Support
-    email: support@syntropi.com
-    url: https://syntropi.com/support
+    email: support@syntropi.co.uk
+    url: https://syntropi.co.uk/support
   license:
     name: Proprietary
-    url: https://syntropi.com/terms
+    url: https://syntropi.co.uk/terms
 servers:
-  - url: https://api.syntropi.com/api
+  - url: https://api.syntropi.co.uk/api
     description: Production API
-  - url: https://api-staging.syntropi.com/api
+  - url: https://api-staging.syntropi.co.uk/api
     description: Staging API
 
 tags:

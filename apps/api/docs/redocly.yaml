@@ -5,7 +5,7 @@ oasDefinitionPath: openapi.yaml
 theme:
   logo:
     altText: Syntropi
-    href: 'https://syntropi.com'
+    href: 'https://syntropi.co.uk'
   
   colors:
     primary:
