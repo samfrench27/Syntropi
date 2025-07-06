@@ -292,4 +292,42 @@ export const providerAPI = {
   deleteProvider: (id: string) => api.delete(`/admin/providers/${id}`),
 };
 
+// Analytics API (using existing endpoints)
+export const analyticsAPI = {
+  // Get activities for endpoint analytics
+  getActivities: (params?: {
+    page?: number;
+    limit?: number;
+    action?: string;
+    startDate?: string;
+    endDate?: string;
+    organizationId?: string;
+  }) => api.get('/admin/activities', { params }),
+};
+
+// Payments API (for admin dashboard)
+export const paymentsAPI = {
+  // Get payments with filters for analytics
+  getPayments: (params?: {
+    status?: string;
+    provider?: string;
+    limit?: number;
+    offset?: number;
+    startDate?: string;
+    endDate?: string;
+  }) => api.get('/api/payments', { 
+    params,
+    headers: {
+      'x-api-key': process.env.NEXT_PUBLIC_API_KEY // Will need API key for payment endpoints
+    }
+  }),
+  
+  // Get single payment details
+  getPayment: (paymentId: string) => api.get(`/api/payments/${paymentId}`, {
+    headers: {
+      'x-api-key': process.env.NEXT_PUBLIC_API_KEY
+    }
+  }),
+};
+
 export default api;
