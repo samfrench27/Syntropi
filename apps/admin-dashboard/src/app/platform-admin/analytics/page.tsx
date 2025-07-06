@@ -50,10 +50,16 @@ interface AnalyticsData {
   };
 }
 
+interface Organization {
+  _id: string;
+  name: string;
+}
+
 interface Payment {
   paymentId: string;
   status: string;
   provider: string;
+  organizationId: string;
   amount: { value: string; currency: string };
   toAccount: { accountName: string };
   createdAt: string;
@@ -75,15 +81,39 @@ export default function PlatformAnalyticsPage() {
   const { user } = useAuth();
   const [endpointFilter, setEndpointFilter] = useState<'all' | 'banks' | 'payments'>('all');
   const [dateRange, setDateRange] = useState(7); // days
+  const [selectedOrganization, setSelectedOrganization] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(true);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizationsLoading, setOrganizationsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchOrganizations();
+  }, []);
 
   useEffect(() => {
     fetchAnalyticsData();
     fetchPaymentsData();
-  }, [endpointFilter, dateRange]);
+  }, [endpointFilter, dateRange, selectedOrganization]);
+
+  const fetchOrganizations = async () => {
+    try {
+      setOrganizationsLoading(true);
+      const response = await api.get('/admin/organizations', {
+        params: { limit: 100 }
+      });
+      
+      const orgs = response.data?.data?.organizations || response.data?.organizations || [];
+      setOrganizations(orgs);
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
+      setOrganizations([]);
+    } finally {
+      setOrganizationsLoading(false);
+    }
+  };
 
   const fetchAnalyticsData = async () => {
     try {
@@ -186,9 +216,14 @@ export default function PlatformAnalyticsPage() {
       setPaymentsLoading(true);
       
       // Use admin payments endpoint (no API key needed)
-      const response = await api.get('/admin/payments', {
-        params: { limit: 50 }
-      });
+      const params: any = { limit: 50 };
+      
+      // Add organization filter if selected
+      if (selectedOrganization !== 'all') {
+        params.organizationId = selectedOrganization;
+      }
+      
+      const response = await api.get('/admin/payments', { params });
       
       // Try different response structures
       const payments = response.data.data?.payments || response.data.payments || response.data || [];
@@ -286,13 +321,14 @@ export default function PlatformAnalyticsPage() {
         <div className="flex space-x-3">
           <button
             onClick={() => {
+              fetchOrganizations();
               fetchAnalyticsData();
               fetchPaymentsData();
             }}
             className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
-            disabled={loading || paymentsLoading}
+            disabled={loading || paymentsLoading || organizationsLoading}
           >
-            <RefreshCw className={`h-4 w-4 ${(loading || paymentsLoading) ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${(loading || paymentsLoading || organizationsLoading) ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
         </div>
@@ -312,6 +348,19 @@ export default function PlatformAnalyticsPage() {
             <option value="payments">Payments Only</option>
           </select>
         </div>
+        <select
+          value={selectedOrganization}
+          onChange={(e) => setSelectedOrganization(e.target.value)}
+          className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+          disabled={organizationsLoading}
+        >
+          <option value="all">All Organizations</option>
+          {organizations.map((org) => (
+            <option key={org._id} value={org._id}>
+              {org.name}
+            </option>
+          ))}
+        </select>
         <select
           value={dateRange}
           onChange={(e) => setDateRange(parseInt(e.target.value))}
@@ -416,6 +465,9 @@ export default function PlatformAnalyticsPage() {
                       To Account
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Organization
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Provider
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -442,6 +494,9 @@ export default function PlatformAnalyticsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {payment.toAccount.accountName}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {organizations.find(org => org._id === payment.organizationId)?.name || 'Unknown'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {payment.provider}
