@@ -102,16 +102,6 @@ export default function PlatformAnalyticsPage() {
 
       // Process the activities data to create analytics
       const activities = response.data?.data?.activities || response.data?.activities || [];
-      console.log('Activities found:', activities.length);
-      
-      // Log a few sample activities to debug endpoint matching
-      if (activities.length > 0) {
-        console.log('Sample activities:', activities.slice(0, 3).map((a: any) => ({
-          action: a.action,
-          endpoint: a.details?.endpoint,
-          createdAt: a.createdAt
-        })));
-      }
       
       // Group by date and action type
       const dailyData: { [key: string]: { banks: number; payments: number } } = {};
@@ -131,10 +121,8 @@ export default function PlatformAnalyticsPage() {
           
           if (endpoint.includes('/api/banks')) {
             dailyData[date].banks++;
-            console.log('Found bank API call:', endpoint);
           } else if (endpoint.includes('/api/payments')) {
             dailyData[date].payments++;
-            console.log('Found payment API call:', endpoint);
           }
         }
       });
@@ -147,12 +135,6 @@ export default function PlatformAnalyticsPage() {
 
       const totalBankCalls = daily.reduce((sum, day) => sum + day.banks, 0);
       const totalPayments = daily.reduce((sum, day) => sum + day.payments, 0);
-
-      console.log('Analytics summary:', {
-        totalBankCalls,
-        totalPayments,
-        dailyData: daily
-      });
 
       setAnalyticsData({
         daily,
@@ -179,12 +161,9 @@ export default function PlatformAnalyticsPage() {
       const response = await api.get('/admin/payments', {
         params: { limit: 50 }
       });
-
-      console.log('Admin Payments API Response:', response.data);
       
       // Try different response structures
       const payments = response.data.data?.payments || response.data.payments || response.data || [];
-      console.log('Payments found:', payments.length, payments);
 
       setPayments(payments);
     } catch (error) {

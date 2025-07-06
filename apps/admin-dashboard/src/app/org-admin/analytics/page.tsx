@@ -171,12 +171,9 @@ export default function AnalyticsPage() {
           organizationId: currentOrganization?._id  // Filter by org for org-admin
         }
       });
-
-      console.log('Admin Payments API Response:', response.data);
       
       // Try different response structures
       const payments = response.data.data?.payments || response.data.payments || response.data || [];
-      console.log('Payments found:', payments.length, payments);
 
       setPayments(payments);
     } catch (error) {
