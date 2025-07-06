@@ -343,12 +343,14 @@ export const syncPaymentStatus = async (paymentId: string): Promise<IPayment> =>
     // Update status if changed
     if (statusResult.status !== payment.status) {
       const oldStatus = payment.status;
+      const rawTokenStatus = statusResult.details?.payment?.status;
+      
       payment.status = statusResult.status;
       payment.statusHistory.push({
         status: statusResult.status,
         timestamp: new Date(),
         provider: payment.provider,
-        details: 'Status synced from provider'
+        details: `Status synced from provider${rawTokenStatus ? ` (Token.io: ${rawTokenStatus})` : ''}`
       });
       
       // Update completed timestamp if payment is completed
@@ -365,6 +367,7 @@ export const syncPaymentStatus = async (paymentId: string): Promise<IPayment> =>
         paymentId,
         oldStatus,
         newStatus: statusResult.status,
+        rawTokenStatus,
         provider: payment.provider
       });
     }
