@@ -78,10 +78,18 @@ export default function PlatformAdminPaymentDetailPage() {
   };
 
   const formatCurrency = (amount: { value: string; currency: string }) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: amount.currency
-    }).format(parseFloat(amount.value));
+    try {
+      if (!amount || !amount.value || !amount.currency) {
+        return 'N/A';
+      }
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: amount.currency
+      }).format(parseFloat(amount.value));
+    } catch (error) {
+      console.warn('Error formatting currency:', error);
+      return `${amount.value} ${amount.currency}`;
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -95,14 +103,20 @@ export default function PlatformAdminPaymentDetailPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
+    try {
+      if (!dateString) return 'N/A';
+      return new Date(dateString).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+    } catch (error) {
+      console.warn('Error formatting date:', error);
+      return dateString;
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -193,7 +207,7 @@ export default function PlatformAdminPaymentDetailPage() {
                 <CreditCard className="h-5 w-5 text-gray-400" />
                 <div>
                   <p className="text-sm text-gray-500">Amount</p>
-                  <p className="text-lg font-semibold">{formatCurrency(payment.amount)}</p>
+                  <p className="text-lg font-semibold">{payment.amount ? formatCurrency(payment.amount) : 'N/A'}</p>
                 </div>
               </div>
 
@@ -201,7 +215,7 @@ export default function PlatformAdminPaymentDetailPage() {
                 <Building className="h-5 w-5 text-gray-400" />
                 <div>
                   <p className="text-sm text-gray-500">Provider</p>
-                  <p className="font-medium">{payment.provider}</p>
+                  <p className="font-medium">{payment.provider || 'N/A'}</p>
                 </div>
               </div>
 
@@ -209,7 +223,7 @@ export default function PlatformAdminPaymentDetailPage() {
                 <User className="h-5 w-5 text-gray-400" />
                 <div>
                   <p className="text-sm text-gray-500">Organization</p>
-                  <p className="font-medium">{organization?.name || payment.organizationId}</p>
+                  <p className="font-medium">{organization?.name || payment.organizationId || 'N/A'}</p>
                 </div>
               </div>
 
@@ -217,7 +231,7 @@ export default function PlatformAdminPaymentDetailPage() {
                 <Calendar className="h-5 w-5 text-gray-400" />
                 <div>
                   <p className="text-sm text-gray-500">Created</p>
-                  <p className="font-medium">{formatDate(payment.createdAt)}</p>
+                  <p className="font-medium">{payment.createdAt ? formatDate(payment.createdAt) : 'N/A'}</p>
                 </div>
               </div>
 
@@ -243,18 +257,20 @@ export default function PlatformAdminPaymentDetailPage() {
           <Card.Header title="Account Information" />
           <Card.Body>
             <div className="space-y-6">
-              <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-3">To Account</h4>
-                <div className="bg-gray-50 p-3 rounded-md">
-                  <p className="font-medium">{payment.toAccount.accountName}</p>
-                  {payment.toAccount.accountNumber && (
-                    <p className="text-sm text-gray-600">Account: {payment.toAccount.accountNumber}</p>
-                  )}
-                  {payment.toAccount.sortCode && (
-                    <p className="text-sm text-gray-600">Sort Code: {payment.toAccount.sortCode}</p>
-                  )}
+              {payment.toAccount && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">To Account</h4>
+                  <div className="bg-gray-50 p-3 rounded-md">
+                    <p className="font-medium">{payment.toAccount.accountName || 'N/A'}</p>
+                    {payment.toAccount.accountNumber && (
+                      <p className="text-sm text-gray-600">Account: {payment.toAccount.accountNumber}</p>
+                    )}
+                    {payment.toAccount.sortCode && (
+                      <p className="text-sm text-gray-600">Sort Code: {payment.toAccount.sortCode}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {payment.fromAccount && (
                 <div>
@@ -281,11 +297,11 @@ export default function PlatformAdminPaymentDetailPage() {
         <Card.Body>
           <div className="flow-root">
             <ul className="-mb-8">
-              {payment.statusHistory?.length > 0 ? (
+              {payment.statusHistory && payment.statusHistory.length > 0 ? (
                 payment.statusHistory
                   .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
                   .map((history, index) => (
-                    <li key={index}>
+                    <li key={`${history.status}-${history.timestamp}-${index}`}>
                       <div className="relative pb-8">
                         {index !== payment.statusHistory.length - 1 ? (
                           <span
