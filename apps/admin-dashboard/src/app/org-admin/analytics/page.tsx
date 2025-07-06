@@ -122,16 +122,30 @@ export default function AnalyticsPage() {
         dailyData[dateStr] = { banks: 0, payments: 0 };
       }
 
+      let bankCount = 0;
+      let paymentCount = 0;
+
       activities.forEach((activity: any) => {
         const date = new Date(activity.createdAt).toISOString().split('T')[0];
         if (dailyData[date]) {
           // Use details.endpoint to categorize API calls
           const endpoint = activity.details?.endpoint || '';
           
+          // Debug: Log first few activities to see the structure
+          if (bankCount + paymentCount < 3) {
+            console.log('DEBUG ORG: Activity structure:', {
+              action: activity.action,
+              endpoint: endpoint,
+              details: activity.details
+            });
+          }
+          
           if (endpoint.includes('/api/banks')) {
             dailyData[date].banks++;
+            bankCount++;
           } else if (endpoint.includes('/api/payments')) {
             dailyData[date].payments++;
+            paymentCount++;
           }
         }
       });

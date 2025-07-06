@@ -167,17 +167,24 @@ export default function PlatformAnalyticsPage() {
           // Use details.endpoint to categorize API calls
           const endpoint = activity.details?.endpoint || '';
           
+          // Debug: Log first few activities to see the structure
+          if (bankCount + paymentCount + otherCount < 5) {
+            console.log('DEBUG: Activity structure:', {
+              action: activity.action,
+              endpoint: endpoint,
+              details: activity.details,
+              fullActivity: activity
+            });
+          }
+          
           if (endpoint.includes('/api/banks')) {
             dailyData[date].banks++;
             bankCount++;
-            console.log('DEBUG: Bank API call found:', endpoint);
           } else if (endpoint.includes('/api/payments')) {
             dailyData[date].payments++;
             paymentCount++;
-            console.log('DEBUG: Payment API call found:', endpoint);
           } else if (endpoint) {
             otherCount++;
-            console.log('DEBUG: Other endpoint:', endpoint);
           }
         }
       });
