@@ -315,7 +315,7 @@ export const paymentsAPI = {
     offset?: number;
     startDate?: string;
     endDate?: string;
-  }) => api.get('/api/payments', { 
+  }) => api.get('/payments', { 
     params,
     headers: {
       'x-api-key': process.env.NEXT_PUBLIC_API_KEY // Will need API key for payment endpoints
@@ -323,7 +323,7 @@ export const paymentsAPI = {
   }),
   
   // Get single payment details
-  getPayment: (paymentId: string) => api.get(`/api/payments/${paymentId}`, {
+  getPayment: (paymentId: string) => api.get(`/payments/${paymentId}`, {
     headers: {
       'x-api-key': process.env.NEXT_PUBLIC_API_KEY
     }
