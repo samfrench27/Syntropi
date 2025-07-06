@@ -5,6 +5,14 @@ import { createError } from '../../middleware/errorHandler';
 
 // Helper function to simplify bank data for client response
 const simplifyBankData = (bank: any) => {
+  const providerSupport = getProviderSupport(bank);
+  const features = {
+    accountAccess: getFeatureSupport(bank, 'accountList'),
+    accountBalance: getFeatureSupport(bank, 'accountBalance'),
+    transactions: getFeatureSupport(bank, 'transactionList'),
+    payments: getFeatureSupport(bank, 'singlePayment')
+  };
+
   return {
     id: bank.syntropi_id || bank._id.toString(), // Prefer syntropi_id, fall back to MongoDB ID
     name: bank.name,
@@ -12,13 +20,9 @@ const simplifyBankData = (bank: any) => {
     logoUrl: bank.logoUrl,
     supportedPaymentMethods: bank.supportedPaymentMethods || [],
     active: bank.active,
-    // Only include relevant metadata, not provider-specific details
-    features: bank.providerMappings ? {
-      accountAccess: getFeatureSupport(bank, 'accountList'),
-      accountBalance: getFeatureSupport(bank, 'accountBalance'),
-      transactions: getFeatureSupport(bank, 'transactionList'),
-      payments: getFeatureSupport(bank, 'singlePayment')
-    } : {}
+    features,
+    providerSupport,
+    recommendedProvider: getRecommendedProvider(providerSupport)
   };
 };
 
@@ -30,6 +34,63 @@ const getFeatureSupport = (bank: any, feature: string) => {
   return Object.values(bank.providerMappings).some((provider: any) => {
     return provider.metadata?.supportedFeatures?.[feature] === true;
   });
+};
+
+// Helper to get provider support details
+const getProviderSupport = (bank: any) => {
+  if (!bank.providerMappings) return {};
+  
+  const support: any = {};
+  
+  for (const [providerName, providerData] of Object.entries(bank.providerMappings)) {
+    const provider = providerData as any;
+    const features = [];
+    
+    // Check which features this provider supports
+    if (provider.metadata?.supportedFeatures) {
+      const supportedFeatures = provider.metadata.supportedFeatures;
+      if (supportedFeatures.accountList) features.push('accountAccess');
+      if (supportedFeatures.accountBalance) features.push('accountBalance');
+      if (supportedFeatures.transactionList) features.push('transactions');
+      if (supportedFeatures.singlePayment) features.push('payments');
+    }
+    
+    support[providerName] = {
+      available: provider.active || false,
+      features,
+      providerId: provider.providerId,
+      lastUpdated: provider.lastUpdated
+    };
+  }
+  
+  return support;
+};
+
+// Helper to determine the recommended provider based on feature completeness and availability
+const getRecommendedProvider = (providerSupport: any) => {
+  if (!providerSupport || Object.keys(providerSupport).length === 0) {
+    return null;
+  }
+  
+  let bestProvider = null;
+  let bestScore = -1;
+  
+  for (const [providerName, provider] of Object.entries(providerSupport)) {
+    const providerData = provider as any;
+    
+    // Skip inactive providers
+    if (!providerData.available) continue;
+    
+    // Score based on number of features supported
+    const score = providerData.features.length;
+    
+    if (score > bestScore) {
+      bestScore = score;
+      bestProvider = providerName;
+    }
+  }
+  
+  return bestProvider;
 };
 
 // Get all banks with filtering
