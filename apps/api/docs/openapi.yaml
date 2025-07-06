@@ -772,7 +772,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /payments:
+  /api/payments:
     get:
       operationId: listPayments
       summary: List payments
@@ -859,7 +859,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /payments/providers:
+  /api/payments/providers:
     get:
       operationId: listPaymentProviders
       summary: List supported payment providers
@@ -882,7 +882,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /payments/{paymentId}:
+  /api/payments/{paymentId}:
     get:
       operationId: getPayment
       summary: Get payment details
@@ -919,7 +919,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /payments/{paymentId}/cancel:
+  /api/payments/{paymentId}/cancel:
     post:
       operationId: cancelPayment
       summary: Cancel a payment
@@ -964,7 +964,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /payments/{paymentId}/sync:
+  /api/payments/{paymentId}/sync:
     post:
       operationId: syncPaymentStatus
       summary: Sync payment status

@@ -257,6 +257,8 @@ export const createPayment = async (payment: IPayment): Promise<{
     
     // Console log for immediate debugging
     console.log('=== TOKEN.IO RESPONSE DEBUG ===');
+    console.log('Request flowType:', tokenRequest.initiation.flowType);
+    console.log('Request bankId:', tokenRequest.initiation.bankId);
     console.log('Full response:', JSON.stringify(tokenPayment, null, 2));
     console.log('Authentication object:', tokenPayment.payment.authentication);
     console.log('Redirect URL from auth:', tokenPayment.payment.authentication?.redirectUrl);

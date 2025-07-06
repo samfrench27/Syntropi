@@ -196,7 +196,11 @@ export const createPayment = async (request: CreatePaymentRequest): Promise<Paym
       paymentId,
       provider: request.provider,
       providerPaymentId: providerResult.tokenPaymentId,
-      status: providerResult.status
+      status: providerResult.status,
+      flowType: request.flowType,
+      providerRedirectUrl: providerResult.redirectUrl,
+      clientRedirectUrl: payment.redirectUrl,
+      finalRedirectUrl: providerResult.redirectUrl || payment.redirectUrl
     });
 
     return {
