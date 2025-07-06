@@ -324,7 +324,21 @@ export const syncPaymentStatus = async (paymentId: string): Promise<IPayment> =>
       throw createError('Provider payment ID not found', 400);
     }
     
+    logger.info('Syncing payment status from provider:', {
+      paymentId,
+      provider: payment.provider,
+      providerPaymentId,
+      currentStatus: payment.status
+    });
+
     const statusResult = await adapter.getPaymentStatus(providerPaymentId);
+    
+    logger.info('Received status from provider:', {
+      paymentId,
+      currentStatus: payment.status,
+      newStatus: statusResult.status,
+      providerDetails: statusResult.details?.payment?.status || 'No status in details'
+    });
     
     // Update status if changed
     if (statusResult.status !== payment.status) {

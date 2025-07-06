@@ -108,7 +108,58 @@ const mapTokenToSyntropiStatus = (tokenStatus: string | undefined): PaymentStatu
     return PaymentStatus.PENDING;
   }
   
-  switch (tokenStatus.toUpperCase()) {
+  // Convert to uppercase for consistent comparison
+  const status = tokenStatus.toUpperCase();
+  
+  switch (status) {
+    // Initial pending states - all authorization/initiation steps
+    case 'INITIATION_PENDING':
+    case 'INITIATION_PENDING_REDIRECT_AUTH':
+    case 'INITIATION_PENDING_REDIRECT_AUTH_VERIFICATION':
+    case 'INITIATION_PENDING_REDIRECT_HP':
+    case 'INITIATION_PENDING_EMBEDDED_AUTH':
+    case 'INITIATION_PENDING_EMBEDDED_AUTH_VERIFICATION':
+    case 'INITIATION_PENDING_DECOUPLED_AUTH':
+      return PaymentStatus.AUTHORIZING;
+    
+    // Ready for redemption - authorized but not yet submitted
+    case 'INITIATION_PENDING_REDEMPTION':
+    case 'INITIATION_PENDING_REDEMPTION_VERIFICATION':
+      return PaymentStatus.AUTHORIZED;
+    
+    // Processing states - payment has been submitted to bank
+    case 'INITIATION_PROCESSING':
+      return PaymentStatus.SUBMITTED;
+    
+    // Initiation completed - payment accepted by bank
+    case 'INITIATION_COMPLETED':
+      return PaymentStatus.ACCEPTED;
+    
+    // Settlement states - payment is being processed for final settlement
+    case 'SETTLEMENT_IN_PROGRESS':
+      return PaymentStatus.SUBMITTED;
+    
+    // Final success state - payment fully completed
+    case 'SETTLEMENT_COMPLETED':
+      return PaymentStatus.COMPLETED;
+    
+    // Failed states - various failure reasons
+    case 'INITIATION_REJECTED':
+    case 'INITIATION_REJECTED_INSUFFICIENT_FUNDS':
+    case 'INITIATION_FAILED':
+    case 'SETTLEMENT_INCOMPLETE':
+      return PaymentStatus.FAILED;
+    
+    // Cancelled/declined states
+    case 'INITIATION_DECLINED':
+    case 'INITIATION_EXPIRED':
+      return PaymentStatus.CANCELLED;
+    
+    // Uncertain final state - treat as pending for manual review
+    case 'INITIATION_NO_FINAL_STATUS_AVAILABLE':
+      return PaymentStatus.PENDING;
+    
+    // Legacy status mappings for backward compatibility
     case 'PENDING':
       return PaymentStatus.PENDING;
     case 'PENDING_AUTHENTICATION':
@@ -127,7 +178,9 @@ const mapTokenToSyntropiStatus = (tokenStatus: string | undefined): PaymentStatu
       return PaymentStatus.CANCELLED;
     case 'EXPIRED':
       return PaymentStatus.EXPIRED;
+    
     default:
+      logger.warn('Unknown Token.io payment status:', { tokenStatus });
       return PaymentStatus.PENDING;
   }
 };
@@ -323,6 +376,13 @@ export const getPaymentStatus = async (tokenPaymentId: string): Promise<{
     );
 
     const tokenPayment = response.data;
+    
+    logger.info('Token.io payment status response:', {
+      tokenPaymentId,
+      tokenStatus: tokenPayment.payment.status,
+      mappedStatus: mapTokenToSyntropiStatus(tokenPayment.payment.status),
+      fullResponse: tokenPayment
+    });
     
     return {
       status: mapTokenToSyntropiStatus(tokenPayment.payment.status),
