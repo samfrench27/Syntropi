@@ -52,9 +52,19 @@ export default function OrgAdminLayout({
       return 'Dashboard';
     }
     
-    // Get the last part of the path
-    const parts = pathname.split('/');
-    const lastPart = parts[parts.length - 1];
+    // Handle payment detail pages
+    if (pathname.includes('/analytics/payments/') && pathname.split('/').length > 4) {
+      return 'Payment Details';
+    }
+    
+    // Get the last meaningful part of the path (not dynamic IDs)
+    const parts = pathname.split('/').filter(part => part);
+    let lastPart = parts[parts.length - 1];
+    
+    // Skip dynamic route parameters (payment IDs, user IDs, etc.)
+    if (lastPart && (lastPart.startsWith('pay_') || lastPart.length > 20)) {
+      lastPart = parts[parts.length - 2] || 'Details';
+    }
     
     // Handle special cases
     if (lastPart === 'api-keys') return 'API Keys';

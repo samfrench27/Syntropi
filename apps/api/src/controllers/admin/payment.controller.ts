@@ -69,7 +69,8 @@ export const getPaymentById = async (req: Request, res: Response, next: NextFunc
   try {
     const { id } = req.params;
     
-    const payment = await Payment.findById(id);
+    // Search by paymentId field, not MongoDB _id
+    const payment = await Payment.findOne({ paymentId: id });
     
     if (!payment) {
       return next(createError('Payment not found', 404));
@@ -77,7 +78,7 @@ export const getPaymentById = async (req: Request, res: Response, next: NextFunc
     
     res.status(200).json({
       success: true,
-      data: { payment }
+      data: payment // Return payment directly, not wrapped in another object
     });
   } catch (error) {
     next(error);
