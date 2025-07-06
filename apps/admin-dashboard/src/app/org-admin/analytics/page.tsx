@@ -126,9 +126,9 @@ export default function AnalyticsPage() {
           // Use details.endpoint to categorize API calls
           const endpoint = activity.details?.endpoint || '';
           
-          if (endpoint.includes('/banks')) {
+          if (endpoint.includes('/api/banks')) {
             dailyData[date].banks++;
-          } else if (endpoint.includes('/payments')) {
+          } else if (endpoint.includes('/api/payments')) {
             dailyData[date].payments++;
           }
         }

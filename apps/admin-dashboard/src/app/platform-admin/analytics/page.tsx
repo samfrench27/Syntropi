@@ -102,6 +102,16 @@ export default function PlatformAnalyticsPage() {
 
       // Process the activities data to create analytics
       const activities = response.data?.data?.activities || response.data?.activities || [];
+      console.log('Activities found:', activities.length);
+      
+      // Log a few sample activities to debug endpoint matching
+      if (activities.length > 0) {
+        console.log('Sample activities:', activities.slice(0, 3).map((a: any) => ({
+          action: a.action,
+          endpoint: a.details?.endpoint,
+          createdAt: a.createdAt
+        })));
+      }
       
       // Group by date and action type
       const dailyData: { [key: string]: { banks: number; payments: number } } = {};
@@ -119,10 +129,12 @@ export default function PlatformAnalyticsPage() {
           // Use details.endpoint to categorize API calls
           const endpoint = activity.details?.endpoint || '';
           
-          if (endpoint.includes('/banks')) {
+          if (endpoint.includes('/api/banks')) {
             dailyData[date].banks++;
-          } else if (endpoint.includes('/payments')) {
+            console.log('Found bank API call:', endpoint);
+          } else if (endpoint.includes('/api/payments')) {
             dailyData[date].payments++;
+            console.log('Found payment API call:', endpoint);
           }
         }
       });
@@ -135,6 +147,12 @@ export default function PlatformAnalyticsPage() {
 
       const totalBankCalls = daily.reduce((sum, day) => sum + day.banks, 0);
       const totalPayments = daily.reduce((sum, day) => sum + day.payments, 0);
+
+      console.log('Analytics summary:', {
+        totalBankCalls,
+        totalPayments,
+        dailyData: daily
+      });
 
       setAnalyticsData({
         daily,
