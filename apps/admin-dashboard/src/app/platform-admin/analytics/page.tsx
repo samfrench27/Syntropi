@@ -175,32 +175,12 @@ export default function PlatformAnalyticsPage() {
     try {
       setPaymentsLoading(true);
       
-      // For platform admin, get any available API key from any organization
-      const apiKeysResponse = await apiKeyAPI.getApiKeys({
-        isActive: true,
-        limit: 1
+      // Use admin payments endpoint (no API key needed)
+      const response = await api.get('/admin/payments', {
+        params: { limit: 50 }
       });
 
-      const apiKeys = apiKeysResponse.data?.data?.apiKeys || apiKeysResponse.data?.apiKeys || [];
-      
-      if (apiKeys.length === 0) {
-        console.log('No API keys found, skipping payments fetch');
-        setPayments([]);
-        return;
-      }
-
-      const apiKey = apiKeys[0].key;
-      console.log('Using API key for payments:', apiKey?.substring(0, 10) + '...');
-
-      // Now fetch payments with the API key
-      const response = await api.get('/payments', {
-        params: { limit: 50 },
-        headers: {
-          'x-api-key': apiKey
-        }
-      });
-
-      console.log('Payments API Response:', response.data);
+      console.log('Admin Payments API Response:', response.data);
       
       // Try different response structures
       const payments = response.data.data?.payments || response.data.payments || response.data || [];

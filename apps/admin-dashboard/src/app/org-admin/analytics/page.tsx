@@ -164,40 +164,15 @@ export default function AnalyticsPage() {
     try {
       setPaymentsLoading(true);
       
-      // First, get an API key for the current organization
-      if (!currentOrganization?._id) {
-        console.log('No organization context, skipping payments fetch');
-        setPayments([]);
-        return;
-      }
-
-      // Get API keys for the current organization
-      const apiKeysResponse = await apiKeyAPI.getApiKeys({
-        organizationId: currentOrganization._id,
-        isActive: true,
-        limit: 1
-      });
-
-      const apiKeys = apiKeysResponse.data?.data?.apiKeys || apiKeysResponse.data?.apiKeys || [];
-      
-      if (apiKeys.length === 0) {
-        console.log('No API keys found for organization, skipping payments fetch');
-        setPayments([]);
-        return;
-      }
-
-      const apiKey = apiKeys[0].key;
-      console.log('Using API key for payments:', apiKey?.substring(0, 10) + '...');
-
-      // Now fetch payments with the API key
-      const response = await api.get('/payments', {
-        params: { limit: 50 },
-        headers: {
-          'x-api-key': apiKey
+      // Use admin payments endpoint (no API key needed)
+      const response = await api.get('/admin/payments', {
+        params: { 
+          limit: 50,
+          organizationId: currentOrganization?._id  // Filter by org for org-admin
         }
       });
 
-      console.log('Payments API Response:', response.data);
+      console.log('Admin Payments API Response:', response.data);
       
       // Try different response structures
       const payments = response.data.data?.payments || response.data.payments || response.data || [];
