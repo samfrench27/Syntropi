@@ -1,35 +1,59 @@
 // apps/api/src/controllers/public/webhook.controller.ts
-import { Request, Response, NextFunction } from 'express';
-import { createError } from '../../middleware/errorHandler';
+import { Request, Response } from 'express';
 import { winstonLogger as logger } from '../../utils/logger';
 import * as paymentService from '../../services/payment.service';
 import { PaymentStatus } from '../../models/payment.model';
 
-// Token.io webhook event types
+// Token.io v2 payments webhook payload interface
 interface TokenWebhookEvent {
   id: string;
   type: string;
-  created: string;
+  version: string;
+  livemode: boolean;
+  created: number;
   data: {
     object: {
       id: string;
+      object: string;
+      livemode: boolean;
+      created: number;
+      updated: number;
       status: string;
-      memberId: string;
+      provider_payment_id: string;
+      currency: string;
+      amount: number;
+      reference: string;
+      description?: string;
       initiation: {
         refId: string;
-        remittanceInformationPrimary: string;
-        amount: {
-          value: string;
+        endToEndId?: string;
+        instructionId?: string;
+        instructedAmount: {
+          amount: number;
           currency: string;
         };
-        creditor: any;
-        debtor?: any;
-        callbackUrl: string;
-        flowType: string;
+        creditorAccount: {
+          iban: string;
+          ownerName: string;
+        };
+        debtorAccount?: {
+          iban: string;
+          ownerName: string;
+        };
+        remittanceInformation?: {
+          unstructured?: string;
+          structured?: {
+            creditorReferenceInformation?: {
+              reference?: string;
+            };
+          };
+        };
       };
-      createdDateTime: string;
-      updatedDateTime: string;
       statusReasonInformation?: string;
+      execution?: {
+        statusDetail?: string;
+        providerPaymentId?: string;
+      };
     };
   };
 }
@@ -37,28 +61,53 @@ interface TokenWebhookEvent {
 // Map Token.io status to Syntropi status
 const mapTokenStatusToSyntropi = (tokenStatus: string): PaymentStatus => {
   switch (tokenStatus.toUpperCase()) {
-    case 'PENDING':
-      return PaymentStatus.PENDING;
-    case 'AUTHORIZING':
-    case 'AWAITING_AUTHORIZATION':
+    // Initial pending states - all authorization/initiation steps
+    case 'INITIATION_PENDING':
+    case 'INITIATION_PENDING_REDIRECT_AUTH':
+    case 'INITIATION_PENDING_REDIRECT_AUTH_VERIFICATION':
+    case 'INITIATION_PENDING_REDIRECT_HP':
+    case 'INITIATION_PENDING_EMBEDDED_AUTH':
+    case 'INITIATION_PENDING_EMBEDDED_AUTH_VERIFICATION':
+    case 'INITIATION_PENDING_DECOUPLED_AUTH':
       return PaymentStatus.AUTHORIZING;
-    case 'AUTHORIZED':
+    
+    // Ready for redemption - authorized but not yet submitted
+    case 'INITIATION_PENDING_REDEMPTION':
+    case 'INITIATION_PENDING_REDEMPTION_VERIFICATION':
       return PaymentStatus.AUTHORIZED;
-    case 'SUBMITTED':
+    
+    // Processing states - payment has been submitted to bank
+    case 'INITIATION_PROCESSING':
+      return PaymentStatus.SUBMITTED;
+    
+    // Initiation completed - payment accepted by bank
+    case 'INITIATION_COMPLETED':
+      return PaymentStatus.ACCEPTED;
+    
+    // Settlement states - payment is being processed for final settlement
     case 'SETTLEMENT_IN_PROGRESS':
       return PaymentStatus.SUBMITTED;
-    case 'ACCEPTED':
-      return PaymentStatus.ACCEPTED;
-    case 'COMPLETED':
+    
+    // Final success state - payment fully completed
     case 'SETTLEMENT_COMPLETED':
       return PaymentStatus.COMPLETED;
-    case 'FAILED':
-    case 'FAILURE_INSUFFICIENT_FUNDS':
-    case 'FAILURE_DECLINED':
+    
+    // Failed states - various failure reasons
+    case 'INITIATION_REJECTED':
+    case 'INITIATION_REJECTED_INSUFFICIENT_FUNDS':
+    case 'INITIATION_FAILED':
+    case 'SETTLEMENT_INCOMPLETE':
       return PaymentStatus.FAILED;
-    case 'CANCELLED':
-    case 'EXPIRED':
+    
+    // Cancelled/declined states
+    case 'INITIATION_DECLINED':
+    case 'INITIATION_EXPIRED':
       return PaymentStatus.CANCELLED;
+    
+    // Uncertain final state - treat as pending for manual review
+    case 'INITIATION_NO_FINAL_STATUS_AVAILABLE':
+      return PaymentStatus.PENDING;
+    
     default:
       logger.warn('Unknown Token.io status:', { tokenStatus });
       return PaymentStatus.PENDING;
@@ -66,16 +115,21 @@ const mapTokenStatusToSyntropi = (tokenStatus: string): PaymentStatus => {
 };
 
 // Handle Token.io webhooks
-export const handleTokenWebhook = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const handleTokenWebhook = async (req: Request, res: Response): Promise<void> => {
   try {
     const webhookEvent: TokenWebhookEvent = req.body;
     
     logger.info('Received Token.io webhook:', {
       eventId: webhookEvent.id,
       eventType: webhookEvent.type,
+      version: webhookEvent.version,
+      livemode: webhookEvent.livemode,
       paymentId: webhookEvent.data?.object?.id,
+      providerPaymentId: webhookEvent.data?.object?.provider_payment_id,
       status: webhookEvent.data?.object?.status,
-      refId: webhookEvent.data?.object?.initiation?.refId
+      refId: webhookEvent.data?.object?.initiation?.refId,
+      amount: webhookEvent.data?.object?.amount,
+      currency: webhookEvent.data?.object?.currency
     });
 
     // Validate webhook structure
@@ -91,6 +145,8 @@ export const handleTokenWebhook = async (req: Request, res: Response, next: Next
     const tokenPaymentId = webhookEvent.data.object.id;
     const tokenStatus = webhookEvent.data.object.status;
     const refId = webhookEvent.data.object.initiation?.refId;
+    const providerPaymentId = webhookEvent.data.object.provider_payment_id;
+    const statusDetail = webhookEvent.data.object.execution?.statusDetail;
 
     // Map Token.io status to Syntropi status
     const syntropiStatus = mapTokenStatusToSyntropi(tokenStatus);
@@ -109,11 +165,19 @@ export const handleTokenWebhook = async (req: Request, res: Response, next: Next
       return;
     }
 
+    // Prepare status message with additional details
+    const statusMessage = [
+      `Token.io webhook: ${tokenStatus}`,
+      providerPaymentId ? `Provider ID: ${providerPaymentId}` : null,
+      statusDetail ? `Detail: ${statusDetail}` : null,
+      webhookEvent.data.object.statusReasonInformation ? `Reason: ${webhookEvent.data.object.statusReasonInformation}` : null
+    ].filter(Boolean).join(' | ');
+
     // Update payment status
     await paymentService.updatePaymentStatus(
       payment.paymentId, 
       syntropiStatus, 
-      `Token.io webhook: ${tokenStatus}`,
+      statusMessage,
       webhookEvent.data.object.statusReasonInformation
     );
 
@@ -122,6 +186,7 @@ export const handleTokenWebhook = async (req: Request, res: Response, next: Next
       oldStatus: payment.status,
       newStatus: syntropiStatus,
       tokenStatus,
+      providerPaymentId,
       webhookEventId: webhookEvent.id
     });
 
@@ -136,6 +201,7 @@ export const handleTokenWebhook = async (req: Request, res: Response, next: Next
   } catch (error: any) {
     logger.error('Error processing Token.io webhook:', {
       error: error.message,
+      stack: error.stack,
       webhookBody: req.body
     });
     
