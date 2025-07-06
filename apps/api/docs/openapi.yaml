@@ -399,7 +399,7 @@ components:
       properties:
         fromAccount:
           $ref: '#/components/schemas/AccountDetails'
-          description: Source account details (optional for some flows)
+          description: Source account details (optional - if not provided, user will select account during bank authentication)
         toAccount:
           $ref: '#/components/schemas/AccountDetails'
           description: Destination account details

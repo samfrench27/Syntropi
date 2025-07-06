@@ -138,11 +138,10 @@ export const createPayment = async (request: CreatePaymentRequest): Promise<Paym
     expiresAt.setHours(expiresAt.getHours() + 24);
     
     // Create payment document
-    const payment = new Payment({
+    const paymentData: any = {
       paymentId,
       clientId: request.clientId,
       organizationId: request.organizationId,
-      fromAccount: request.fromAccount || {},
       toAccount: request.toAccount,
       amount: request.amount,
       reference: request.reference || {},
@@ -155,7 +154,14 @@ export const createPayment = async (request: CreatePaymentRequest): Promise<Paym
         provider: request.provider
       },
       expiresAt
-    });
+    };
+
+    // Only include fromAccount if it's provided
+    if (request.fromAccount) {
+      paymentData.fromAccount = request.fromAccount;
+    }
+
+    const payment = new Payment(paymentData);
 
     // Save payment to database first
     await payment.save();

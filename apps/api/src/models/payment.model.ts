@@ -61,7 +61,7 @@ export interface IPayment extends Document {
   organizationId: string;     // Organization the client belongs to
   
   // Payment details
-  fromAccount: AccountDetails;
+  fromAccount?: AccountDetails;
   toAccount: AccountDetails;
   amount: Amount;
   reference: PaymentReference;
@@ -121,12 +121,15 @@ const paymentSchema = new Schema<IPayment>({
   
   // Payment details
   fromAccount: {
-    accountNumber: String,
-    sortCode: String,
-    iban: String,
-    bic: String,
-    accountName: { type: String, required: true },
-    bankName: String
+    type: {
+      accountNumber: String,
+      sortCode: String,
+      iban: String,
+      bic: String,
+      accountName: { type: String, required: true },
+      bankName: String
+    },
+    required: false
   },
   toAccount: {
     accountNumber: String,
