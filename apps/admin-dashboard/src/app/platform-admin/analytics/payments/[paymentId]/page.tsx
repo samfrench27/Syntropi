@@ -53,23 +53,29 @@ export default function PlatformAdminPaymentDetailPage() {
       setLoading(true);
       setError(null);
 
+      console.log('Fetching payment details for ID:', paymentId);
+
       // Fetch payment details
       const paymentResponse = await api.get(`/admin/payments/${paymentId}`);
+      console.log('Payment API response:', paymentResponse.data);
+      
       const paymentData = paymentResponse.data.data || paymentResponse.data;
       setPayment(paymentData);
 
+      // TODO: Skip organization fetch for now to debug the main issue
       // Fetch organization details if we have organizationId
-      if (paymentData.organizationId) {
-        try {
-          const orgResponse = await api.get(`/admin/organizations/${paymentData.organizationId}`);
-          const orgData = orgResponse.data.data?.organization || orgResponse.data.organization || orgResponse.data;
-          setOrganization(orgData);
-        } catch (orgError) {
-          console.warn('Could not fetch organization details:', orgError);
-        }
-      }
+      // if (paymentData.organizationId) {
+      //   try {
+      //     const orgResponse = await api.get(`/admin/organizations/${paymentData.organizationId}`);
+      //     const orgData = orgResponse.data.data?.organization || orgResponse.data.organization || orgResponse.data;
+      //     setOrganization(orgData);
+      //   } catch (orgError) {
+      //     console.warn('Could not fetch organization details:', orgError);
+      //   }
+      // }
     } catch (error: any) {
       console.error('Error fetching payment details:', error);
+      console.error('Error response:', error?.response?.data);
       setError(error?.response?.data?.message || 'Failed to load payment details');
     } finally {
       setLoading(false);
