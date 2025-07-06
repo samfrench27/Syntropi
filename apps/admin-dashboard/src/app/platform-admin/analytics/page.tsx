@@ -102,6 +102,18 @@ export default function PlatformAnalyticsPage() {
 
       // Process the activities data to create analytics
       const activities = response.data?.data?.activities || response.data?.activities || [];
+      console.log('DEBUG: Raw activities response:', response.data);
+      console.log('DEBUG: Activities found:', activities.length);
+      
+      // Log sample activities to debug
+      if (activities.length > 0) {
+        console.log('DEBUG: Sample activities:', activities.slice(0, 5).map((a: any) => ({
+          action: a.action,
+          endpoint: a.details?.endpoint,
+          details: a.details,
+          createdAt: a.createdAt
+        })));
+      }
       
       // Group by date and action type
       const dailyData: { [key: string]: { banks: number; payments: number } } = {};
@@ -113,6 +125,10 @@ export default function PlatformAnalyticsPage() {
         dailyData[dateStr] = { banks: 0, payments: 0 };
       }
 
+      let bankCount = 0;
+      let paymentCount = 0;
+      let otherCount = 0;
+
       activities.forEach((activity: any) => {
         const date = new Date(activity.createdAt).toISOString().split('T')[0];
         if (dailyData[date]) {
@@ -121,11 +137,20 @@ export default function PlatformAnalyticsPage() {
           
           if (endpoint.includes('/api/banks')) {
             dailyData[date].banks++;
+            bankCount++;
+            console.log('DEBUG: Bank API call found:', endpoint);
           } else if (endpoint.includes('/api/payments')) {
             dailyData[date].payments++;
+            paymentCount++;
+            console.log('DEBUG: Payment API call found:', endpoint);
+          } else if (endpoint) {
+            otherCount++;
+            console.log('DEBUG: Other endpoint:', endpoint);
           }
         }
       });
+
+      console.log('DEBUG: Count summary:', { bankCount, paymentCount, otherCount });
 
       const daily = Object.entries(dailyData).map(([date, counts]) => ({
         date,
@@ -135,6 +160,9 @@ export default function PlatformAnalyticsPage() {
 
       const totalBankCalls = daily.reduce((sum, day) => sum + day.banks, 0);
       const totalPayments = daily.reduce((sum, day) => sum + day.payments, 0);
+
+      console.log('DEBUG: Final daily data:', daily);
+      console.log('DEBUG: Final totals:', { totalBankCalls, totalPayments });
 
       setAnalyticsData({
         daily,
