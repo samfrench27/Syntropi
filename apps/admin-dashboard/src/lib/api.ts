@@ -59,11 +59,21 @@ api.interceptors.response.use(
       );
       
       if (error.response.status === 401) {
-        // Clear auth and redirect to login
-        debugLog('API', 'Authentication Failed', 'Clearing auth and redirecting', true);
-        clearAuth();
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+        // Only clear auth and redirect for admin/auth endpoints
+        // Don't logout for API key-protected public endpoints like payments
+        const url = error.config.url || '';
+        const isAuthEndpoint = url.includes('/admin/auth') || url.includes('/admin/') && !url.includes('/payments');
+        
+        if (isAuthEndpoint) {
+          // Clear auth and redirect to login
+          debugLog('API', 'Authentication Failed on auth endpoint', `URL: ${url}`, true);
+          clearAuth();
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
+        } else {
+          // Log but don't logout for non-auth endpoints
+          debugLog('API', 'Authorization Failed on public endpoint', `URL: ${url} - API key issue`, true);
         }
       }
     } else {

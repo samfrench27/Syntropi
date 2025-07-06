@@ -156,15 +156,9 @@ export default function PlatformAnalyticsPage() {
     try {
       setPaymentsLoading(true);
       
-      // Use existing payments endpoint
-      const response = await paymentsAPI.getPayments({
-        limit: 50
-      });
-
-      // Try different response structures
-      const payments = response.data.data?.payments || response.data.payments || response.data || [];
-
-      setPayments(payments);
+      // Skip payments fetch to avoid auth issues until we set up proper API key
+      console.log('Skipping payments fetch for platform-admin to avoid auth issues');
+      setPayments([]);
     } catch (error) {
       console.error('Error fetching payments:', error);
       // If payments fail, it's not critical for the analytics view
