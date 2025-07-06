@@ -412,7 +412,7 @@ export default function AnalyticsPage() {
                     <tr key={payment.paymentId} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer">
                         <button
-                          onClick={() => router.push(`/org-admin/payments/${payment.paymentId}`)}
+                          onClick={() => router.push(`/org-admin/analytics/payments/${payment.paymentId}`)}
                           className="text-left hover:underline"
                         >
                           {payment.paymentId}
