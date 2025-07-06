@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -79,6 +80,7 @@ interface StatCardProps {
 
 export default function PlatformAnalyticsPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [endpointFilter, setEndpointFilter] = useState<'all' | 'banks' | 'payments'>('all');
   const [dateRange, setDateRange] = useState(7); // days
   const [selectedOrganization, setSelectedOrganization] = useState<string>('all');
@@ -462,9 +464,6 @@ export default function PlatformAnalyticsPage() {
                       Amount
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      To Account
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Organization
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -473,16 +472,18 @@ export default function PlatformAnalyticsPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Created
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status History
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {payments.map((payment) => (
                     <tr key={payment.paymentId} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {payment.paymentId}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer">
+                        <button
+                          onClick={() => router.push(`/platform-admin/payments/${payment.paymentId}`)}
+                          className="text-left hover:underline"
+                        >
+                          {payment.paymentId}
+                        </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(payment.status)}`}>
@@ -493,9 +494,6 @@ export default function PlatformAnalyticsPage() {
                         {formatCurrency(payment.amount)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {payment.toAccount.accountName}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {organizations.find(org => org._id === payment.organizationId)?.name || 'Unknown'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -503,25 +501,6 @@ export default function PlatformAnalyticsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(payment.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        <div className="max-w-xs">
-                          {payment.statusHistory.slice(0, 3).map((history, index) => (
-                            <div key={index} className="text-xs mb-1">
-                              <span className="font-medium">{history.status}</span>
-                              {history.details && (
-                                <span className="text-gray-400 ml-1">
-                                  - {history.details.length > 30 ? history.details.substring(0, 30) + '...' : history.details}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                          {payment.statusHistory.length > 3 && (
-                            <div className="text-xs text-blue-600">
-                              +{payment.statusHistory.length - 3} more
-                            </div>
-                          )}
-                        </div>
                       </td>
                     </tr>
                   ))}
