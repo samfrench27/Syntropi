@@ -13,6 +13,7 @@ import {
   Database,
   Server,
   Activity,
+  TrendingUp,
   Shield,
   HelpCircle,
   Menu,
@@ -54,6 +55,7 @@ export default function PlatformAdminSidebar() {
   // Navigation items for platform admin
   const navigation = [
     { href: '/platform-admin/dashboard', icon: <BarChart size={20} />, label: 'Dashboard' },
+    { href: '/platform-admin/analytics', icon: <TrendingUp size={20} />, label: 'Analytics' },
     { href: '/platform-admin/organizations', icon: <Building2 size={20} />, label: 'Organizations' },
     { href: '/platform-admin/users', icon: <Users size={20} />, label: 'Users' },
     { href: '/platform-admin/api-keys', icon: <Key size={20} />, label: 'API Keys' },

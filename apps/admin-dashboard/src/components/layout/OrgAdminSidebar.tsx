@@ -10,6 +10,7 @@ import {
   Building2, 
   Key,
   Activity,
+  TrendingUp,
   Menu,
   X
 } from 'lucide-react';
@@ -49,6 +50,7 @@ export default function OrgAdminSidebar() {
   // Navigation items for organization admin
   const navigation = [
     { href: '/org-admin/dashboard', icon: <BarChart size={20} />, label: 'Dashboard' },
+    { href: '/org-admin/analytics', icon: <TrendingUp size={20} />, label: 'Analytics' },
     { href: '/org-admin/organization', icon: <Building2 size={20} />, label: 'Organization' },
     { href: '/org-admin/users', icon: <Users size={20} />, label: 'Users' },
     { href: '/org-admin/api-keys', icon: <Key size={20} />, label: 'API Keys' },
