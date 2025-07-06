@@ -105,12 +105,9 @@ export default function AnalyticsPage() {
         limit: 1000
       });
 
-      console.log('Analytics API Response:', response.data);
-
       // Process the activities data to create analytics
       // Try different response structures
       const activities = response.data.data?.activities || response.data.activities || response.data || [];
-      console.log('Activities found:', activities.length, activities);
       
       // Group by date and action type
       const dailyData: { [key: string]: { banks: number; payments: number } } = {};
@@ -128,24 +125,17 @@ export default function AnalyticsPage() {
       activities.forEach((activity: any) => {
         const date = new Date(activity.createdAt).toISOString().split('T')[0];
         if (dailyData[date]) {
-          // Use details.endpoint to categorize API calls
-          const endpoint = activity.details?.endpoint || '';
-          
-          // Debug: Log first few activities to see the structure
-          if (bankCount + paymentCount < 3) {
-            console.log('DEBUG ORG: Activity structure:', {
-              action: activity.action,
-              endpoint: endpoint,
-              details: activity.details
-            });
-          }
-          
-          if (endpoint.includes('/api/banks')) {
-            dailyData[date].banks++;
-            bankCount++;
-          } else if (endpoint.includes('/api/payments')) {
-            dailyData[date].payments++;
-            paymentCount++;
+          // Only count API access activities, not admin logins
+          if (activity.action === 'api.access') {
+            const endpoint = activity.details?.endpoint || '';
+            
+            if (endpoint.includes('/api/banks')) {
+              dailyData[date].banks++;
+              bankCount++;
+            } else if (endpoint.includes('/api/payments')) {
+              dailyData[date].payments++;
+              paymentCount++;
+            }
           }
         }
       });

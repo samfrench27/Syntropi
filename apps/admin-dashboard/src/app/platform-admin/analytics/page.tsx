@@ -134,18 +134,6 @@ export default function PlatformAnalyticsPage() {
 
       // Process the activities data to create analytics
       const activities = response.data?.data?.activities || response.data?.activities || [];
-      console.log('DEBUG: Raw activities response:', response.data);
-      console.log('DEBUG: Activities found:', activities.length);
-      
-      // Log sample activities to debug
-      if (activities.length > 0) {
-        console.log('DEBUG: Sample activities:', activities.slice(0, 5).map((a: any) => ({
-          action: a.action,
-          endpoint: a.details?.endpoint,
-          details: a.details,
-          createdAt: a.createdAt
-        })));
-      }
       
       // Group by date and action type
       const dailyData: { [key: string]: { banks: number; payments: number } } = {};
@@ -159,37 +147,26 @@ export default function PlatformAnalyticsPage() {
 
       let bankCount = 0;
       let paymentCount = 0;
-      let otherCount = 0;
 
       activities.forEach((activity: any) => {
         const date = new Date(activity.createdAt).toISOString().split('T')[0];
         if (dailyData[date]) {
-          // Use details.endpoint to categorize API calls
-          const endpoint = activity.details?.endpoint || '';
-          
-          // Debug: Log first few activities to see the structure
-          if (bankCount + paymentCount + otherCount < 5) {
-            console.log('DEBUG: Activity structure:', {
-              action: activity.action,
-              endpoint: endpoint,
-              details: activity.details,
-              fullActivity: activity
-            });
-          }
-          
-          if (endpoint.includes('/api/banks')) {
-            dailyData[date].banks++;
-            bankCount++;
-          } else if (endpoint.includes('/api/payments')) {
-            dailyData[date].payments++;
-            paymentCount++;
-          } else if (endpoint) {
-            otherCount++;
+          // Only count API access activities, not admin logins
+          if (activity.action === 'api.access') {
+            const endpoint = activity.details?.endpoint || '';
+            
+            if (endpoint.includes('/api/banks')) {
+              dailyData[date].banks++;
+              bankCount++;
+            } else if (endpoint.includes('/api/payments')) {
+              dailyData[date].payments++;
+              paymentCount++;
+            }
           }
         }
       });
 
-      console.log('DEBUG: Count summary:', { bankCount, paymentCount, otherCount });
+
 
       const daily = Object.entries(dailyData).map(([date, counts]) => ({
         date,
@@ -199,9 +176,6 @@ export default function PlatformAnalyticsPage() {
 
       const totalBankCalls = daily.reduce((sum, day) => sum + day.banks, 0);
       const totalPayments = daily.reduce((sum, day) => sum + day.payments, 0);
-
-      console.log('DEBUG: Final daily data:', daily);
-      console.log('DEBUG: Final totals:', { totalBankCalls, totalPayments });
 
       setAnalyticsData({
         daily,
