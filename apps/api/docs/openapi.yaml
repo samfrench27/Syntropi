@@ -28,6 +28,8 @@ servers:
 tags:
   - name: Banks
     description: Operations related to bank information and synchronization
+  - name: Payments
+    description: Operations for initiating and managing Single Immediate Payments
 
 components:
   securitySchemes:
@@ -306,6 +308,301 @@ components:
                 type: integer
                 example: 17
 
+    # Payment-related schemas
+    PaymentStatus:
+      type: string
+      enum:
+        - PENDING
+        - AUTHORIZING
+        - AUTHORIZED
+        - SUBMITTED
+        - ACCEPTED
+        - COMPLETED
+        - FAILED
+        - CANCELLED
+        - EXPIRED
+      description: Status of the payment
+      example: "PENDING"
+
+    PaymentFlowType:
+      type: string
+      enum:
+        - API_ONLY
+        - HOSTED_PAGES
+        - EMBEDDED_HOSTED_PAGES
+      description: |
+        The integration flow type for the payment:
+        - API_ONLY: Full API integration where TPP handles all UI
+        - HOSTED_PAGES: Token.io hosted pages handle bank selection and authentication
+        - EMBEDDED_HOSTED_PAGES: Token.io hosted pages for authentication only (bankId required)
+      example: "API_ONLY"
+
+    AccountDetails:
+      type: object
+      properties:
+        accountNumber:
+          type: string
+          description: Account number (for UK payments)
+          example: "12345678"
+        sortCode:
+          type: string
+          description: Sort code (for UK payments)
+          example: "12-34-56"
+        iban:
+          type: string
+          description: IBAN (for SEPA payments)
+          example: "GB29NWBK60161331926819"
+        bic:
+          type: string
+          description: BIC/SWIFT code (for SEPA payments)
+          example: "NWBKGB2L"
+        accountName:
+          type: string
+          description: Name of the account holder
+          example: "John Doe"
+        bankName:
+          type: string
+          description: Name of the bank
+          example: "HSBC Bank"
+      required:
+        - accountName
+
+    Amount:
+      type: object
+      properties:
+        value:
+          type: string
+          description: Amount as decimal string
+          example: "100.50"
+        currency:
+          type: string
+          description: ISO 4217 currency code
+          example: "GBP"
+      required:
+        - value
+        - currency
+
+    PaymentReference:
+      type: object
+      properties:
+        reference:
+          type: string
+          description: Payment reference/description
+          example: "Invoice INV-001"
+        endToEndId:
+          type: string
+          description: End-to-end identification
+          example: "E2E-12345"
+
+    CreatePaymentRequest:
+      type: object
+      properties:
+        fromAccount:
+          $ref: '#/components/schemas/AccountDetails'
+          description: Source account details (optional for some flows)
+        toAccount:
+          $ref: '#/components/schemas/AccountDetails'
+          description: Destination account details
+        amount:
+          $ref: '#/components/schemas/Amount'
+        reference:
+          $ref: '#/components/schemas/PaymentReference'
+        flowType:
+          $ref: '#/components/schemas/PaymentFlowType'
+        redirectUrl:
+          type: string
+          format: uri
+          description: URL to redirect to after payment completion
+          example: "https://your-app.com/payment-complete"
+        provider:
+          type: string
+          description: Payment provider to use
+          example: "token"
+        bankId:
+          type: string
+          description: Bank identifier (required for EMBEDDED_HOSTED_PAGES flow)
+          example: "gb-hsbc-bank-personal"
+      required:
+        - toAccount
+        - amount
+        - provider
+      example:
+        toAccount:
+          iban: "GB29NWBK60161331926819"
+          accountName: "Jane Smith"
+        amount:
+          value: "100.00"
+          currency: "GBP"
+        reference:
+          reference: "Payment for services"
+        flowType: "API_ONLY"
+        provider: "token"
+
+    PaymentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            paymentId:
+              type: string
+              example: "pay_1234567890abcdef"
+            status:
+              $ref: '#/components/schemas/PaymentStatus'
+            redirectUrl:
+              type: string
+              format: uri
+              nullable: true
+              description: URL to redirect to for payment authorization
+              example: "https://auth.token.io/payment/xyz"
+            provider:
+              type: string
+              example: "token"
+            bankId:
+              type: string
+              nullable: true
+              example: "gb-hsbc-bank-personal"
+            amount:
+              $ref: '#/components/schemas/Amount'
+            createdAt:
+              type: string
+              format: date-time
+              example: "2025-01-07T10:00:00Z"
+            expiresAt:
+              type: string
+              format: date-time
+              nullable: true
+              example: "2025-01-08T10:00:00Z"
+
+    PaymentDetail:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            paymentId:
+              type: string
+              example: "pay_1234567890abcdef"
+            status:
+              $ref: '#/components/schemas/PaymentStatus'
+            provider:
+              type: string
+              example: "token"
+            bankId:
+              type: string
+              nullable: true
+              example: "gb-hsbc-bank-personal"
+            amount:
+              $ref: '#/components/schemas/Amount'
+            fromAccount:
+              $ref: '#/components/schemas/AccountDetails'
+            toAccount:
+              $ref: '#/components/schemas/AccountDetails'
+            reference:
+              $ref: '#/components/schemas/PaymentReference'
+            flowType:
+              $ref: '#/components/schemas/PaymentFlowType'
+            redirectUrl:
+              type: string
+              format: uri
+              nullable: true
+              example: "https://your-app.com/payment-complete"
+            createdAt:
+              type: string
+              format: date-time
+              example: "2025-01-07T10:00:00Z"
+            updatedAt:
+              type: string
+              format: date-time
+              example: "2025-01-07T10:05:00Z"
+            expiresAt:
+              type: string
+              format: date-time
+              nullable: true
+              example: "2025-01-08T10:00:00Z"
+            completedAt:
+              type: string
+              format: date-time
+              nullable: true
+              example: "2025-01-07T10:10:00Z"
+            statusHistory:
+              type: array
+              items:
+                type: object
+                properties:
+                  status:
+                    $ref: '#/components/schemas/PaymentStatus'
+                  timestamp:
+                    type: string
+                    format: date-time
+                  provider:
+                    type: string
+                  details:
+                    type: string
+            providerRedirectUrl:
+              type: string
+              format: uri
+              nullable: true
+              description: Provider-specific redirect URL for authorization
+              example: "https://auth.token.io/payment/xyz"
+
+    PaymentList:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            payments:
+              type: array
+              items:
+                $ref: '#/components/schemas/PaymentDetail'
+            total:
+              type: integer
+              example: 25
+            limit:
+              type: integer
+              example: 20
+            offset:
+              type: integer
+              example: 0
+
+    PaymentProviderList:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            providers:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "token"
+                  name:
+                    type: string
+                    example: "token"
+                  supportsPayments:
+                    type: boolean
+                    example: true
+              example:
+                - id: "token"
+                  name: "token"
+                  supportsPayments: true
+
 paths:
   /banks:
     get:
@@ -470,6 +767,237 @@ paths:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Authorization error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payments:
+    get:
+      operationId: listPayments
+      summary: List payments
+      description: |
+        Returns a list of payments for the authenticated client.
+        Results are paginated and can be filtered by status and provider.
+      tags:
+        - Payments
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by payment status
+          schema:
+            $ref: '#/components/schemas/PaymentStatus'
+        - name: provider
+          in: query
+          description: Filter by payment provider
+          schema:
+            type: string
+            example: "token"
+        - name: limit
+          in: query
+          description: Number of results per page (max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of results to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of payments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentList'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      operationId: createPayment
+      summary: Create a new payment
+      description: |
+        Initiates a new Single Immediate Payment using the specified provider.
+        Supports different flow types for various integration approaches.
+      tags:
+        - Payments
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+      responses:
+        '201':
+          description: Payment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payments/providers:
+    get:
+      operationId: listPaymentProviders
+      summary: List supported payment providers
+      description: Returns a list of payment providers supported by the API
+      tags:
+        - Payments
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: List of supported providers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentProviderList'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payments/{paymentId}:
+    get:
+      operationId: getPayment
+      summary: Get payment details
+      description: Returns details of a specific payment
+      tags:
+        - Payments
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          description: Unique payment identifier
+          schema:
+            type: string
+            example: "pay_1234567890abcdef"
+      responses:
+        '200':
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentDetail'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payments/{paymentId}/cancel:
+    post:
+      operationId: cancelPayment
+      summary: Cancel a payment
+      description: |
+        Cancels a payment if it is in a cancellable state.
+        Payments can only be cancelled before they are completed or failed.
+      tags:
+        - Payments
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          description: Unique payment identifier
+          schema:
+            type: string
+            example: "pay_1234567890abcdef"
+      responses:
+        '200':
+          description: Payment cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentDetail'
+        '400':
+          description: Payment cannot be cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payments/{paymentId}/sync:
+    post:
+      operationId: syncPaymentStatus
+      summary: Sync payment status
+      description: |
+        Synchronizes the payment status with the provider.
+        This will update the payment status to reflect the latest state from the banking provider.
+      tags:
+        - Payments
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          description: Unique payment identifier
+          schema:
+            type: string
+            example: "pay_1234567890abcdef"
+      responses:
+        '200':
+          description: Payment status synchronized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentDetail'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Payment not found
           content:
             application/json:
               schema:

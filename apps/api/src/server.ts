@@ -20,8 +20,13 @@ import clientApiKeyRoutes from './routes/client/apiKey.routes';
 import clientOrganizationRoutes from './routes/client/organization.routes';
 import clientActivityRoutes from './routes/client/activity.routes';
 import bankRoutes from './routes/public/bank.routes'; // Using real bank routes
+import paymentRoutes from './routes/public/payment.routes';
 
-dotenv.config();
+dotenv.config({ path: process.cwd() + '/config/.env.staging' });
+
+// Debug: Log some environment variables
+console.log('TOKEN_API_KEY loaded:', !!process.env.TOKEN_API_KEY);
+console.log('TOKEN_API_BASE_URL:', process.env.TOKEN_API_BASE_URL);
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -45,6 +50,7 @@ app.use('/api/client/api-keys', clientApiKeyRoutes);
 app.use('/api/client/organization', clientOrganizationRoutes);
 app.use('/api/client/activities', clientActivityRoutes);
 app.use('/api/banks', bankRoutes); // Using real bank routes
+app.use('/api/payments', paymentRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
