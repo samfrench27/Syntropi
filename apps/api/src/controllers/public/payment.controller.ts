@@ -17,8 +17,7 @@ const simplifyPaymentData = (payment: any) => {
     toAccount: payment.toAccount,
     reference: payment.reference,
     flowType: payment.flowType,
-    clientRedirectUrl: payment.redirectUrl, // Client's callback URL
-    authenticationUrl: payment.providerData?.redirectUrl, // Token.io's auth URL
+    redirectUrl: payment.redirectUrl, // Token.io's auth URL
     createdAt: payment.createdAt,
     updatedAt: payment.updatedAt,
     expiresAt: payment.expiresAt,
@@ -86,9 +85,21 @@ export const createPayment = async (req: Request, res: Response, next: NextFunct
       amount: amount.value + ' ' + amount.currency
     });
 
+    // Transform to match PaymentResponse schema (not PaymentDetail)
+    const responseData = {
+      paymentId: paymentResponse.paymentId,
+      status: paymentResponse.status,
+      redirectUrl: paymentResponse.redirectUrl || null, // Token.io auth URL
+      provider: paymentResponse.provider,
+      bankId: paymentResponse.bankId,
+      amount: paymentResponse.amount,
+      createdAt: paymentResponse.createdAt,
+      expiresAt: paymentResponse.expiresAt
+    };
+
     res.status(201).json({
       success: true,
-      data: paymentResponse
+      data: responseData
     });
 
   } catch (error) {
