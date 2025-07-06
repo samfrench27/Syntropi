@@ -42,7 +42,17 @@ const getProviderSupport = (bank: any) => {
   
   const support: any = {};
   
-  for (const [providerName, providerData] of Object.entries(bank.providerMappings)) {
+  // Convert to plain object to avoid Mongoose internal properties
+  const providerMappings = bank.providerMappings.toObject ? 
+    bank.providerMappings.toObject() : 
+    bank.providerMappings;
+  
+  for (const [providerName, providerData] of Object.entries(providerMappings)) {
+    // Skip Mongoose internal properties
+    if (providerName.startsWith('$') || providerName.startsWith('_')) {
+      continue;
+    }
+    
     const provider = providerData as any;
     const features = [];
     
