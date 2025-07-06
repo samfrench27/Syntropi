@@ -38,17 +38,18 @@ const getFeatureSupport = (bank: any, feature: string) => {
 
 // Helper to get provider support details
 const getProviderSupport = (bank: any) => {
-  if (!bank.providerMappings) return {};
+  if (!bank.providerMappings) {
+    return {};
+  }
   
   const support: any = {};
   
-  // Convert to plain object to avoid Mongoose internal properties
-  const providerMappings = bank.providerMappings.toObject ? 
-    bank.providerMappings.toObject() : 
-    bank.providerMappings;
+  // Convert the Mongoose subdocument to a plain object using JSON serialization
+  // This bypasses Mongoose's property accessors and gets the raw data
+  const providerMappingsData = JSON.parse(JSON.stringify(bank.providerMappings));
   
-  for (const [providerName, providerData] of Object.entries(providerMappings)) {
-    // Skip Mongoose internal properties
+  for (const [providerName, providerData] of Object.entries(providerMappingsData)) {
+    // Skip any remaining internal properties
     if (providerName.startsWith('$') || providerName.startsWith('_')) {
       continue;
     }
