@@ -25,7 +25,8 @@ import { Line } from 'react-chartjs-2';
 import Card from '@/components/admin/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { analyticsAPI, paymentsAPI } from '@/lib/api';
+import { analyticsAPI, paymentsAPI, apiKeyAPI } from '@/lib/api';
+import api from '@/lib/api';
 
 // Register ChartJS components
 ChartJS.register(
@@ -163,11 +164,46 @@ export default function AnalyticsPage() {
     try {
       setPaymentsLoading(true);
       
-      // For org-admin we might need a different approach since payments endpoint 
-      // requires API key but we're authenticated as admin user
-      // Skip payments for now to avoid auth issues
-      console.log('Skipping payments fetch for org-admin to avoid auth issues');
-      setPayments([]);
+      // First, get an API key for the current organization
+      if (!currentOrganization?._id) {
+        console.log('No organization context, skipping payments fetch');
+        setPayments([]);
+        return;
+      }
+
+      // Get API keys for the current organization
+      const apiKeysResponse = await apiKeyAPI.getApiKeys({
+        organizationId: currentOrganization._id,
+        isActive: true,
+        limit: 1
+      });
+
+      const apiKeys = apiKeysResponse.data?.data?.apiKeys || apiKeysResponse.data?.apiKeys || [];
+      
+      if (apiKeys.length === 0) {
+        console.log('No API keys found for organization, skipping payments fetch');
+        setPayments([]);
+        return;
+      }
+
+      const apiKey = apiKeys[0].key;
+      console.log('Using API key for payments:', apiKey?.substring(0, 10) + '...');
+
+      // Now fetch payments with the API key
+      const response = await api.get('/payments', {
+        params: { limit: 50 },
+        headers: {
+          'x-api-key': apiKey
+        }
+      });
+
+      console.log('Payments API Response:', response.data);
+      
+      // Try different response structures
+      const payments = response.data.data?.payments || response.data.payments || response.data || [];
+      console.log('Payments found:', payments.length, payments);
+
+      setPayments(payments);
     } catch (error) {
       console.error('Error fetching payments:', error);
       // If payments fail, it's not critical for the analytics view

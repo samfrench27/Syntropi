@@ -24,7 +24,8 @@ import {
 import { Line } from 'react-chartjs-2';
 import Card from '@/components/admin/Card';
 import { useAuth } from '@/contexts/AuthContext';
-import { analyticsAPI, paymentsAPI } from '@/lib/api';
+import { analyticsAPI, paymentsAPI, apiKeyAPI } from '@/lib/api';
+import api from '@/lib/api';
 
 // Register ChartJS components
 ChartJS.register(
@@ -156,9 +157,38 @@ export default function PlatformAnalyticsPage() {
     try {
       setPaymentsLoading(true);
       
-      // Skip payments fetch to avoid auth issues until we set up proper API key
-      console.log('Skipping payments fetch for platform-admin to avoid auth issues');
-      setPayments([]);
+      // For platform admin, get any available API key from any organization
+      const apiKeysResponse = await apiKeyAPI.getApiKeys({
+        isActive: true,
+        limit: 1
+      });
+
+      const apiKeys = apiKeysResponse.data?.data?.apiKeys || apiKeysResponse.data?.apiKeys || [];
+      
+      if (apiKeys.length === 0) {
+        console.log('No API keys found, skipping payments fetch');
+        setPayments([]);
+        return;
+      }
+
+      const apiKey = apiKeys[0].key;
+      console.log('Using API key for payments:', apiKey?.substring(0, 10) + '...');
+
+      // Now fetch payments with the API key
+      const response = await api.get('/payments', {
+        params: { limit: 50 },
+        headers: {
+          'x-api-key': apiKey
+        }
+      });
+
+      console.log('Payments API Response:', response.data);
+      
+      // Try different response structures
+      const payments = response.data.data?.payments || response.data.payments || response.data || [];
+      console.log('Payments found:', payments.length, payments);
+
+      setPayments(payments);
     } catch (error) {
       console.error('Error fetching payments:', error);
       // If payments fail, it's not critical for the analytics view
