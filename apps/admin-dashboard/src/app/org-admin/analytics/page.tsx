@@ -102,8 +102,12 @@ export default function AnalyticsPage() {
         limit: 1000
       });
 
+      console.log('Analytics API Response:', response.data);
+
       // Process the activities data to create analytics
-      const activities = response.data.data.activities || [];
+      // Try different response structures
+      const activities = response.data.data?.activities || response.data.activities || response.data || [];
+      console.log('Activities found:', activities.length, activities);
       
       // Group by date and action type
       const dailyData: { [key: string]: { banks: number; payments: number } } = {};
@@ -118,9 +122,12 @@ export default function AnalyticsPage() {
       activities.forEach((activity: any) => {
         const date = new Date(activity.createdAt).toISOString().split('T')[0];
         if (dailyData[date]) {
-          if (['LIST_BANKS', 'GET_BANK', 'SYNC_BANKS'].includes(activity.action)) {
+          // Use details.endpoint to categorize API calls
+          const endpoint = activity.details?.endpoint || '';
+          
+          if (endpoint.includes('/banks')) {
             dailyData[date].banks++;
-          } else if (['CREATE_PAYMENT', 'GET_PAYMENT', 'LIST_PAYMENTS'].includes(activity.action)) {
+          } else if (endpoint.includes('/payments')) {
             dailyData[date].payments++;
           }
         }
@@ -156,14 +163,23 @@ export default function AnalyticsPage() {
     try {
       setPaymentsLoading(true);
       
-      // Use existing payments endpoint
+      // Use existing payments endpoint - but for org-admin we might need a different approach
+      // Let's try without API key first since we're authenticated as admin
       const response = await paymentsAPI.getPayments({
         limit: 50
       });
 
-      setPayments(response.data.data.payments || []);
+      console.log('Payments API Response:', response.data);
+      
+      // Try different response structures
+      const payments = response.data.data?.payments || response.data.payments || response.data || [];
+      console.log('Payments found:', payments.length, payments);
+
+      setPayments(payments);
     } catch (error) {
       console.error('Error fetching payments:', error);
+      // If payments fail, it's not critical for the analytics view
+      setPayments([]);
     } finally {
       setPaymentsLoading(false);
     }
