@@ -3,8 +3,15 @@ info:
   title: Syntropi Banking API
   description: |
     API for accessing bank information across multiple providers.
-    This API allows you to retrieve bank information, filter by country, payment method, and provider.
-  version: 1.0.0
+    
+    This API allows you to retrieve comprehensive bank information including:
+    - Basic bank details (name, country, logo, payment methods)
+    - Feature support across all providers (account access, balance, transactions, payments)
+    - Provider-specific support details and capabilities
+    - Recommended provider based on feature completeness
+    
+    Filter banks by country, payment method, provider, and search terms.
+  version: 1.1.0
   contact:
     name: Syntropi Support
     email: support@syntropi.com
@@ -36,10 +43,12 @@ components:
       properties:
         id:
           type: string
-          example: "bank_001"
+          description: "Unique identifier for the bank"
+          example: "gb-hsbc-bank-personal"
         name:
           type: string
-          example: "National Bank of Test"
+          description: "Human-readable name of the bank"
+          example: "HSBC Bank - Personal"
         country:
           type: string
           description: "ISO 3166-1 alpha-2 country code"
@@ -47,31 +56,82 @@ components:
         logoUrl:
           type: string
           format: uri
-          example: "https://example.com/logos/national-bank.png"
+          description: "URL to the bank's logo image"
+          example: "https://s3-us-west-2.amazonaws.com/tokenio-assets/1.0.0/logos/hsbc/hsbc_square.png"
         supportedPaymentMethods:
           type: array
           items:
             type: string
-          example: ["sepa", "faster_payments", "chaps"]
-        providerMappings:
+          description: "List of payment methods supported by this bank"
+          example: ["faster_payments", "chaps", "sepa"]
+        active:
+          type: boolean
+          description: "Whether the bank is currently active and available"
+          example: true
+        features:
+          $ref: '#/components/schemas/BankFeatures'
+        providerSupport:
           type: object
+          description: "Details of which providers support this bank and their capabilities"
           additionalProperties:
-            type: object
-            properties:
-              providerId:
-                type: string
-                example: "token_bank_001"
-              supportedPaymentMethods:
-                type: array
-                items:
-                  type: string
-                example: ["sepa", "faster_payments"]
-              lastUpdated:
-                type: string
-                format: date-time
-              active:
-                type: boolean
-                example: true
+            $ref: '#/components/schemas/ProviderSupport'
+          example:
+            token:
+              available: true
+              features: ["accountAccess", "accountBalance", "transactions", "payments"]
+              providerId: "ob-hsbc-per"
+              lastUpdated: "2025-04-22T19:01:51.702Z"
+        recommendedProvider:
+          type: string
+          nullable: true
+          description: "Name of the recommended provider based on feature completeness and availability"
+          example: "token"
+
+    BankFeatures:
+      type: object
+      description: "Summary of features available for this bank across all providers"
+      properties:
+        accountAccess:
+          type: boolean
+          description: "Whether account listing is supported"
+          example: true
+        accountBalance:
+          type: boolean
+          description: "Whether account balance retrieval is supported"
+          example: true
+        transactions:
+          type: boolean
+          description: "Whether transaction history is supported"
+          example: true
+        payments:
+          type: boolean
+          description: "Whether single payments are supported"
+          example: true
+
+    ProviderSupport:
+      type: object
+      description: "Details of a provider's support for a specific bank"
+      properties:
+        available:
+          type: boolean
+          description: "Whether this provider is active and available for this bank"
+          example: true
+        features:
+          type: array
+          items:
+            type: string
+            enum: ["accountAccess", "accountBalance", "transactions", "payments"]
+          description: "List of features supported by this provider for this bank"
+          example: ["accountAccess", "accountBalance", "transactions", "payments"]
+        providerId:
+          type: string
+          description: "Provider-specific identifier for this bank"
+          example: "ob-hsbc-per"
+        lastUpdated:
+          type: string
+          format: date-time
+          description: "When this provider's information was last updated"
+          example: "2025-04-22T19:01:51.702Z"
     
     Provider:
       type: object
@@ -124,6 +184,51 @@ components:
                 $ref: '#/components/schemas/Bank'
             pagination:
               $ref: '#/components/schemas/Pagination'
+      example:
+        success: true
+        data:
+          banks:
+            - id: "gb-hsbc-bank-personal"
+              name: "HSBC Bank - Personal"
+              country: "GB"
+              logoUrl: "https://s3-us-west-2.amazonaws.com/tokenio-assets/1.0.0/logos/hsbc/hsbc_square.png"
+              supportedPaymentMethods: ["faster_payments", "chaps", "sepa"]
+              active: true
+              features:
+                accountAccess: true
+                accountBalance: true
+                transactions: true
+                payments: true
+              providerSupport:
+                token:
+                  available: true
+                  features: ["accountAccess", "accountBalance", "transactions", "payments"]
+                  providerId: "ob-hsbc-per"
+                  lastUpdated: "2025-04-22T19:01:51.702Z"
+              recommendedProvider: "token"
+            - id: "gb-barclays-bank"
+              name: "Barclays Bank"
+              country: "GB"
+              logoUrl: "https://s3-us-west-2.amazonaws.com/tokenio-assets/1.0.0/logos/barclays/barclays_square.png"
+              supportedPaymentMethods: ["faster_payments", "chaps", "sepa"]
+              active: true
+              features:
+                accountAccess: true
+                accountBalance: true
+                transactions: true
+                payments: true
+              providerSupport:
+                token:
+                  available: true
+                  features: ["accountAccess", "accountBalance", "transactions", "payments"]
+                  providerId: "ob-barclays"
+                  lastUpdated: "2025-04-22T19:01:51.702Z"
+              recommendedProvider: "token"
+          pagination:
+            total: 51
+            page: 1
+            limit: 100
+            pages: 1
     
     BankResponse:
       type: object
@@ -136,6 +241,28 @@ components:
           properties:
             bank:
               $ref: '#/components/schemas/Bank'
+      example:
+        success: true
+        data:
+          bank:
+            id: "gb-hsbc-bank-personal"
+            name: "HSBC Bank - Personal"
+            country: "GB"
+            logoUrl: "https://s3-us-west-2.amazonaws.com/tokenio-assets/1.0.0/logos/hsbc/hsbc_square.png"
+            supportedPaymentMethods: ["faster_payments", "chaps", "sepa"]
+            active: true
+            features:
+              accountAccess: true
+              accountBalance: true
+              transactions: true
+              payments: true
+            providerSupport:
+              token:
+                available: true
+                features: ["accountAccess", "accountBalance", "transactions", "payments"]
+                providerId: "ob-hsbc-per"
+                lastUpdated: "2025-04-22T19:01:51.702Z"
+            recommendedProvider: "token"
     
     ProvidersResponse:
       type: object
