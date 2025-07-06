@@ -21,6 +21,7 @@ import clientOrganizationRoutes from './routes/client/organization.routes';
 import clientActivityRoutes from './routes/client/activity.routes';
 import bankRoutes from './routes/public/bank.routes'; // Using real bank routes
 import paymentRoutes from './routes/public/payment.routes';
+import webhookRoutes from './routes/public/webhook.routes';
 
 dotenv.config({ path: process.cwd() + '/config/.env.staging' });
 
@@ -51,6 +52,7 @@ app.use('/api/client/organization', clientOrganizationRoutes);
 app.use('/api/client/activities', clientActivityRoutes);
 app.use('/api/banks', bankRoutes); // Using real bank routes
 app.use('/api/payments', paymentRoutes);
+app.use('/api/webhooks', webhookRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

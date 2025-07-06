@@ -434,3 +434,79 @@ export const cleanupExpiredPayments = async (): Promise<number> => {
     throw error;
   }
 };
+
+// Find payment by reference ID (used for webhook processing)
+export const findPaymentByRefId = async (refId: string): Promise<any> => {
+  try {
+    // refId should match our paymentId since we use paymentId as refId in Token adapter
+    const payment = await Payment.findOne({ paymentId: refId });
+    
+    if (!payment) {
+      logger.warn('Payment not found by refId:', { refId });
+      return null;
+    }
+    
+    return payment;
+  } catch (error: any) {
+    logger.error('Error finding payment by refId:', { refId, error: error.message });
+    throw error;
+  }
+};
+
+// Update payment status (used for webhook processing)
+export const updatePaymentStatus = async (
+  paymentId: string, 
+  newStatus: PaymentStatus, 
+  details?: string,
+  errorMessage?: string
+): Promise<void> => {
+  try {
+    const payment = await Payment.findOne({ paymentId });
+    
+    if (!payment) {
+      throw createError(`Payment not found: ${paymentId}`, 404);
+    }
+    
+    // Don't update if status hasn't changed
+    if (payment.status === newStatus) {
+      logger.debug('Payment status unchanged:', { paymentId, status: newStatus });
+      return;
+    }
+    
+    // Update status and add to history
+    payment.status = newStatus;
+    payment.statusHistory.push({
+      status: newStatus,
+      timestamp: new Date(),
+      provider: payment.provider,
+      details: details || `Status updated to ${newStatus}`
+    });
+    
+    // Set completion time for final statuses
+    if ([PaymentStatus.COMPLETED, PaymentStatus.FAILED, PaymentStatus.CANCELLED].includes(newStatus)) {
+      payment.completedAt = new Date();
+    }
+    
+    // Set error details for failed payments
+    if (newStatus === PaymentStatus.FAILED && errorMessage) {
+      payment.errorMessage = errorMessage;
+    }
+    
+    await payment.save();
+    
+    logger.info('Payment status updated:', {
+      paymentId,
+      newStatus,
+      details,
+      errorMessage
+    });
+    
+  } catch (error: any) {
+    logger.error('Error updating payment status:', { 
+      paymentId, 
+      newStatus, 
+      error: error.message 
+    });
+    throw error;
+  }
+};
