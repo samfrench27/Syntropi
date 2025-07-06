@@ -230,7 +230,7 @@ export const createPayment = async (request: CreatePaymentRequest): Promise<Paym
   }
 };
 
-// Get payment by ID
+// Get payment by ID (with real-time status sync)
 export const getPayment = async (paymentId: string, clientId?: string): Promise<IPayment> => {
   try {
     const query: any = { paymentId };
@@ -243,7 +243,18 @@ export const getPayment = async (paymentId: string, clientId?: string): Promise<
       throw createError('Payment not found', 404);
     }
     
-    return payment;
+    // Sync status from provider for real-time updates (unless already in final state)
+    try {
+      return await syncPaymentStatus(paymentId);
+    } catch (syncError: any) {
+      // If sync fails, log warning but return the local payment data
+      logger.warn('Failed to sync payment status, returning local data:', {
+        paymentId,
+        error: syncError.message
+      });
+      return payment;
+    }
+    
   } catch (error: any) {
     logger.error('Error fetching payment:', { paymentId, error: error.message });
     throw error;

@@ -603,7 +603,140 @@ components:
                   name: "token"
                   supportsPayments: true
 
-paths:
+    TokenWebhookEvent:
+      type: object
+      description: Token.io v2 payments webhook event payload
+      properties:
+        id:
+          type: string
+          description: Unique webhook event identifier
+          example: "evt_1234567890abcdef"
+        type:
+          type: string
+          description: Event type
+          example: "PAYMENT_STATUS_CHANGED"
+        version:
+          type: string
+          description: Webhook version
+          example: "2.0"
+        livemode:
+          type: boolean
+          description: Whether this is a live or test event
+          example: false
+        created:
+          type: integer
+          description: Unix timestamp when the event was created
+          example: 1673427600
+        data:
+          type: object
+          properties:
+            object:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: Token.io payment ID
+                  example: "pmt_1234567890abcdef"
+                object:
+                  type: string
+                  example: "payment"
+                livemode:
+                  type: boolean
+                  example: false
+                created:
+                  type: integer
+                  example: 1673427600
+                updated:
+                  type: integer
+                  example: 1673427900
+                status:
+                  type: string
+                  description: Payment status from Token.io
+                  example: "completed"
+                provider_payment_id:
+                  type: string
+                  description: Provider's payment identifier
+                  example: "fps_20240107_123456"
+                currency:
+                  type: string
+                  description: Payment currency code
+                  example: "GBP"
+                amount:
+                  type: number
+                  description: Payment amount in minor units
+                  example: 10000
+                reference:
+                  type: string
+                  description: Payment reference
+                  example: "INV-001"
+                description:
+                  type: string
+                  description: Payment description
+                  example: "Invoice payment"
+                initiation:
+                  type: object
+                  properties:
+                    refId:
+                      type: string
+                      description: Reference ID (typically our payment ID)
+                      example: "pay_1234567890abcdef"
+                    endToEndId:
+                      type: string
+                      description: End-to-end identification
+                      example: "E2E-123456"
+                    instructionId:
+                      type: string
+                      description: Instruction identification
+                      example: "INSTR-123456"
+                    instructedAmount:
+                      type: object
+                      properties:
+                        amount:
+                          type: number
+                          example: 10000
+                        currency:
+                          type: string
+                          example: "GBP"
+                    creditorAccount:
+                      type: object
+                      properties:
+                        iban:
+                          type: string
+                          example: "GB82WEST12345698765432"
+                        ownerName:
+                          type: string
+                          example: "John Doe"
+                    debtorAccount:
+                      type: object
+                      properties:
+                        iban:
+                          type: string
+                          example: "GB33BUKB20201555555555"
+                        ownerName:
+                          type: string
+                          example: "Jane Smith"
+                    remittanceInformation:
+                      type: object
+                      properties:
+                        unstructured:
+                          type: string
+                          example: "Invoice payment INV-001"
+                statusReasonInformation:
+                  type: string
+                  description: Additional status information
+                  example: "Payment completed successfully"
+                execution:
+                  type: object
+                  properties:
+                    statusDetail:
+                      type: string
+                      description: Detailed status information
+                      example: "SETTLEMENT_COMPLETED"
+                    providerPaymentId:
+                      type: string
+                      description: Provider's payment ID
+                      example: "fps_20240107_123456"
+
   /banks:
     get:
       operationId: listBanks
@@ -886,7 +1019,7 @@ paths:
     get:
       operationId: getPayment
       summary: Get payment details
-      description: Returns details of a specific payment
+      description: Returns details of a specific payment with real-time status. Automatically polls the payment provider (Token.io) for the latest status unless the payment is already in a final state (completed, failed, cancelled, or expired).
       tags:
         - Payments
       security:
@@ -998,6 +1131,49 @@ paths:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/webhooks/token:
+    post:
+      operationId: handleTokenWebhook
+      summary: Token.io webhook endpoint
+      description: |
+        Receives payment status webhooks from Token.io and updates payment status accordingly.
+        This endpoint is called by Token.io when payment status changes occur.
+        
+        **Note:** This endpoint does not require API key authentication as it's called by Token.io.
+      tags:
+        - Payments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenWebhookEvent'
+      responses:
+        '200':
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Webhook processed successfully"
+                  paymentId:
+                    type: string
+                    example: "pay_1234567890abcdef"
+                  status:
+                    $ref: '#/components/schemas/PaymentStatus'
+        '400':
+          description: Invalid webhook payload
           content:
             application/json:
               schema:
