@@ -101,13 +101,15 @@ export default function OrgAdminLayout({
         <div className="flex flex-1 overflow-hidden">
           <Sidebar />
           <main className="flex-1 overflow-auto">
-            {orgLoading ? (
-              <div className="flex-1 flex items-center justify-center">
-                <LoadingState message="Loading organization data..." />
-              </div>
-            ) : (
-              children
-            )}
+            <div className="p-6">
+              {orgLoading ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <LoadingState message="Loading organization data..." />
+                </div>
+              ) : (
+                children
+              )}
+            </div>
           </main>
         </div>
       </div>
