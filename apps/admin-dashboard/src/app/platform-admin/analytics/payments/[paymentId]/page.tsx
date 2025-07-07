@@ -43,39 +43,58 @@ export default function PlatformAdminPaymentDetailPage() {
   const paymentId = params.paymentId as string;
 
   useEffect(() => {
-    if (paymentId) {
-      fetchPaymentDetails();
-    }
-  }, [paymentId]);
+    let isMounted = true;
 
-  const fetchPaymentDetails = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+    const fetchData = async () => {
+      if (!paymentId) return;
+      
+      try {
+        if (isMounted) {
+          setLoading(true);
+          setError(null);
+        }
 
-      // Fetch payment details
-      const paymentResponse = await api.get(`/admin/payments/${paymentId}`);
-      const paymentData = paymentResponse.data.data || paymentResponse.data;
-      setPayment(paymentData);
+        // Fetch payment details
+        const paymentResponse = await api.get(`/admin/payments/${paymentId}`);
+        const paymentData = paymentResponse.data.data || paymentResponse.data;
+        
+        // Only update state if component is still mounted
+        if (isMounted) {
+          setPayment(paymentData);
+        }
 
-      // Fetch organization details if we have organizationId
-      if (paymentData.organizationId) {
-        try {
-          const orgResponse = await api.get(`/admin/organizations/${paymentData.organizationId}`);
-          const orgData = orgResponse.data.data?.organization || orgResponse.data.organization || orgResponse.data;
-          setOrganization(orgData);
-        } catch (orgError) {
-          console.warn('Could not fetch organization details:', orgError);
-          // Don't fail the whole page if organization fetch fails
+        // Fetch organization details if we have organizationId
+        if (paymentData?.organizationId && isMounted) {
+          try {
+            const orgResponse = await api.get(`/admin/organizations/${paymentData.organizationId}`);
+            const orgData = orgResponse.data.data || orgResponse.data;
+            if (isMounted) {
+              setOrganization(orgData);
+            }
+          } catch (orgError) {
+            console.error('Error fetching organization:', orgError);
+            // Don't fail the whole page if org fetch fails
+          }
+        }
+      } catch (error: any) {
+        console.error('Error fetching payment details:', error);
+        if (isMounted) {
+          setError(error?.response?.data?.message || 'Failed to load payment details');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
         }
       }
-    } catch (error: any) {
-      console.error('Error fetching payment details:', error);
-      setError(error?.response?.data?.message || 'Failed to load payment details');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchData();
+
+    // Cleanup function to prevent state updates after unmounting
+    return () => {
+      isMounted = false;
+    };
+  }, [paymentId]);
 
   const formatCurrency = (amount: { value: string; currency: string }) => {
     try {

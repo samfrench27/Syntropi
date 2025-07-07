@@ -39,33 +39,55 @@ export default function OrgAdminPaymentDetailPage() {
   const paymentId = params.paymentId as string;
 
   useEffect(() => {
-    if (paymentId) {
-      fetchPaymentDetails();
-    }
+    let isMounted = true;
+
+    const fetchData = async () => {
+      if (!paymentId) return;
+      
+      try {
+        if (isMounted) {
+          setLoading(true);
+          setError(null);
+        }
+
+        // Fetch payment details
+        const paymentResponse = await api.get(`/admin/payments/${paymentId}`);
+        const paymentData = paymentResponse.data.data || paymentResponse.data;
+        
+        // Only update state if component is still mounted
+        if (isMounted) {
+          setPayment(paymentData);
+        }
+      } catch (error: any) {
+        console.error('Error fetching payment details:', error);
+        if (isMounted) {
+          setError(error?.response?.data?.message || 'Failed to load payment details');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+
+    // Cleanup function to prevent state updates after unmounting
+    return () => {
+      isMounted = false;
+    };
   }, [paymentId]);
 
-  const fetchPaymentDetails = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Fetch payment details
-      const paymentResponse = await api.get(`/admin/payments/${paymentId}`);
-      const paymentData = paymentResponse.data.data || paymentResponse.data;
-      setPayment(paymentData);
-    } catch (error: any) {
-      console.error('Error fetching payment details:', error);
-      setError(error?.response?.data?.message || 'Failed to load payment details');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const formatCurrency = (amount: { value: string; currency: string }) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: amount.currency
-    }).format(parseFloat(amount.value));
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: amount.currency
+      }).format(parseFloat(amount.value));
+    } catch (error) {
+      // Fallback for formatting errors
+      return `${amount.currency} ${amount.value}`;
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -79,14 +101,19 @@ export default function OrgAdminPaymentDetailPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
+    try {
+      return new Date(dateString).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+    } catch (error) {
+      // Fallback for date formatting errors
+      return dateString || 'Invalid date';
+    }
   };
 
   const getStatusIcon = (status: string) => {
