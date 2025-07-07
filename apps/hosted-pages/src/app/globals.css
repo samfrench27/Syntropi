@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles for hosted payment pages */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* Loading states */
+.loading {
+  @apply animate-pulse;
+}
+
+/* Payment form styles */
+.payment-form {
+  @apply space-y-6;
+}
+
+.form-group {
+  @apply space-y-2;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700;
+}
+
+.form-input {
+  @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500;
+}
+
+.form-error {
+  @apply text-sm text-red-600;
+}
+
+/* Bank selection styles */
+.bank-option {
+  @apply flex items-center p-4 border rounded-lg cursor-pointer transition-colors hover:bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+}
+
+.bank-option.selected {
+  @apply border-primary-500 bg-primary-50;
+}
+
+/* Status indicators */
+.status-pending {
+  @apply text-yellow-600 bg-yellow-100;
+}
+
+.status-completed {
+  @apply text-green-600 bg-green-100;
+}
+
+.status-failed {
+  @apply text-red-600 bg-red-100;
+}
+
+/* Security badge styles */
+.security-badge {
+  @apply flex items-center space-x-2 text-sm text-gray-600;
+}
