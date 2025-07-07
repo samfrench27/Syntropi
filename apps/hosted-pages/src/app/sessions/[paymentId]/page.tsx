@@ -57,7 +57,21 @@ export default function PaymentSessionPage() {
 
         // Load available banks
         const banksResponse = await banksAPI.getAvailableBanks(paymentId);
-        setBanks(banksResponse.data || []);
+        console.log('Banks API response:', banksResponse);
+        
+        // Extract banks array from the response structure
+        let banksData: Bank[] = [];
+        if (banksResponse.success && banksResponse.data) {
+          // Check if data is already a banks array (mock data) or has a banks property (real API)
+          if (Array.isArray(banksResponse.data)) {
+            banksData = banksResponse.data;
+          } else if (banksResponse.data.banks && Array.isArray(banksResponse.data.banks)) {
+            banksData = banksResponse.data.banks;
+          }
+        }
+        
+        console.log('Processed banks data:', banksData);
+        setBanks(banksData);
 
         setStep('details');
       } catch (err: any) {
