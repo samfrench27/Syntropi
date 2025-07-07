@@ -83,7 +83,7 @@ export default function PaymentSessionPage() {
         paymentId: payment.paymentId,
         bankId: selectedBank.id,
         flowType: 'API_ONLY',
-        redirectUri: redirectUrl
+        redirectUri: redirectUrl || undefined
       });
 
       if (response.data.redirectUrl) {
