@@ -71,6 +71,16 @@ export default function OrgAdminPaymentDetailPage() {
         
         const paymentData = paymentResponse.data.data || paymentResponse.data;
         console.log('💳 Payment Detail: Extracted payment data:', paymentData);
+        console.log('🔍 Payment Detail: Field types:', {
+          reference: typeof paymentData?.reference,
+          referenceValue: paymentData?.reference,
+          description: typeof paymentData?.description,
+          descriptionValue: paymentData?.description,
+          amount: typeof paymentData?.amount,
+          amountValue: paymentData?.amount,
+          toAccount: typeof paymentData?.toAccount,
+          toAccountValue: paymentData?.toAccount
+        });
         
         // Only update state if component is still mounted
         if (isMounted) {
@@ -105,13 +115,16 @@ export default function OrgAdminPaymentDetailPage() {
 
   const formatCurrency = (amount: { value: string; currency: string }) => {
     try {
+      if (!amount || !amount.value || !amount.currency) {
+        return 'N/A';
+      }
       return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: amount.currency
       }).format(parseFloat(amount.value));
     } catch (error) {
       // Fallback for formatting errors
-      return `${amount.currency} ${amount.value}`;
+      return amount ? `${amount.currency || ''} ${amount.value || ''}` : 'N/A';
     }
   };
 
@@ -260,14 +273,18 @@ export default function OrgAdminPaymentDetailPage() {
               {payment.reference && (
                 <div>
                   <p className="text-sm text-gray-500">Reference</p>
-                  <p className="font-medium">{payment.reference}</p>
+                  <p className="font-medium">
+                    {typeof payment.reference === 'string' ? payment.reference : JSON.stringify(payment.reference)}
+                  </p>
                 </div>
               )}
 
               {payment.description && (
                 <div>
                   <p className="text-sm text-gray-500">Description</p>
-                  <p className="font-medium">{payment.description}</p>
+                  <p className="font-medium">
+                    {typeof payment.description === 'string' ? payment.description : JSON.stringify(payment.description)}
+                  </p>
                 </div>
               )}
             </div>
