@@ -41,6 +41,8 @@ export default function PlatformAdminPaymentDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   const paymentId = params.paymentId as string;
+  
+  console.log('🔄 Platform Payment Detail Component: Rendered with paymentId:', paymentId);
 
   useEffect(() => {
     let isMounted = true;
@@ -49,6 +51,8 @@ export default function PlatformAdminPaymentDetailPage() {
     const fetchData = async () => {
       if (!paymentId) return;
       
+      console.log('🚀 Platform Payment Detail: Starting fetch for paymentId:', paymentId);
+      
       try {
         if (isMounted) {
           setLoading(true);
@@ -56,14 +60,36 @@ export default function PlatformAdminPaymentDetailPage() {
         }
 
         // Fetch payment details with abort signal
+        console.log('📡 Platform Payment Detail: Making API call to /admin/payments/' + paymentId);
         const paymentResponse = await api.get(`/admin/payments/${paymentId}`, {
           signal: abortController.signal
         });
+        
+        console.log('📦 Platform Payment Detail: Raw API response:', paymentResponse);
+        console.log('📊 Platform Payment Detail: Response data structure:', {
+          hasData: !!paymentResponse.data,
+          hasDataData: !!paymentResponse.data?.data,
+          responseKeys: Object.keys(paymentResponse.data || {}),
+          actualData: paymentResponse.data
+        });
+        
         const paymentData = paymentResponse.data.data || paymentResponse.data;
+        console.log('💳 Platform Payment Detail: Extracted payment data:', paymentData);
+        console.log('🔍 Platform Payment Detail: Field types:', {
+          reference: typeof paymentData?.reference,
+          referenceValue: paymentData?.reference,
+          description: typeof paymentData?.description,
+          descriptionValue: paymentData?.description,
+          amount: typeof paymentData?.amount,
+          amountValue: paymentData?.amount,
+          toAccount: typeof paymentData?.toAccount,
+          toAccountValue: paymentData?.toAccount
+        });
         
         // Only update state if component is still mounted
         if (isMounted) {
           setPayment(paymentData);
+          console.log('✅ Platform Payment Detail: State updated with payment data');
         }
 
         // Fetch organization details if we have organizationId
@@ -86,7 +112,7 @@ export default function PlatformAdminPaymentDetailPage() {
       } catch (error: any) {
         // Don't log errors if request was aborted
         if (error.name !== 'AbortError') {
-          console.error('Error fetching payment details:', error);
+          console.error('❌ Platform Payment Detail: Error fetching payment details:', error);
           if (isMounted) {
             setError(error?.response?.data?.message || 'Failed to load payment details');
           }
@@ -94,6 +120,7 @@ export default function PlatformAdminPaymentDetailPage() {
       } finally {
         if (isMounted) {
           setLoading(false);
+          console.log('🏁 Platform Payment Detail: Fetch completed, loading set to false');
         }
       }
     };
@@ -102,6 +129,7 @@ export default function PlatformAdminPaymentDetailPage() {
 
     // Cleanup function to prevent state updates and abort requests
     return () => {
+      console.log('🧹 Platform Payment Detail: Cleanup called for paymentId:', paymentId);
       isMounted = false;
       abortController.abort();
     };
@@ -118,7 +146,7 @@ export default function PlatformAdminPaymentDetailPage() {
       }).format(parseFloat(amount.value));
     } catch (error) {
       console.warn('Error formatting currency:', error);
-      return `${amount.value} ${amount.currency}`;
+      return amount ? `${amount.currency || ''} ${amount.value || ''}` : 'N/A';
     }
   };
 
@@ -268,14 +296,18 @@ export default function PlatformAdminPaymentDetailPage() {
               {payment.reference && (
                 <div>
                   <p className="text-sm text-gray-500">Reference</p>
-                  <p className="font-medium">{payment.reference}</p>
+                  <p className="font-medium">
+                    {typeof payment.reference === 'string' ? payment.reference : JSON.stringify(payment.reference)}
+                  </p>
                 </div>
               )}
 
               {payment.description && (
                 <div>
                   <p className="text-sm text-gray-500">Description</p>
-                  <p className="font-medium">{payment.description}</p>
+                  <p className="font-medium">
+                    {typeof payment.description === 'string' ? payment.description : JSON.stringify(payment.description)}
+                  </p>
                 </div>
               )}
             </div>
