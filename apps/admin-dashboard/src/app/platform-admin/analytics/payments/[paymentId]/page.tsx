@@ -178,10 +178,10 @@ export default function PlatformAdminPaymentDetailPage() {
   if (error || !payment) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center space-x-4">
+        <div>
           <button
             onClick={() => router.push('/platform-admin/analytics')}
-            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="h-5 w-5" />
             <span>Back to Analytics</span>
@@ -206,20 +206,22 @@ export default function PlatformAdminPaymentDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Back Button */}
+      <div>
+        <button
+          onClick={() => router.push('/platform-admin/analytics')}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4"
+        >
+          <ArrowLeft className="h-5 w-5" />
+          <span>Back to Analytics</span>
+        </button>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => router.push('/platform-admin/analytics')}
-            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            <span>Back to Analytics</span>
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Payment Details</h1>
-            <p className="text-gray-600">Payment ID: {payment.paymentId}</p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Payment Details</h1>
+          <p className="text-gray-600">Payment ID: {payment.paymentId}</p>
         </div>
         <div className="flex items-center space-x-2">
           <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(payment.status)}`}>
