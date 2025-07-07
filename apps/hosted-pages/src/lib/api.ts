@@ -128,9 +128,20 @@ export const paymentAPI = {
 // Banks API methods
 export const banksAPI = {
   // Get available banks for payment
-  getAvailableBanks: async (): Promise<ApiResponse<Bank[]>> => {
+  getAvailableBanks: async (paymentId?: string): Promise<ApiResponse<Bank[]>> => {
     try {
-      const response = await api.get('/banks');
+      // If we have a payment ID, use it to get the right token
+      const config: any = {};
+      if (paymentId && typeof window !== 'undefined') {
+        const paymentToken = localStorage.getItem(`payment_token_${paymentId}`);
+        if (paymentToken) {
+          config.headers = {
+            Authorization: `Bearer ${paymentToken}`
+          };
+        }
+      }
+      
+      const response = await api.get('/banks', config);
       return response.data;
     } catch (error: any) {
       if (error.useMockFallback || shouldUseMockData()) {

@@ -56,7 +56,7 @@ export default function PaymentSessionPage() {
         setPayment(paymentData);
 
         // Load available banks
-        const banksResponse = await banksAPI.getAvailableBanks();
+        const banksResponse = await banksAPI.getAvailableBanks(paymentId);
         setBanks(banksResponse.data || []);
 
         setStep('details');
