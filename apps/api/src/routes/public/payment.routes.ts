@@ -6,9 +6,11 @@ import {
   getPayments,
   cancelPayment,
   syncPaymentStatus,
-  getSupportedProviders
+  getSupportedProviders,
+  getPaymentForHostedPages
 } from '../../controllers/public/payment.controller';
 import { apiKeyAuth } from '../../middleware/apiKeyAuth';
+import { paymentTokenAuth } from '../../middleware/paymentTokenAuth';
 
 const router = Router();
 
@@ -19,5 +21,8 @@ router.get('/', apiKeyAuth('read'), getPayments);
 router.get('/:paymentId', apiKeyAuth('read'), getPayment);
 router.post('/:paymentId/cancel', apiKeyAuth('write'), cancelPayment);
 router.post('/:paymentId/sync', apiKeyAuth('read'), syncPaymentStatus);
+
+// Hosted pages route - requires payment token authentication
+router.get('/:paymentId/hosted', paymentTokenAuth, getPaymentForHostedPages);
 
 export default router;

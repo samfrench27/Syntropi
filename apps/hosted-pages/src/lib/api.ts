@@ -63,8 +63,8 @@ export const paymentAPI = {
   // Get payment details by ID
   getPayment: async (paymentId: string): Promise<ApiResponse<PaymentSession>> => {
     try {
-      // For hosted pages, use public payment endpoint or token-based access
-      const response = await api.get(`/payments/${paymentId}`);
+      // For hosted pages, use the dedicated hosted endpoint with token auth
+      const response = await api.get(`/payments/${paymentId}/hosted`);
       return response.data;
     } catch (error: any) {
       // If API call fails and we're in development, fall back to mock data

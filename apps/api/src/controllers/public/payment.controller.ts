@@ -4,6 +4,8 @@ import * as paymentService from '../../services/payment.service';
 import { createError } from '../../middleware/errorHandler';
 import { PaymentFlowType } from '../../models/payment.model';
 import { winstonLogger as logger } from '../../utils/logger';
+import { generateHostedPageUrl } from '../../utils/jwt';
+import { PaymentTokenRequest } from '../../middleware/paymentTokenAuth';
 
 // Helper function to simplify payment data for client response
 const simplifyPaymentData = (payment: any) => {
@@ -85,11 +87,23 @@ export const createPayment = async (req: Request, res: Response, next: NextFunct
       amount: amount.value + ' ' + amount.currency
     });
 
+    // Generate hosted page URL with access token if flowType is HOSTED_PAGES
+    let hostedPageUrl = null;
+    if (flowType === PaymentFlowType.HOSTED_PAGES || flowType === PaymentFlowType.EMBEDDED_HOSTED_PAGES) {
+      hostedPageUrl = generateHostedPageUrl(
+        paymentResponse.paymentId,
+        organizationId,
+        clientId,
+        redirectUrl
+      );
+    }
+
     // Transform to match PaymentResponse schema (not PaymentDetail)
     const responseData = {
       paymentId: paymentResponse.paymentId,
       status: paymentResponse.status,
       redirectUrl: paymentResponse.redirectUrl || null, // Token.io auth URL
+      hostedPageUrl, // New: URL to hosted payment pages with embedded token
       provider: paymentResponse.provider,
       bankId: paymentResponse.bankId,
       amount: paymentResponse.amount,
@@ -252,6 +266,66 @@ export const getSupportedProviders = async (req: Request, res: Response, next: N
 
   } catch (error) {
     logger.error('Error in getSupportedProviders controller:', error);
+    next(error);
+  }
+};
+
+// Get a specific payment for hosted pages (using payment token authentication)
+export const getPaymentForHostedPages = async (req: PaymentTokenRequest, res: Response, next: NextFunction) => {
+  try {
+    const { paymentId } = req.params;
+    const paymentToken = req.paymentToken;
+
+    if (!paymentToken) {
+      return next(createError('Payment token authentication required', 401));
+    }
+
+    // Verify token is for the requested payment
+    if (paymentToken.paymentId !== paymentId) {
+      return next(createError('Token is not valid for this payment', 403));
+    }
+
+    // Get payment using organization and client from token
+    const payment = await paymentService.getPayment(paymentId, paymentToken.clientId);
+    
+    // Return payment data formatted for hosted pages
+    const hostedPagePayment = {
+      paymentId: payment.paymentId,
+      status: payment.status,
+      amount: payment.amount,
+      reference: payment.reference,
+      description: payment.reference, // Use reference as description for now
+      toAccount: {
+        accountName: payment.toAccount.accountName,
+        accountNumber: payment.toAccount.accountNumber,
+        sortCode: payment.toAccount.sortCode
+      },
+      fromAccount: payment.fromAccount ? {
+        accountName: payment.fromAccount.accountName,
+        accountNumber: payment.fromAccount.accountNumber,
+        sortCode: payment.fromAccount.sortCode
+      } : undefined,
+      merchant: {
+        name: paymentToken.organizationId, // You might want to fetch actual org name
+        logo: undefined,
+        redirectUri: payment.redirectUrl
+      },
+      createdAt: payment.createdAt,
+      expiresAt: payment.expiresAt
+    };
+
+    res.json({
+      success: true,
+      data: hostedPagePayment
+    });
+
+    logger.info('Payment accessed via hosted pages:', {
+      paymentId,
+      organizationId: paymentToken.organizationId
+    });
+
+  } catch (error) {
+    logger.error('Error in getPaymentForHostedPages controller:', error);
     next(error);
   }
 };
