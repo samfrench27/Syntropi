@@ -538,3 +538,128 @@ export const updatePaymentStatus = async (
     throw error;
   }
 };
+
+// Analytics functions for admin dashboard
+export const getPaymentAnalytics = async (
+  filter: any = {},
+  startDate?: Date,
+  endDate?: Date
+): Promise<any> => {
+  try {
+    // Build date filter
+    const dateFilter: any = {};
+    if (startDate || endDate) {
+      dateFilter.createdAt = {};
+      if (startDate) dateFilter.createdAt.$gte = startDate;
+      if (endDate) dateFilter.createdAt.$lte = endDate;
+    }
+
+    // Combine filters
+    const combinedFilter = { ...filter, ...dateFilter };
+
+    // Aggregate analytics data
+    const [
+      totalPayments,
+      paymentsByStatus,
+      paymentsByProvider,
+      totalVolume,
+      averageAmount
+    ] = await Promise.all([
+      // Total payment count
+      Payment.countDocuments(combinedFilter),
+      
+      // Payments by status
+      Payment.aggregate([
+        { $match: combinedFilter },
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]),
+      
+      // Payments by provider
+      Payment.aggregate([
+        { $match: combinedFilter },
+        { $group: { _id: '$provider', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]),
+      
+      // Total volume
+      Payment.aggregate([
+        { $match: combinedFilter },
+        { 
+          $group: { 
+            _id: null, 
+            total: { 
+              $sum: { $toDouble: '$amount.value' } 
+            } 
+          } 
+        }
+      ]),
+      
+      // Average amount
+      Payment.aggregate([
+        { $match: combinedFilter },
+        { 
+          $group: { 
+            _id: null, 
+            average: { 
+              $avg: { $toDouble: '$amount.value' } 
+            } 
+          } 
+        }
+      ])
+    ]);
+
+    return {
+      summary: {
+        totalPayments,
+        totalVolume: totalVolume[0]?.total || 0,
+        averageAmount: averageAmount[0]?.average || 0
+      },
+      breakdown: {
+        byStatus: paymentsByStatus,
+        byProvider: paymentsByProvider
+      }
+    };
+
+  } catch (error: any) {
+    logger.error('Error getting payment analytics:', error);
+    throw error;
+  }
+};
+
+export const getPaymentsWithAudit = async (
+  filter: any = {},
+  limit: number = 50,
+  offset: number = 0
+): Promise<{ payments: any[], total: number }> => {
+  try {
+    const [payments, total] = await Promise.all([
+      Payment.find(filter)
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip(offset)
+        .lean(),
+      Payment.countDocuments(filter)
+    ]);
+
+    // Add audit information (status history, etc.)
+    const paymentsWithAudit = payments.map(payment => ({
+      ...payment,
+      audit: {
+        statusChanges: payment.statusHistory?.length || 0,
+        lastStatusChange: payment.statusHistory?.[payment.statusHistory?.length - 1],
+        createdAt: payment.createdAt,
+        updatedAt: payment.updatedAt
+      }
+    }));
+
+    return {
+      payments: paymentsWithAudit,
+      total
+    };
+
+  } catch (error: any) {
+    logger.error('Error getting payments with audit:', error);
+    throw error;
+  }
+};
