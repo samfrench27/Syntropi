@@ -25,13 +25,20 @@ export default function PaymentSessionPage() {
   const [error, setError] = useState<string | null>(null);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
 
-  // Extract redirect URL from search params (where merchant wants user to return)
+  // Extract redirect URL and access token from search params
   useEffect(() => {
     const redirect = searchParams.get('redirect_uri');
     if (redirect) {
       setRedirectUrl(redirect);
     }
-  }, [searchParams]);
+    
+    // Extract access token for this payment session
+    const accessToken = searchParams.get('token');
+    if (accessToken) {
+      // Store token for API calls
+      localStorage.setItem(`payment_token_${paymentId}`, accessToken);
+    }
+  }, [searchParams, paymentId]);
 
   // Load payment details and available banks
   useEffect(() => {

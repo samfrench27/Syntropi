@@ -17,13 +17,31 @@ const api = axios.create({
   timeout: 10000, // 10 second timeout
 });
 
-// Add request interceptor for auth if needed
+// Add request interceptor for auth
 api.interceptors.request.use((config) => {
-  // For hosted pages, we might use a special API key or session token
+  // For hosted pages, we use payment-specific tokens or fallback to general token
+  const url = config.url || '';
+  
+  // Extract payment ID from URL to get the right token
+  const paymentIdMatch = url.match(/\/payments\/([^\/\?]+)/);
+  if (paymentIdMatch) {
+    const paymentId = paymentIdMatch[1];
+    const paymentToken = typeof window !== 'undefined' 
+      ? localStorage.getItem(`payment_token_${paymentId}`)
+      : null;
+    
+    if (paymentToken) {
+      config.headers.Authorization = `Bearer ${paymentToken}`;
+      return config;
+    }
+  }
+  
+  // Fallback to general hosted pages token if available
   const hostedPagesToken = process.env.NEXT_PUBLIC_HOSTED_PAGES_TOKEN;
   if (hostedPagesToken) {
     config.headers.Authorization = `Bearer ${hostedPagesToken}`;
   }
+  
   return config;
 });
 
@@ -45,12 +63,21 @@ export const paymentAPI = {
   // Get payment details by ID
   getPayment: async (paymentId: string): Promise<ApiResponse<PaymentSession>> => {
     try {
+      // For hosted pages, use public payment endpoint or token-based access
       const response = await api.get(`/payments/${paymentId}`);
       return response.data;
     } catch (error: any) {
+      // If API call fails and we're in development, fall back to mock data
       if (error.useMockFallback || shouldUseMockData()) {
-        return await mockAPI.getPayment(paymentId);
+        console.warn('Using mock data for payment:', paymentId);
+        return mockAPI.getPayment(paymentId);
       }
+      
+      // If unauthorized, provide clear error message
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Access denied: Invalid or missing payment access token');
+      }
+      
       throw error;
     }
   },
