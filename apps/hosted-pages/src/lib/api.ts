@@ -17,6 +17,9 @@ const api = axios.create({
   timeout: 10000, // 10 second timeout
 });
 
+// Debug: Log the baseURL being used
+console.log('API baseURL:', (process.env.NEXT_PUBLIC_API_URL || '') + '/api');
+
 // Add request interceptor for auth
 api.interceptors.request.use((config) => {
   // For hosted pages, we use payment-specific tokens or fallback to general token
