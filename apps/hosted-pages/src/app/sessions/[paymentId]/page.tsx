@@ -64,9 +64,16 @@ export default function PaymentSessionPage() {
         if (banksResponse.success && banksResponse.data) {
           // Check if data is already a banks array (mock data) or has a banks property (real API)
           if (Array.isArray(banksResponse.data)) {
-            banksData = banksResponse.data;
-          } else if (banksResponse.data.banks && Array.isArray(banksResponse.data.banks)) {
-            banksData = banksResponse.data.banks;
+            banksData = banksResponse.data.filter(bank => 
+              bank && typeof bank === 'object' && bank.id && bank.name
+            );
+          } else if (banksResponse.data && typeof banksResponse.data === 'object' && 'banks' in banksResponse.data) {
+            const responseData = banksResponse.data as { banks: Bank[] };
+            if (Array.isArray(responseData.banks)) {
+              banksData = responseData.banks.filter(bank => 
+                bank && typeof bank === 'object' && bank.id && bank.name
+              );
+            }
           }
         }
         

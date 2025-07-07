@@ -11,17 +11,45 @@ interface PaymentDetailsProps {
 export default function PaymentDetails({ payment, banks, onSelectBank }: PaymentDetailsProps) {
   const [selectedBankId, setSelectedBankId] = useState<string>('');
 
+  // Early return if payment data is invalid
+  if (!payment || typeof payment !== 'object' || !payment.amount) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="max-w-2xl mx-auto text-center">
+          <p className="text-red-600">Invalid payment data</p>
+        </div>
+      </div>
+    );
+  }
+
   const formatAmount = (amount: { value: string; currency: string }) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: amount.currency
-    }).format(parseFloat(amount.value));
+    if (!amount || typeof amount !== 'object' || !amount.value || !amount.currency) {
+      return 'Invalid amount';
+    }
+    
+    try {
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: amount.currency
+      }).format(parseFloat(amount.value));
+    } catch (error) {
+      console.warn('Error formatting amount:', error);
+      return `${amount.currency} ${amount.value}`;
+    }
   };
 
   const handleContinue = () => {
-    const bank = banks.find(b => b.id === selectedBankId);
-    if (bank) {
+    if (!selectedBankId || !Array.isArray(banks)) {
+      console.warn('Cannot continue: no bank selected or invalid banks data');
+      return;
+    }
+    
+    const bank = banks.find(b => b && b.id === selectedBankId);
+    if (bank && typeof bank === 'object' && bank.id && bank.name) {
+      console.log('Selected bank:', bank);
       onSelectBank(bank);
+    } else {
+      console.warn('Selected bank not found or invalid:', selectedBankId);
     }
   };
 
@@ -31,17 +59,17 @@ export default function PaymentDetails({ payment, banks, onSelectBank }: Payment
         {/* Header */}
         <div className="text-center mb-8">
           <div className="mb-4">
-            {payment.merchant?.logo && (
+            {payment.merchant?.logo && typeof payment.merchant.logo === 'string' && (
               <img 
                 src={payment.merchant.logo} 
-                alt={payment.merchant.name}
+                alt={payment.merchant.name || 'Merchant'}
                 className="h-12 mx-auto mb-2"
               />
             )}
             <h1 className="text-2xl font-bold text-gray-900">
               Complete Your Payment
             </h1>
-            {payment.merchant?.name && (
+            {payment.merchant?.name && typeof payment.merchant.name === 'string' && (
               <p className="text-gray-600">
                 Payment to {payment.merchant.name}
               </p>
@@ -66,7 +94,7 @@ export default function PaymentDetails({ payment, banks, onSelectBank }: Payment
               </span>
             </div>
 
-            {payment.description && (
+            {payment.description && typeof payment.description === 'string' && (
               <div className="flex items-center justify-between">
                 <span className="text-gray-700">Description</span>
                 <span className="text-gray-900 text-right max-w-xs">
@@ -75,7 +103,7 @@ export default function PaymentDetails({ payment, banks, onSelectBank }: Payment
               </div>
             )}
 
-            {payment.reference && (
+            {payment.reference && typeof payment.reference === 'string' && (
               <div className="flex items-center justify-between">
                 <span className="text-gray-700">Reference</span>
                 <span className="text-gray-900 font-mono text-sm">
@@ -91,9 +119,9 @@ export default function PaymentDetails({ payment, banks, onSelectBank }: Payment
               </div>
               <div className="text-right">
                 <div className="text-gray-900 font-medium">
-                  {payment.toAccount.accountName}
+                  {payment.toAccount?.accountName || 'Unknown Account'}
                 </div>
-                {payment.toAccount.accountNumber && (
+                {payment.toAccount?.accountNumber && payment.toAccount?.sortCode && (
                   <div className="text-sm text-gray-500">
                     {payment.toAccount.sortCode} {payment.toAccount.accountNumber}
                   </div>
@@ -110,51 +138,66 @@ export default function PaymentDetails({ payment, banks, onSelectBank }: Payment
           </h2>
           
           <div className="space-y-3">
-            {banks.filter(bank => bank.available).map((bank) => (
-              <label
-                key={bank.id}
-                className={`bank-option ${selectedBankId === bank.id ? 'selected' : ''}`}
-              >
-                <input
-                  type="radio"
-                  name="bank"
-                  value={bank.id}
-                  checked={selectedBankId === bank.id}
-                  onChange={(e) => setSelectedBankId(e.target.value)}
-                  className="sr-only"
-                />
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center space-x-3">
-                    {bank.logo && (
-                      <img 
-                        src={bank.logo} 
-                        alt={bank.name}
-                        className="h-8 w-8 object-contain"
-                      />
-                    )}
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        {bank.displayName || bank.name}
-                      </div>
-                      {bank.processingTime && (
-                        <div className="text-sm text-gray-500 flex items-center space-x-1">
-                          <Clock className="h-3 w-3" />
-                          <span>{bank.processingTime}</span>
+            {Array.isArray(banks) && banks.length > 0 ? (
+              banks.filter(bank => bank && typeof bank === 'object' && bank.available === true).map((bank) => {
+                // Ensure all required fields are present and valid
+                if (!bank.id || !bank.name) {
+                  console.warn('Invalid bank data:', bank);
+                  return null;
+                }
+                
+                return (
+                  <label
+                    key={bank.id}
+                    className={`bank-option ${selectedBankId === bank.id ? 'selected' : ''}`}
+                  >
+                    <input
+                      type="radio"
+                      name="bank"
+                      value={bank.id}
+                      checked={selectedBankId === bank.id}
+                      onChange={(e) => setSelectedBankId(e.target.value)}
+                      className="sr-only"
+                    />
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center space-x-3">
+                        {bank.logo && typeof bank.logo === 'string' && (
+                          <img 
+                            src={bank.logo} 
+                            alt={bank.name || 'Bank'}
+                            className="h-8 w-8 object-contain"
+                          />
+                        )}
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {bank.displayName || bank.name || 'Unknown Bank'}
+                          </div>
+                          {bank.processingTime && typeof bank.processingTime === 'string' && (
+                            <div className="text-sm text-gray-500 flex items-center space-x-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{bank.processingTime}</span>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {bank.supportsInstantPayments === true && (
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                            Instant
+                          </span>
+                        )}
+                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {bank.supportsInstantPayments && (
-                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                        Instant
-                      </span>
-                    )}
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  </div>
-                </div>
-              </label>
-            ))}
+                  </label>
+                );
+              }).filter(Boolean)
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>No banks available at the moment.</p>
+                <p className="text-sm mt-2">Please try again later or contact support.</p>
+              </div>
+            )}
           </div>
         </div>
 
