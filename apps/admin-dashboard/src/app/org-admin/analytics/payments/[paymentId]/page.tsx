@@ -37,6 +37,8 @@ export default function OrgAdminPaymentDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   const paymentId = params.paymentId as string;
+  
+  console.log('🔄 Payment Detail Component: Rendered with paymentId:', paymentId);
 
   useEffect(() => {
     let isMounted = true;
@@ -45,6 +47,8 @@ export default function OrgAdminPaymentDetailPage() {
     const fetchData = async () => {
       if (!paymentId) return;
       
+      console.log('🚀 Payment Detail: Starting fetch for paymentId:', paymentId);
+      
       try {
         if (isMounted) {
           setLoading(true);
@@ -52,19 +56,31 @@ export default function OrgAdminPaymentDetailPage() {
         }
 
         // Fetch payment details with abort signal
+        console.log('📡 Payment Detail: Making API call to /admin/payments/' + paymentId);
         const paymentResponse = await api.get(`/admin/payments/${paymentId}`, {
           signal: abortController.signal
         });
+        
+        console.log('📦 Payment Detail: Raw API response:', paymentResponse);
+        console.log('📊 Payment Detail: Response data structure:', {
+          hasData: !!paymentResponse.data,
+          hasDataData: !!paymentResponse.data?.data,
+          responseKeys: Object.keys(paymentResponse.data || {}),
+          actualData: paymentResponse.data
+        });
+        
         const paymentData = paymentResponse.data.data || paymentResponse.data;
+        console.log('💳 Payment Detail: Extracted payment data:', paymentData);
         
         // Only update state if component is still mounted
         if (isMounted) {
           setPayment(paymentData);
+          console.log('✅ Payment Detail: State updated with payment data');
         }
       } catch (error: any) {
         // Don't log errors if request was aborted
         if (error.name !== 'AbortError') {
-          console.error('Error fetching payment details:', error);
+          console.error('❌ Payment Detail: Error fetching payment details:', error);
           if (isMounted) {
             setError(error?.response?.data?.message || 'Failed to load payment details');
           }
@@ -72,6 +88,7 @@ export default function OrgAdminPaymentDetailPage() {
       } finally {
         if (isMounted) {
           setLoading(false);
+          console.log('🏁 Payment Detail: Fetch completed, loading set to false');
         }
       }
     };
@@ -80,6 +97,7 @@ export default function OrgAdminPaymentDetailPage() {
 
     // Cleanup function to prevent state updates and abort requests
     return () => {
+      console.log('🧹 Payment Detail: Cleanup called for paymentId:', paymentId);
       isMounted = false;
       abortController.abort();
     };
