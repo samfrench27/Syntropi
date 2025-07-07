@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   BarChart3, 
@@ -87,17 +87,19 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetchAnalyticsData();
     fetchPaymentsData();
-    
-    // Set up real-time refresh every 30 seconds
+  }, [endpointFilter, dateRange, currentOrganization]);
+
+  // Separate useEffect for the interval to avoid creating multiple intervals
+  useEffect(() => {
     const interval = setInterval(() => {
       fetchAnalyticsData();
       fetchPaymentsData();
     }, 30000);
     
     return () => clearInterval(interval);
-  }, [endpointFilter, dateRange, currentOrganization]);
+  }, []); // Empty dependency array so interval is only created once
 
-  const fetchAnalyticsData = async () => {
+  const fetchAnalyticsData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -176,9 +178,9 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [endpointFilter, dateRange, currentOrganization]); // Add dependencies for useCallback
 
-  const fetchPaymentsData = async () => {
+  const fetchPaymentsData = useCallback(async () => {
     try {
       setPaymentsLoading(true);
       
@@ -201,7 +203,7 @@ export default function AnalyticsPage() {
     } finally {
       setPaymentsLoading(false);
     }
-  };
+  }, [currentOrganization]); // Add dependencies for useCallback
 
   const StatCard = ({ title, value, icon, loading = false }: StatCardProps) => (
     <Card className="hover:shadow-md transition-shadow">

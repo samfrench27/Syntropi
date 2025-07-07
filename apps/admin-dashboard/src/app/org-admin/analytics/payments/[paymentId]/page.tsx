@@ -40,6 +40,7 @@ export default function OrgAdminPaymentDetailPage() {
 
   useEffect(() => {
     let isMounted = true;
+    const abortController = new AbortController();
 
     const fetchData = async () => {
       if (!paymentId) return;
@@ -50,8 +51,10 @@ export default function OrgAdminPaymentDetailPage() {
           setError(null);
         }
 
-        // Fetch payment details
-        const paymentResponse = await api.get(`/admin/payments/${paymentId}`);
+        // Fetch payment details with abort signal
+        const paymentResponse = await api.get(`/admin/payments/${paymentId}`, {
+          signal: abortController.signal
+        });
         const paymentData = paymentResponse.data.data || paymentResponse.data;
         
         // Only update state if component is still mounted
@@ -59,9 +62,12 @@ export default function OrgAdminPaymentDetailPage() {
           setPayment(paymentData);
         }
       } catch (error: any) {
-        console.error('Error fetching payment details:', error);
-        if (isMounted) {
-          setError(error?.response?.data?.message || 'Failed to load payment details');
+        // Don't log errors if request was aborted
+        if (error.name !== 'AbortError') {
+          console.error('Error fetching payment details:', error);
+          if (isMounted) {
+            setError(error?.response?.data?.message || 'Failed to load payment details');
+          }
         }
       } finally {
         if (isMounted) {
@@ -72,9 +78,10 @@ export default function OrgAdminPaymentDetailPage() {
 
     fetchData();
 
-    // Cleanup function to prevent state updates after unmounting
+    // Cleanup function to prevent state updates and abort requests
     return () => {
       isMounted = false;
+      abortController.abort();
     };
   }, [paymentId]);
 

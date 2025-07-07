@@ -44,6 +44,7 @@ export default function PlatformAdminPaymentDetailPage() {
 
   useEffect(() => {
     let isMounted = true;
+    const abortController = new AbortController();
 
     const fetchData = async () => {
       if (!paymentId) return;
@@ -54,8 +55,10 @@ export default function PlatformAdminPaymentDetailPage() {
           setError(null);
         }
 
-        // Fetch payment details
-        const paymentResponse = await api.get(`/admin/payments/${paymentId}`);
+        // Fetch payment details with abort signal
+        const paymentResponse = await api.get(`/admin/payments/${paymentId}`, {
+          signal: abortController.signal
+        });
         const paymentData = paymentResponse.data.data || paymentResponse.data;
         
         // Only update state if component is still mounted
@@ -66,20 +69,27 @@ export default function PlatformAdminPaymentDetailPage() {
         // Fetch organization details if we have organizationId
         if (paymentData?.organizationId && isMounted) {
           try {
-            const orgResponse = await api.get(`/admin/organizations/${paymentData.organizationId}`);
+            const orgResponse = await api.get(`/admin/organizations/${paymentData.organizationId}`, {
+              signal: abortController.signal
+            });
             const orgData = orgResponse.data.data || orgResponse.data;
             if (isMounted) {
               setOrganization(orgData);
             }
-          } catch (orgError) {
-            console.error('Error fetching organization:', orgError);
+          } catch (orgError: any) {
+            if (orgError.name !== 'AbortError') {
+              console.error('Error fetching organization:', orgError);
+            }
             // Don't fail the whole page if org fetch fails
           }
         }
       } catch (error: any) {
-        console.error('Error fetching payment details:', error);
-        if (isMounted) {
-          setError(error?.response?.data?.message || 'Failed to load payment details');
+        // Don't log errors if request was aborted
+        if (error.name !== 'AbortError') {
+          console.error('Error fetching payment details:', error);
+          if (isMounted) {
+            setError(error?.response?.data?.message || 'Failed to load payment details');
+          }
         }
       } finally {
         if (isMounted) {
@@ -90,9 +100,10 @@ export default function PlatformAdminPaymentDetailPage() {
 
     fetchData();
 
-    // Cleanup function to prevent state updates after unmounting
+    // Cleanup function to prevent state updates and abort requests
     return () => {
       isMounted = false;
+      abortController.abort();
     };
   }, [paymentId]);
 
