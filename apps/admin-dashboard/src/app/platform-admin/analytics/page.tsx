@@ -98,6 +98,14 @@ export default function PlatformAnalyticsPage() {
   useEffect(() => {
     fetchAnalyticsData();
     fetchPaymentsData();
+    
+    // Set up real-time refresh every 30 seconds
+    const interval = setInterval(() => {
+      fetchAnalyticsData();
+      fetchPaymentsData();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, [endpointFilter, dateRange, selectedOrganization]);
 
   const fetchOrganizations = async () => {
@@ -121,9 +129,13 @@ export default function PlatformAnalyticsPage() {
     try {
       setLoading(true);
       
+      // Set endDate to current time for real-time data
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - dateRange);
+      // Go back the full number of days, but include today
+      startDate.setDate(startDate.getDate() - (dateRange - 1));
+      // Set to beginning of start day for full day coverage
+      startDate.setHours(0, 0, 0, 0);
 
       // For platform admin, get activities for all organizations (no organizationId filter)
       const response = await analyticsAPI.getActivities({
@@ -299,7 +311,13 @@ export default function PlatformAnalyticsPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Platform Analytics</h1>
-          <p className="text-gray-600">System-wide API usage and payment analytics</p>
+          <div className="flex items-center space-x-2">
+            <p className="text-gray-600">System-wide API usage and payment analytics</p>
+            <div className="flex items-center space-x-1 text-xs text-green-600">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>Real-time (auto-refresh 30s)</span>
+            </div>
+          </div>
         </div>
         <div className="flex space-x-3">
           <button
