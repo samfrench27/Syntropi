@@ -12,6 +12,10 @@ const nextConfig = {
       },
     ];
   },
+  trailingSlash: false,
+  async redirects() {
+    return [];
+  },
 }
 
 export default nextConfig
