@@ -34,6 +34,68 @@ body {
 }
 
 /* Bank selection styles */
+.bank-grid {
+  @apply grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4;
+}
+
+.bank-tile {
+  @apply relative block cursor-pointer transition-all duration-200 ease-in-out;
+}
+
+.bank-tile-content {
+  @apply flex flex-col items-center justify-center p-4 sm:p-6 border-2 border-gray-200 rounded-xl bg-white hover:border-gray-300 hover:shadow-lg transition-all duration-200;
+  @apply min-h-[100px] sm:min-h-[120px] lg:min-h-[140px];
+}
+
+.bank-tile.selected .bank-tile-content {
+  @apply border-primary-500 bg-primary-50 shadow-lg ring-2 ring-primary-200;
+}
+
+.bank-tile:hover .bank-tile-content {
+  @apply transform scale-105 shadow-lg;
+}
+
+.bank-tile.selected:hover .bank-tile-content {
+  @apply border-primary-600 bg-primary-100 ring-primary-300;
+}
+
+.bank-logo-container {
+  @apply mb-2 sm:mb-3 flex items-center justify-center;
+}
+
+.bank-logo {
+  @apply h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 object-contain;
+}
+
+.bank-logo-placeholder {
+  @apply h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 flex items-center justify-center bg-gray-100 rounded-lg;
+}
+
+.bank-info {
+  @apply text-center w-full;
+}
+
+.bank-name {
+  @apply font-semibold text-gray-900 text-xs sm:text-sm lg:text-base leading-tight mb-1 sm:mb-2;
+}
+
+.bank-features {
+  @apply flex flex-col items-center space-y-1;
+}
+
+.feature-badge {
+  @apply inline-flex items-center space-x-1 px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-medium rounded-full;
+}
+
+.feature-badge.instant {
+  @apply bg-emerald-100 text-emerald-800;
+}
+
+.processing-time {
+  @apply text-xs text-gray-500 hidden sm:block;
+}
+
+/* Legacy bank option styles (keep for backward compatibility) */
 .bank-option {
   @apply flex items-center p-4 border rounded-lg cursor-pointer transition-colors hover:bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
 }
@@ -57,5 +119,5 @@ body {
 
 /* Security badge styles */
 .security-badge {
-  @apply flex items-center space-x-2 text-sm text-gray-600;
+  @apply flex items-center space-x-2 text-sm font-medium;
 }

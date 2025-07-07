@@ -32,7 +32,7 @@ export interface Bank {
   displayName: string;
   logo?: string;
   color?: string;
-  available: boolean;
+  available?: boolean;
   supportsInstantPayments?: boolean;
   processingTime?: string;
 }

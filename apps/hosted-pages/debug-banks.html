@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Banks API</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .response { background: #f5f5f5; padding: 10px; margin: 10px 0; white-space: pre-wrap; }
+        .error { background: #ffe6e6; }
+        .success { background: #e6ffe6; }
+    </style>
+</head>
+<body>
+    <h1>Debug Banks API Response</h1>
+    <button onclick="testBanksAPI()">Test Banks API</button>
+    <div id="result"></div>
+
+    <script>
+        async function testBanksAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Loading...';
+            
+            try {
+                // Test the banks API endpoint directly
+                const apiUrl = 'https://api.syntropi.co.uk/api/banks';
+                console.log('Calling:', apiUrl);
+                
+                const response = await fetch(apiUrl, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // You can add authorization header here if needed
+                    }
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                resultDiv.innerHTML = `
+                    <div class="response ${response.ok ? 'success' : 'error'}">
+                        <strong>Status:</strong> ${response.status} ${response.statusText}<br>
+                        <strong>Response:</strong><br>
+                        ${JSON.stringify(data, null, 2)}
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `
+                    <div class="response error">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

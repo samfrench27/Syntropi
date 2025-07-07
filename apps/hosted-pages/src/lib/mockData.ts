@@ -29,14 +29,12 @@ export const mockPaymentSession: PaymentSession = {
   expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 minutes from now
 };
 
-// Mock bank data
+// Mock bank data - simplified structure, real API provides S3 logos
 export const mockBanks: Bank[] = [
   {
     id: 'natwest',
     name: 'NatWest Bank',
     displayName: 'NatWest',
-    logo: '/api/placeholder/40/40',
-    color: '#472A84',
     available: true,
     supportsInstantPayments: true,
     processingTime: 'Instant'
@@ -45,8 +43,6 @@ export const mockBanks: Bank[] = [
     id: 'hsbc',
     name: 'HSBC UK',
     displayName: 'HSBC',
-    logo: '/api/placeholder/40/40',
-    color: '#DB0011',
     available: true,
     supportsInstantPayments: true,
     processingTime: 'Instant'
@@ -55,8 +51,6 @@ export const mockBanks: Bank[] = [
     id: 'barclays',
     name: 'Barclays Bank',
     displayName: 'Barclays',
-    logo: '/api/placeholder/40/40',
-    color: '#00AEEF',
     available: true,
     supportsInstantPayments: false,
     processingTime: '1-2 hours'
@@ -64,9 +58,7 @@ export const mockBanks: Bank[] = [
   {
     id: 'lloyds',
     name: 'Lloyds Bank',
-    displayName: 'Lloyds Banking Group',
-    logo: '/api/placeholder/40/40',
-    color: '#006B42',
+    displayName: 'Lloyds',
     available: true,
     supportsInstantPayments: true,
     processingTime: 'Instant'
@@ -75,8 +67,6 @@ export const mockBanks: Bank[] = [
     id: 'santander',
     name: 'Santander UK',
     displayName: 'Santander',
-    logo: '/api/placeholder/40/40',
-    color: '#EC0000',
     available: true,
     supportsInstantPayments: false,
     processingTime: '2-4 hours'
@@ -85,11 +75,9 @@ export const mockBanks: Bank[] = [
     id: 'nationwide',
     name: 'Nationwide Building Society',
     displayName: 'Nationwide',
-    logo: '/api/placeholder/40/40',
-    color: '#003A5C',
-    available: false,
-    supportsInstantPayments: false,
-    processingTime: 'Unavailable'
+    available: true,
+    supportsInstantPayments: true,
+    processingTime: 'Instant'
   }
 ];
 
