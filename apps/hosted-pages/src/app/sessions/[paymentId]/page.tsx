@@ -25,27 +25,25 @@ export default function PaymentSessionPage() {
   const [error, setError] = useState<string | null>(null);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
 
-  // Extract redirect URL and access token from search params
-  useEffect(() => {
-    const redirect = searchParams.get('redirect_uri');
-    if (redirect) {
-      setRedirectUrl(redirect);
-    }
-    
-    // Extract access token for this payment session
-    const accessToken = searchParams.get('token');
-    if (accessToken) {
-      // Store token for API calls
-      localStorage.setItem(`payment_token_${paymentId}`, accessToken);
-    }
-  }, [searchParams, paymentId]);
-
   // Load payment details and available banks
   useEffect(() => {
     const loadPaymentSession = async () => {
       try {
         setStep('loading');
         setError(null);
+
+        // Extract and store access token first
+        const accessToken = searchParams.get('token');
+        if (accessToken) {
+          // Store token for API calls
+          localStorage.setItem(`payment_token_${paymentId}`, accessToken);
+        }
+
+        // Extract redirect URL
+        const redirect = searchParams.get('redirect_uri');
+        if (redirect) {
+          setRedirectUrl(redirect);
+        }
 
         // Load payment details
         const paymentResponse = await paymentAPI.getPayment(paymentId);
@@ -72,7 +70,7 @@ export default function PaymentSessionPage() {
     if (paymentId) {
       loadPaymentSession();
     }
-  }, [paymentId]);
+  }, [paymentId, searchParams]);
 
   const handleContinueToBank = (bank: Bank) => {
     setSelectedBank(bank);
