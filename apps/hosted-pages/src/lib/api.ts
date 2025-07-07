@@ -10,7 +10,7 @@ import { mockAPI, shouldUseMockData } from './mockData';
 
 // Create axios instance pointing to our main API
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
+  baseURL: (process.env.NEXT_PUBLIC_API_URL || '') + '/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -30,12 +30,8 @@ api.interceptors.request.use((config) => {
       ? localStorage.getItem(`payment_token_${paymentId}`)
       : null;
     
-    console.log('API interceptor - Payment ID:', paymentId);
-    console.log('API interceptor - Token found:', paymentToken ? 'Yes' : 'No');
-    
     if (paymentToken) {
       config.headers.Authorization = `Bearer ${paymentToken}`;
-      console.log('Added Authorization header with payment token');
       return config;
     }
   }
@@ -68,7 +64,6 @@ export const paymentAPI = {
   getPayment: async (paymentId: string): Promise<ApiResponse<PaymentSession>> => {
     try {
       // For hosted pages, use the dedicated hosted endpoint with token auth
-      console.log('Making API call to:', `/payments/${paymentId}/hosted`);
       const response = await api.get(`/payments/${paymentId}/hosted`);
       return response.data;
     } catch (error: any) {

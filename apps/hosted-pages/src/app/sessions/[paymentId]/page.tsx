@@ -34,11 +34,9 @@ export default function PaymentSessionPage() {
 
         // Extract and store access token first
         const accessToken = searchParams.get('token');
-        console.log('Extracted token from URL:', accessToken ? 'Token found' : 'No token found');
         if (accessToken) {
           // Store token for API calls
           localStorage.setItem(`payment_token_${paymentId}`, accessToken);
-          console.log('Stored token in localStorage for payment:', paymentId);
         }
 
         // Extract redirect URL
