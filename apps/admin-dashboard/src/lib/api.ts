@@ -3,7 +3,7 @@ import axios from 'axios';
 import { getToken, clearAuth } from './auth';
 import { logApiRequest, logApiResponse, debugLog } from './debug';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
