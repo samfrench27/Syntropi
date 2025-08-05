@@ -16,10 +16,12 @@ import adminApiKeyRoutes from './routes/admin/apiKey.routes';
 import adminActivityRoutes from './routes/admin/activity.routes';
 import adminProviderRoutes from './routes/admin/provider.routes';
 import adminPaymentRoutes from './routes/admin/payment.routes';
+import adminBillingRoutes from './routes/admin/billing.routes';
 import clientAuthRoutes from './routes/client/auth.routes';
 import clientApiKeyRoutes from './routes/client/apiKey.routes';
 import clientOrganizationRoutes from './routes/client/organization.routes';
 import clientActivityRoutes from './routes/client/activity.routes';
+import clientBillingRoutes from './routes/client/billing.routes';
 import bankRoutes from './routes/public/bank.routes'; // Using real bank routes
 import paymentRoutes from './routes/public/payment.routes';
 import webhookRoutes from './routes/public/webhook.routes';
@@ -48,10 +50,12 @@ app.use('/api/admin/api-keys', adminApiKeyRoutes);
 app.use('/api/admin/activities', adminActivityRoutes);
 app.use('/api/admin/providers', adminProviderRoutes);
 app.use('/api/admin/payments', adminPaymentRoutes);
+app.use('/api/admin/billing', adminBillingRoutes);
 app.use('/api/client/auth', clientAuthRoutes);
 app.use('/api/client/api-keys', clientApiKeyRoutes);
 app.use('/api/client/organization', clientOrganizationRoutes);
 app.use('/api/client/activities', clientActivityRoutes);
+app.use('/api/client/billing', clientBillingRoutes);
 app.use('/api/banks', bankRoutes); // Using real bank routes
 app.use('/api/payments', paymentRoutes);
 app.use('/api/webhooks', webhookRoutes);

@@ -17,7 +17,8 @@ import {
   Shield,
   HelpCircle,
   Menu,
-  X
+  X,
+  CreditCard
 } from 'lucide-react';
 
 interface NavItemProps {
@@ -53,17 +54,18 @@ export default function PlatformAdminSidebar() {
   };
 
   // Navigation items for platform admin
-  const navigation = [
-    { href: '/platform-admin/dashboard', icon: <BarChart size={20} />, label: 'Dashboard' },
-    { href: '/platform-admin/analytics', icon: <TrendingUp size={20} />, label: 'Analytics' },
-    { href: '/platform-admin/organizations', icon: <Building2 size={20} />, label: 'Organizations' },
-    { href: '/platform-admin/users', icon: <Users size={20} />, label: 'Users' },
-    { href: '/platform-admin/api-keys', icon: <Key size={20} />, label: 'API Keys' },
-    { href: '/platform-admin/providers', icon: <Database size={20} />, label: 'Providers' },
-    { href: '/platform-admin/activities', icon: <Activity size={20} />, label: 'Activities' },
-  ];
-
-  // Configuration items
+  const navItems = [
+    { href: '/platform-admin', label: 'Dashboard', icon: BarChart },
+    { href: '/platform-admin/organizations', label: 'Organizations', icon: Building2 },
+    { href: '/platform-admin/users', label: 'Users', icon: Users },
+    { href: '/platform-admin/billing', label: 'Billing', icon: CreditCard },
+    { href: '/platform-admin/analytics', label: 'Analytics', icon: TrendingUp },
+    { href: '/platform-admin/api-keys', label: 'API Keys', icon: Key },
+    { href: '/platform-admin/infrastructure', label: 'Infrastructure', icon: Server },
+    { href: '/platform-admin/monitoring', label: 'Monitoring', icon: Activity },
+    { href: '/platform-admin/security', label: 'Security', icon: Shield },
+    { href: '/platform-admin/settings', label: 'Settings', icon: Settings },
+  ];  // Configuration items
   const configItems = [
     { href: '/system', icon: <Server size={20} />, label: 'System' },
     { href: '/security', icon: <Shield size={20} />, label: 'Security' },

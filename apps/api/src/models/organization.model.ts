@@ -7,6 +7,7 @@ export interface IOrganization extends Document {
   status: 'active' | 'inactive' | 'suspended';
   contactEmail: string;
   billingEmail?: string;
+  stripeCustomerId?: string;
   address?: {
     street?: string;
     city?: string;
@@ -55,6 +56,11 @@ const organizationSchema = new Schema<IOrganization>(
       type: String,
       trim: true,
       lowercase: true,
+    },
+    stripeCustomerId: {
+      type: String,
+      unique: true,
+      sparse: true
     },
     address: {
       street: String,

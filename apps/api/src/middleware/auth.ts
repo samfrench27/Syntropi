@@ -78,6 +78,27 @@ export const authorizeSuperAdmin = (req: Request, res: Response, next: NextFunct
   }
 };
 
+// Require specific role
+export const requireRole = (requiredRole: string) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as any).user;
+      
+      if (!user) {
+        return next(createError('Authentication required', 401));
+      }
+      
+      if (user.role !== requiredRole && user.role !== 'superadmin') {
+        return next(createError(`${requiredRole} access required`, 403));
+      }
+      
+      next();
+    } catch (error) {
+      next(createError('Access denied', 403));
+    }
+  };
+};
+
 // Authorize organization access (client can only access their own org)
 export const authorizeOrganizationAccess = (orgId: string) => {
   return (req: Request, res: Response, next: NextFunction) => {

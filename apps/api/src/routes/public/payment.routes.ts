@@ -16,8 +16,8 @@ const router = Router();
 
 // Public routes for clients - require API key authentication
 router.get('/providers', apiKeyAuth('read'), getSupportedProviders);
-router.post('/', apiKeyAuth('write'), createPayment);
 router.get('/', apiKeyAuth('read'), getPayments);
+router.post('/', apiKeyAuth('write'), createPayment);
 router.get('/:paymentId', apiKeyAuth('read'), getPayment);
 router.post('/:paymentId/cancel', apiKeyAuth('write'), cancelPayment);
 router.post('/:paymentId/sync', apiKeyAuth('read'), syncPaymentStatus);

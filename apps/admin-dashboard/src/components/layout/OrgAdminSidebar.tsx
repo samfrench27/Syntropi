@@ -12,7 +12,8 @@ import {
   Activity,
   TrendingUp,
   Menu,
-  X
+  X,
+  CreditCard
 } from 'lucide-react';
 
 interface NavItemProps {
@@ -54,6 +55,7 @@ export default function OrgAdminSidebar() {
     { href: '/org-admin/organization', icon: <Building2 size={20} />, label: 'Organization' },
     { href: '/org-admin/users', icon: <Users size={20} />, label: 'Users' },
     { href: '/org-admin/api-keys', icon: <Key size={20} />, label: 'API Keys' },
+    { href: '/org-admin/billing', icon: <CreditCard size={20} />, label: 'Billing' },
     { href: '/org-admin/activities', icon: <Activity size={20} />, label: 'Activities' },
   ];
 
