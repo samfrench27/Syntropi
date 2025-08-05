@@ -3,10 +3,10 @@ import axios from 'axios';
 import { getToken, clearAuth } from './auth';
 import { logApiRequest, logApiResponse, debugLog } from './debug';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: `${API_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -338,6 +338,38 @@ export const paymentsAPI = {
       'x-api-key': process.env.NEXT_PUBLIC_API_KEY
     }
   }),
+};
+
+// Billing API
+export const billingAPI = {
+  // Client billing endpoints
+  getCurrentSubscription: () => api.get('/client/billing/subscription'),
+  
+  createSubscription: (data: { priceId: string }) => 
+    api.post('/client/billing/subscription', data),
+  
+  updateSubscription: (data: { priceId: string }) => 
+    api.put('/client/billing/subscription', data),
+  
+  cancelSubscription: () => api.delete('/client/billing/subscription'),
+  
+  getBillingUsage: (params?: { months?: number }) => 
+    api.get('/client/billing/usage', { params }),
+  
+  createBillingPortalSession: () => 
+    api.post('/client/billing/portal'),
+
+  // Admin billing endpoints  
+  getRevenue: (params?: { months?: number }) => 
+    api.get('/admin/billing/revenue', { params }),
+  
+  getCustomers: (params?: { page?: number; limit?: number }) => 
+    api.get('/admin/billing/customers', { params }),
+  
+  getSubscriptions: (params?: { page?: number; limit?: number; status?: string }) => 
+    api.get('/admin/billing/subscriptions', { params }),
+  
+  getMetrics: () => api.get('/admin/billing/metrics'),
 };
 
 export default api;

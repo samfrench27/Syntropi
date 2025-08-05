@@ -13,6 +13,7 @@ import {
   Legend,
   ArcElement,
 } from 'chart.js';
+import { billingAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 ChartJS.register(
@@ -85,31 +86,25 @@ export default function PlatformBillingPage() {
   const fetchData = async () => {
     try {
       const [revenueRes, customersRes, subscriptionsRes] = await Promise.all([
-        fetch(`/api/admin/billing/revenue?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        }),
-        fetch('/api/admin/billing/customers', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        }),
-        fetch('/api/admin/billing/subscriptions', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        })
+        billingAPI.getRevenue({ startDate: dateRange.startDate, endDate: dateRange.endDate }),
+        billingAPI.getCustomers(),
+        billingAPI.getSubscriptions()
       ]);
 
-      if (revenueRes.ok) {
-        const revenueData = await revenueRes.json();
-        setRevenue(revenueData.data.revenue);
-        setSubscriptions(revenueData.data.subscriptions);
+      // Handle revenue data
+      if (revenueRes.data.success) {
+        setRevenue(revenueRes.data.data.revenue);
+        setSubscriptions(revenueRes.data.data.subscriptions);
       }
 
-      if (customersRes.ok) {
-        const customersData = await customersRes.json();
-        setCustomers(customersData.data);
+      // Handle customers data
+      if (customersRes.data.success) {
+        setCustomers(customersRes.data.data);
       }
 
-      if (subscriptionsRes.ok) {
-        const subscriptionsData = await subscriptionsRes.json();
-        setAllSubscriptions(subscriptionsData.data.subscriptions);
+      // Handle subscriptions data
+      if (subscriptionsRes.data.success) {
+        setAllSubscriptions(subscriptionsRes.data.data.subscriptions);
       }
     } catch (error) {
       console.error('Error fetching billing data:', error);

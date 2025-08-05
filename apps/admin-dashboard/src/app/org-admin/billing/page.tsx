@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
+import { billingAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 // Initialize Stripe
@@ -103,15 +104,10 @@ export default function BillingPage() {
 
   const fetchSubscription = async () => {
     try {
-      const response = await fetch('/api/client/billing/subscription', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSubscription(data.data.subscription);
+      const response = await billingAPI.getCurrentSubscription();
+      
+      if (response.data.success) {
+        setSubscription(response.data.data.subscription);
       }
     } catch (error) {
       console.error('Error fetching subscription:', error);
@@ -125,30 +121,19 @@ export default function BillingPage() {
 
     setIsUpgrading(true);
     try {
-      const endpoint = subscription 
-        ? '/api/client/billing/subscription' // Update existing
-        : '/api/client/billing/subscription'; // Create new
+      const response = subscription 
+        ? await billingAPI.updateSubscription({ priceId: planId })
+        : await billingAPI.createSubscription({ priceId: planId });
 
-      const method = subscription ? 'PUT' : 'POST';
-
-      const response = await fetch(endpoint, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ plan: planId })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      if (response.data.success) {
+        const data = response.data.data;
         
-        if (data.data.clientSecret) {
+        if (data.clientSecret) {
           // Handle payment for new subscription
           const stripe = await stripePromise;
           if (stripe) {
             const { error } = await stripe.confirmPayment({
-              clientSecret: data.data.clientSecret,
+              clientSecret: data.clientSecret,
               confirmParams: {
                 return_url: `${window.location.origin}/org-admin/billing?success=true`
               }
@@ -164,12 +149,11 @@ export default function BillingPage() {
           fetchSubscription();
         }
       } else {
-        const errorData = await response.json();
-        toast.error(errorData.message || 'Failed to update plan');
+        toast.error(response.data.message || 'Failed to update plan');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating plan:', error);
-      toast.error('Failed to update plan');
+      toast.error(error?.response?.data?.message || 'Failed to update plan');
     } finally {
       setIsUpgrading(false);
     }
@@ -183,50 +167,32 @@ export default function BillingPage() {
     }
 
     try {
-      const response = await fetch('/api/client/billing/subscription', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ cancelAtPeriodEnd: true })
-      });
+      const response = await billingAPI.cancelSubscription();
 
-      if (response.ok) {
+      if (response.data.success) {
         toast.success('Subscription cancelled successfully');
         fetchSubscription();
       } else {
-        const errorData = await response.json();
-        toast.error(errorData.message || 'Failed to cancel subscription');
+        toast.error(response.data.message || 'Failed to cancel subscription');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error cancelling subscription:', error);
-      toast.error('Failed to cancel subscription');
+      toast.error(error?.response?.data?.message || 'Failed to cancel subscription');
     }
   };
 
   const openBillingPortal = async () => {
     try {
-      const response = await fetch('/api/client/billing/portal', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          returnUrl: `${window.location.origin}/org-admin/billing`
-        })
-      });
+      const response = await billingAPI.createBillingPortalSession();
 
-      if (response.ok) {
-        const data = await response.json();
-        window.location.href = data.data.url;
+      if (response.data.success) {
+        window.location.href = response.data.data.url;
       } else {
         toast.error('Failed to open billing portal');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error opening billing portal:', error);
-      toast.error('Failed to open billing portal');
+      toast.error(error?.response?.data?.message || 'Failed to open billing portal');
     }
   };
 
