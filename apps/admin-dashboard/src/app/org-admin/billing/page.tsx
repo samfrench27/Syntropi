@@ -34,7 +34,7 @@ interface Subscription {
 
 const PLANS: Record<string, Plan> = {
   starter: {
-    id: 'starter',
+    id: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID || 'price_starter',
     name: 'Starter',
     price: 10,
     currency: 'GBP',
@@ -52,7 +52,7 @@ const PLANS: Record<string, Plan> = {
     }
   },
   growth: {
-    id: 'growth',
+    id: process.env.NEXT_PUBLIC_STRIPE_GROWTH_PRICE_ID || 'price_growth',
     name: 'Growth',
     price: 50,
     currency: 'GBP',
@@ -71,7 +71,7 @@ const PLANS: Record<string, Plan> = {
     }
   },
   enterprise: {
-    id: 'enterprise',
+    id: process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID || 'price_enterprise',
     name: 'Enterprise',
     price: 150,
     currency: 'GBP',
