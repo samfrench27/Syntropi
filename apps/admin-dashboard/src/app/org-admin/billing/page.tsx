@@ -34,7 +34,7 @@ interface Subscription {
 
 const PLANS: Record<string, Plan> = {
   starter: {
-    id: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID || 'price_starter',
+    id: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID || 'price_starter_placeholder',
     name: 'Starter',
     price: 10,
     currency: 'GBP',
@@ -52,7 +52,7 @@ const PLANS: Record<string, Plan> = {
     }
   },
   growth: {
-    id: process.env.NEXT_PUBLIC_STRIPE_GROWTH_PRICE_ID || 'price_growth',
+    id: process.env.NEXT_PUBLIC_STRIPE_GROWTH_PRICE_ID || 'price_growth_placeholder',
     name: 'Growth',
     price: 50,
     currency: 'GBP',
@@ -71,7 +71,7 @@ const PLANS: Record<string, Plan> = {
     }
   },
   enterprise: {
-    id: process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID || 'price_enterprise',
+    id: process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID || 'price_enterprise_placeholder',
     name: 'Enterprise',
     price: 150,
     currency: 'GBP',
@@ -91,6 +91,20 @@ const PLANS: Record<string, Plan> = {
     }
   }
 };
+
+// Debug: Log environment variables
+console.log('Stripe Environment Variables:', {
+  STARTER: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID,
+  GROWTH: process.env.NEXT_PUBLIC_STRIPE_GROWTH_PRICE_ID,
+  ENTERPRISE: process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID
+});
+
+// Debug: Log actual plan IDs being used
+console.log('Plan IDs being used:', {
+  starter: PLANS.starter.id,
+  growth: PLANS.growth.id,
+  enterprise: PLANS.enterprise.id
+});
 
 export default function BillingPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -116,14 +130,14 @@ export default function BillingPage() {
     }
   };
 
-  const handlePlanSelect = async (planId: string) => {
-    if (subscription?.plan === planId) return;
+  const handlePlanSelect = async (planKey: string) => {
+    if (subscription?.plan === planKey) return;
 
     setIsUpgrading(true);
     try {
       const response = subscription 
-        ? await billingAPI.updateSubscription({ priceId: planId })
-        : await billingAPI.createSubscription({ priceId: planId });
+        ? await billingAPI.updateSubscription({ plan: planKey })
+        : await billingAPI.createSubscription({ plan: planKey });
 
       if (response.data.success) {
         const data = response.data.data;
@@ -271,11 +285,11 @@ export default function BillingPage() {
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {Object.values(PLANS).map((plan) => (
+            {Object.entries(PLANS).map(([planKey, plan]) => (
               <div
-                key={plan.id}
+                key={planKey}
                 className={`border rounded-lg p-6 ${
-                  subscription?.plan === plan.id
+                  subscription?.plan === planKey
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
@@ -300,15 +314,15 @@ export default function BillingPage() {
                 </ul>
 
                 <button
-                  onClick={() => handlePlanSelect(plan.id)}
-                  disabled={subscription?.plan === plan.id || isUpgrading}
+                  onClick={() => handlePlanSelect(planKey)}
+                  disabled={subscription?.plan === planKey || isUpgrading}
                   className={`mt-6 w-full py-3 px-4 rounded-md font-semibold ${
-                    subscription?.plan === plan.id
+                    subscription?.plan === planKey
                       ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
                 >
-                  {subscription?.plan === plan.id 
+                  {subscription?.plan === planKey 
                     ? 'Current Plan' 
                     : isUpgrading 
                       ? 'Processing...' 

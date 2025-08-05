@@ -345,10 +345,10 @@ export const billingAPI = {
   // Client billing endpoints
   getCurrentSubscription: () => api.get('/client/billing/subscription'),
   
-  createSubscription: (data: { priceId: string }) => 
+  createSubscription: (data: { plan: string }) => 
     api.post('/client/billing/subscription', data),
   
-  updateSubscription: (data: { priceId: string }) => 
+  updateSubscription: (data: { plan: string }) => 
     api.put('/client/billing/subscription', data),
   
   cancelSubscription: () => api.delete('/client/billing/subscription'),
