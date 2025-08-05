@@ -99,11 +99,11 @@ export default function PlatformAdminSidebar() {
       >
         <div className="overflow-auto flex-1 p-4">
           <nav className="space-y-1">
-            {navigation.map((item) => (
+            {navItems.map((item) => (
               <NavItem 
                 key={item.href}
                 href={item.href} 
-                icon={item.icon} 
+                icon={<item.icon size={20} />}
                 label={item.label} 
                 active={pathname === item.href} 
                 onClick={closeMobileMenu}
