@@ -118,14 +118,14 @@ export const getBillingUsage = async (req: AuthenticatedRequest, res: Response, 
         month
       });
 
-      usageData.push({
-        month,
-        ...(usage?.toObject() || {
+      usageData.push(
+        usage?.toObject() || {
+          month,
           usage: { payments: 0, apiCalls: 0, successfulPayments: 0, failedPayments: 0 },
           costs: { paymentFees: 0, apiCallFees: 0, subscriptionFee: 0, totalFees: 0 },
           limits: { paymentsLimit: 100, apiCallsLimit: 1000, usersLimit: 5 }
-        })
-      });
+        }
+      );
     }
 
     res.json({
