@@ -2,6 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 import StripeService, { PLANS } from '../../services/stripe.service';
 import { BillingUsage } from '../../models/billing.model';
+import { Subscription } from '../../models/subscription.model';
 import { createError } from '../../middleware/errorHandler';
 import { winstonLogger as logger } from '../../utils/logger';
 
@@ -85,7 +86,29 @@ export const updateSubscription = async (req: AuthenticatedRequest, res: Respons
 export const cancelSubscription = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { organizationId } = req.user!;
-    const { cancelAtPeriodEnd = true } = req.body;
+    const { cancelAtPeriodEnd = true, deleteSubscription = false } = req.body;
+
+    if (deleteSubscription) {
+      // For testing: completely remove subscription to start fresh
+      const existingSubscription = await Subscription.findOne({ organizationId });
+      if (existingSubscription) {
+        try {
+          // Cancel in Stripe first
+          await StripeService.cancelSubscription(organizationId, false);
+        } catch (stripeError) {
+          logger.warn('Failed to cancel in Stripe, proceeding with database deletion:', stripeError);
+        }
+        
+        // Remove from database
+        await Subscription.deleteOne({ organizationId });
+        
+        res.json({
+          success: true,
+          message: 'Subscription completely removed'
+        });
+        return;
+      }
+    }
 
     const subscription = await StripeService.cancelSubscription(organizationId, cancelAtPeriodEnd);
 

@@ -176,12 +176,21 @@ export class StripeService {
         cancel_at_period_end: cancelAtPeriodEnd
       });
 
-      // Update database
+      // Update database - ensure all required fields are present
       existingSubscription.cancelAtPeriodEnd = cancelAtPeriodEnd;
       if (!cancelAtPeriodEnd) {
         existingSubscription.status = 'canceled';
         existingSubscription.canceledAt = new Date();
       }
+
+      // Fix missing stripeProductId if it doesn't exist
+      if (!existingSubscription.stripeProductId && existingSubscription.plan) {
+        const planConfig = PLANS[existingSubscription.plan as keyof typeof PLANS];
+        if (planConfig) {
+          existingSubscription.stripeProductId = planConfig.productId;
+        }
+      }
+
       await existingSubscription.save();
 
       logger.info(`${cancelAtPeriodEnd ? 'Scheduled cancellation' : 'Cancelled'} subscription ${subscription.id}`);
