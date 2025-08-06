@@ -260,6 +260,22 @@ export class StripeService {
     try {
       const planConfig = PLANS[plan];
       
+      // Debug: Log the raw Stripe subscription data
+      logger.info('Raw Stripe subscription data:', {
+        id: stripeSubscription.id,
+        current_period_start: (stripeSubscription as any).current_period_start,
+        current_period_end: (stripeSubscription as any).current_period_end,
+        status: stripeSubscription.status
+      });
+      
+      // Validate and convert timestamps
+      const currentPeriodStart = (stripeSubscription as any).current_period_start;
+      const currentPeriodEnd = (stripeSubscription as any).current_period_end;
+      
+      if (!currentPeriodStart || !currentPeriodEnd) {
+        throw new Error(`Missing required timestamps in Stripe subscription: start=${currentPeriodStart}, end=${currentPeriodEnd}`);
+      }
+      
       await Subscription.findOneAndUpdate(
         { organizationId },
         {
@@ -270,8 +286,8 @@ export class StripeService {
           stripeProductId: planConfig.productId,
           plan,
           status: stripeSubscription.status as any,
-          currentPeriodStart: new Date((stripeSubscription as any).current_period_start * 1000),
-          currentPeriodEnd: new Date((stripeSubscription as any).current_period_end * 1000),
+          currentPeriodStart: new Date(currentPeriodStart * 1000),
+          currentPeriodEnd: new Date(currentPeriodEnd * 1000),
           cancelAtPeriodEnd: (stripeSubscription as any).cancel_at_period_end,
           canceledAt: (stripeSubscription as any).canceled_at ? new Date((stripeSubscription as any).canceled_at * 1000) : undefined,
           trialStart: (stripeSubscription as any).trial_start ? new Date((stripeSubscription as any).trial_start * 1000) : undefined,
