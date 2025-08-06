@@ -272,8 +272,18 @@ export class StripeService {
       const currentPeriodStart = (stripeSubscription as any).current_period_start;
       const currentPeriodEnd = (stripeSubscription as any).current_period_end;
       
+      // For incomplete subscriptions, use current time and estimate billing period
+      let startDate: Date;
+      let endDate: Date;
+      
       if (!currentPeriodStart || !currentPeriodEnd) {
-        throw new Error(`Missing required timestamps in Stripe subscription: start=${currentPeriodStart}, end=${currentPeriodEnd}`);
+        logger.warn(`Subscription ${stripeSubscription.id} has incomplete timestamps, using current time`);
+        startDate = new Date();
+        // Estimate 30 days from now for monthly billing
+        endDate = new Date(Date.now() + (30 * 24 * 60 * 60 * 1000));
+      } else {
+        startDate = new Date(currentPeriodStart * 1000);
+        endDate = new Date(currentPeriodEnd * 1000);
       }
       
       await Subscription.findOneAndUpdate(
@@ -286,8 +296,8 @@ export class StripeService {
           stripeProductId: planConfig.productId,
           plan,
           status: stripeSubscription.status as any,
-          currentPeriodStart: new Date(currentPeriodStart * 1000),
-          currentPeriodEnd: new Date(currentPeriodEnd * 1000),
+          currentPeriodStart: startDate,
+          currentPeriodEnd: endDate,
           cancelAtPeriodEnd: (stripeSubscription as any).cancel_at_period_end,
           canceledAt: (stripeSubscription as any).canceled_at ? new Date((stripeSubscription as any).canceled_at * 1000) : undefined,
           trialStart: (stripeSubscription as any).trial_start ? new Date((stripeSubscription as any).trial_start * 1000) : undefined,
