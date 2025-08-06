@@ -82,33 +82,55 @@ export class StripeService {
     }
   }
 
-  // Create subscription
-  static async createSubscription(organizationId: string, plan: keyof typeof PLANS): Promise<Stripe.Subscription> {
+  // Create subscription using Stripe Checkout Session
+  static async createSubscription(organizationId: string, plan: keyof typeof PLANS): Promise<Stripe.Checkout.Session> {
     try {
       const customer = await this.createOrGetCustomer(organizationId);
       const planConfig = PLANS[plan];
 
-      const subscription = await stripe.subscriptions.create({
+      // Create Checkout Session instead of direct subscription
+      const session = await stripe.checkout.sessions.create({
         customer: customer.id,
-        items: [{
-          price: planConfig.priceId
+        payment_method_types: ['card'],
+        line_items: [{
+          price: planConfig.priceId,
+          quantity: 1,
         }],
-        payment_behavior: 'default_incomplete',
-        payment_settings: { save_default_payment_method: 'on_subscription' },
-        expand: ['latest_invoice.payment_intent'],
+        mode: 'subscription',
+        success_url: `${process.env.FRONTEND_URL || 'https://syntropi-admin-dashboard.vercel.app'}/org-admin/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.FRONTEND_URL || 'https://syntropi-admin-dashboard.vercel.app'}/org-admin/billing?canceled=true`,
         metadata: {
           organizationId: organizationId,
           plan: plan
         }
       });
 
-      // Save subscription to database
-      await this.saveSubscriptionToDatabase(subscription, organizationId, plan);
-
-      logger.info(`Created subscription ${subscription.id} for organization ${organizationId}`);
-      return subscription;
+      logger.info(`Created checkout session ${session.id} for organization ${organizationId}`);
+      return session;
     } catch (error) {
-      logger.error('Error creating subscription:', error);
+      logger.error('Error creating subscription checkout session:', error);
+      throw error;
+    }
+  }
+
+  // Handle successful checkout session (called from webhook or success page)
+  static async handleSuccessfulCheckout(sessionId: string): Promise<void> {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(sessionId, {
+        expand: ['subscription']
+      });
+
+      if (session.subscription && session.metadata?.organizationId && session.metadata?.plan) {
+        const subscription = session.subscription as Stripe.Subscription;
+        await this.saveSubscriptionToDatabase(
+          subscription, 
+          session.metadata.organizationId, 
+          session.metadata.plan as keyof typeof PLANS
+        );
+        logger.info(`Saved subscription ${subscription.id} after successful checkout`);
+      }
+    } catch (error) {
+      logger.error('Error handling successful checkout:', error);
       throw error;
     }
   }

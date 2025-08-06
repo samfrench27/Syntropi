@@ -6,7 +6,8 @@ import {
   updateSubscription,
   cancelSubscription,
   getBillingUsage,
-  createBillingPortalSession
+  createBillingPortalSession,
+  handleCheckoutSuccess
 } from '../../controllers/client/billing.controller';
 import { authenticate } from '../../middleware/auth';
 
@@ -32,5 +33,8 @@ router.get('/usage', getBillingUsage);
 
 // Create billing portal session
 router.post('/portal', createBillingPortalSession);
+
+// Handle successful checkout
+router.post('/checkout/success', handleCheckoutSuccess);
 
 export default router;

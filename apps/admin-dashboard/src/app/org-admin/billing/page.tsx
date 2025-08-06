@@ -114,19 +114,45 @@ export default function BillingPage() {
 
   useEffect(() => {
     fetchSubscription();
+    
+    // Handle success from Stripe Checkout
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const sessionId = urlParams.get('session_id');
+    
+    if (success === 'true' && sessionId) {
+      handleCheckoutSuccess(sessionId);
+    }
   }, []);
 
   const fetchSubscription = async () => {
     try {
-      const response = await billingAPI.getCurrentSubscription();
-      
-      if (response.data.success) {
-        setSubscription(response.data.data.subscription);
+      const response = await billingAPI.getSubscription();
+      if (response.data.success && response.data.data) {
+        setSubscription(response.data.data);
+      } else {
+        setSubscription(null);
       }
     } catch (error) {
       console.error('Error fetching subscription:', error);
+      setSubscription(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCheckoutSuccess = async (sessionId: string) => {
+    try {
+      const response = await billingAPI.handleCheckoutSuccess({ sessionId });
+      if (response.data.success) {
+        toast.success('Subscription activated successfully!');
+        fetchSubscription();
+        // Clean up URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch (error: any) {
+      console.error('Error handling checkout success:', error);
+      toast.error('Failed to activate subscription');
     }
   };
 
@@ -142,27 +168,10 @@ export default function BillingPage() {
       if (response.data.success) {
         const data = response.data.data;
         
-        if (data.clientSecret) {
-          // For incomplete subscriptions, redirect to Stripe's hosted invoice page
-          if (data.hostedInvoiceUrl) {
-            toast.success('Redirecting to payment...');
-            window.location.href = data.hostedInvoiceUrl;
-          } else {
-            // Fallback to payment intent confirmation
-            const stripe = await stripePromise;
-            if (stripe) {
-              const { error } = await stripe.confirmPayment({
-                clientSecret: data.clientSecret,
-                confirmParams: {
-                  return_url: `${window.location.origin}/org-admin/billing?success=true`
-                }
-              });
-
-              if (error) {
-                toast.error('Payment failed: ' + error.message);
-              }
-            }
-          }
+        if (data.checkoutUrl) {
+          // Redirect to Stripe Checkout for new subscription
+          toast.success('Redirecting to checkout...');
+          window.location.href = data.checkoutUrl;
         } else {
           // Subscription updated successfully
           toast.success('Plan updated successfully');

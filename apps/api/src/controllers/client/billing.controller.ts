@@ -44,15 +44,13 @@ export const createSubscription = async (req: AuthenticatedRequest, res: Respons
       return next(createError('Valid plan is required', 400));
     }
 
-    const subscription = await StripeService.createSubscription(organizationId, plan);
+    const checkoutSession = await StripeService.createSubscription(organizationId, plan);
 
     res.json({
       success: true,
       data: {
-        subscription,
-        clientSecret: (subscription.latest_invoice as any)?.payment_intent?.client_secret,
-        hostedInvoiceUrl: (subscription.latest_invoice as any)?.hosted_invoice_url,
-        invoiceId: (subscription.latest_invoice as any)?.id
+        checkoutUrl: checkoutSession.url,
+        sessionId: checkoutSession.id
       }
     });
   } catch (error: any) {
@@ -161,5 +159,26 @@ export const createBillingPortalSession = async (req: AuthenticatedRequest, res:
   } catch (error: any) {
     logger.error('Error creating billing portal session:', error);
     next(createError(error.message || 'Failed to create billing portal session', 500));
+  }
+};
+
+// Handle successful checkout session
+export const handleCheckoutSuccess = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { sessionId } = req.body;
+
+    if (!sessionId) {
+      return next(createError('Session ID is required', 400));
+    }
+
+    await StripeService.handleSuccessfulCheckout(sessionId);
+
+    res.json({
+      success: true,
+      message: 'Subscription activated successfully'
+    });
+  } catch (error: any) {
+    logger.error('Error handling checkout success:', error);
+    next(createError(error.message || 'Failed to process checkout success', 500));
   }
 };

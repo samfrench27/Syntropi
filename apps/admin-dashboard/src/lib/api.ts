@@ -343,7 +343,7 @@ export const paymentsAPI = {
 // Billing API
 export const billingAPI = {
   // Client billing endpoints
-  getCurrentSubscription: () => api.get('/client/billing/subscription'),
+  getSubscription: () => api.get('/client/billing/subscription'),
   
   createSubscription: (data: { plan: string }) => 
     api.post('/client/billing/subscription', data),
@@ -358,6 +358,9 @@ export const billingAPI = {
   
   createBillingPortalSession: () => 
     api.post('/client/billing/portal'),
+
+  handleCheckoutSuccess: (data: { sessionId: string }) =>
+    api.post('/client/billing/checkout/success', data),
 
   // Admin billing endpoints  
   getRevenue: (params?: { months?: number }) => 
