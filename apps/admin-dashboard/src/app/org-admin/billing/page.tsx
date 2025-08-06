@@ -143,18 +143,24 @@ export default function BillingPage() {
         const data = response.data.data;
         
         if (data.clientSecret) {
-          // Handle payment for new subscription
-          const stripe = await stripePromise;
-          if (stripe) {
-            const { error } = await stripe.confirmPayment({
-              clientSecret: data.clientSecret,
-              confirmParams: {
-                return_url: `${window.location.origin}/org-admin/billing?success=true`
-              }
-            });
+          // For incomplete subscriptions, redirect to Stripe's hosted invoice page
+          if (data.hostedInvoiceUrl) {
+            toast.success('Redirecting to payment...');
+            window.location.href = data.hostedInvoiceUrl;
+          } else {
+            // Fallback to payment intent confirmation
+            const stripe = await stripePromise;
+            if (stripe) {
+              const { error } = await stripe.confirmPayment({
+                clientSecret: data.clientSecret,
+                confirmParams: {
+                  return_url: `${window.location.origin}/org-admin/billing?success=true`
+                }
+              });
 
-            if (error) {
-              toast.error('Payment failed: ' + error.message);
+              if (error) {
+                toast.error('Payment failed: ' + error.message);
+              }
             }
           }
         } else {
@@ -260,13 +266,28 @@ export default function BillingPage() {
             </div>
             
             <div className="mt-4 flex space-x-4">
-              <button
-                onClick={openBillingPortal}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Manage Billing
-              </button>
-              {!subscription.cancelAtPeriodEnd && (
+              {subscription.status === 'incomplete' ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-orange-600">
+                    ⚠️ Payment required to activate your subscription
+                  </p>
+                  <button
+                    onClick={() => handlePlanSelect(subscription.plan)}
+                    className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
+                    disabled={isUpgrading}
+                  >
+                    {isUpgrading ? 'Processing...' : 'Complete Payment'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={openBillingPortal}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Manage Billing
+                </button>
+              )}
+              {!subscription.cancelAtPeriodEnd && subscription.status !== 'incomplete' && (
                 <button
                   onClick={handleCancelSubscription}
                   className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"

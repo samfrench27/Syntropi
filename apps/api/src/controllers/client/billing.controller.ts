@@ -50,7 +50,9 @@ export const createSubscription = async (req: AuthenticatedRequest, res: Respons
       success: true,
       data: {
         subscription,
-        clientSecret: (subscription.latest_invoice as any)?.payment_intent?.client_secret
+        clientSecret: (subscription.latest_invoice as any)?.payment_intent?.client_secret,
+        hostedInvoiceUrl: (subscription.latest_invoice as any)?.hosted_invoice_url,
+        invoiceId: (subscription.latest_invoice as any)?.id
       }
     });
   } catch (error: any) {
