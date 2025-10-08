@@ -16,12 +16,14 @@ export const getEndpointAnalytics = async (req: Request, res: Response, next: Ne
     } = req.query;
 
     // Default to last 30 days if no dates provided
-    const end = endDate ? new Date(endDate as string) : new Date();
-    const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    // Always include today (real-time)
+    const now = new Date();
+    const end = endDate ? new Date(endDate as string) : now;
+    const start = startDate ? new Date(startDate as string) : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    // Build filter for activities
+    // Build filter for activities (use createdAt for real-time)
     const filter: any = {
-      timestamp: { $gte: start, $lte: end }
+      createdAt: { $gte: start, $lte: end }
     };
 
     // Filter by organization if provided (for org admin)

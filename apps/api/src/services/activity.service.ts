@@ -5,9 +5,12 @@ import { winstonLogger as logger } from '../utils/logger';
 // Get analytics data from activities
 export const getAnalyticsData = async (filter: any, startDate: Date, endDate: Date) => {
   try {
+    // Always filter by createdAt for real-time analytics
+    const dateFilter = { createdAt: { $gte: startDate, $lte: endDate } };
+    const matchFilter = { ...filter, ...dateFilter };
     // Get daily activity counts
     const dailyStats = await Activity.aggregate([
-      { $match: filter },
+      { $match: matchFilter },
       {
         $group: {
           _id: {
