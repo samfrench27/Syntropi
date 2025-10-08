@@ -132,6 +132,11 @@ export default function AnalyticsPage() {
         const dateStr = date.toISOString().split('T')[0];
         dailyData[dateStr] = { banks: 0, payments: 0 };
       }
+      // Always ensure today is present as the last date
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (!dailyData[todayStr]) {
+        dailyData[todayStr] = { banks: 0, payments: 0 };
+      }
 
       let bankCount = 0;
       let paymentCount = 0;
