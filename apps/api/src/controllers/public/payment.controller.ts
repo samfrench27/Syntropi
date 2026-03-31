@@ -125,7 +125,7 @@ export const createPayment = async (req: Request, res: Response, next: NextFunct
 // Get a specific payment
 export const getPayment = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { paymentId } = req.params;
+    const paymentId = Array.isArray(req.params.paymentId) ? req.params.paymentId[0] : req.params.paymentId;
     const apiKey = (req as any).apiKey;
 
     if (!apiKey || !apiKey.organizationId) {
@@ -190,7 +190,7 @@ export const getPayments = async (req: Request, res: Response, next: NextFunctio
 // Cancel a payment
 export const cancelPayment = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { paymentId } = req.params;
+    const paymentId = Array.isArray(req.params.paymentId) ? req.params.paymentId[0] : req.params.paymentId;
     const apiKey = (req as any).apiKey;
 
     if (!apiKey || !apiKey.organizationId) {
@@ -221,7 +221,7 @@ export const cancelPayment = async (req: Request, res: Response, next: NextFunct
 // Sync payment status with provider
 export const syncPaymentStatus = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { paymentId } = req.params;
+    const paymentId = Array.isArray(req.params.paymentId) ? req.params.paymentId[0] : req.params.paymentId;
     const apiKey = (req as any).apiKey;
 
     if (!apiKey || !apiKey.organizationId) {
