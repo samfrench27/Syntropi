@@ -30,7 +30,7 @@ export const getBanks = async (req: Request, res: Response, next: NextFunction) 
 // Get a specific bank
 export const getBank = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     
     const bank = await stubbedBankService.getBank(id);
     

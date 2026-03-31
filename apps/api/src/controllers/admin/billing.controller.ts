@@ -133,7 +133,7 @@ export const getCustomers = async (req: Request, res: Response, next: NextFuncti
 // Update organization plan (admin override)
 export const updateOrganizationPlan = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { organizationId } = req.params;
+    const organizationId = Array.isArray(req.params.organizationId) ? req.params.organizationId[0] : req.params.organizationId;
     const { plan } = req.body;
 
     if (!plan || !['starter', 'growth', 'enterprise'].includes(plan)) {
