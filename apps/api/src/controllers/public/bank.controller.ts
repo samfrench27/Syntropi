@@ -32,7 +32,7 @@ const getFeatureSupport = (bank: any, feature: string) => {
   
   // Check if any provider supports the feature
   return Object.values(bank.providerMappings).some((provider: any) => {
-    return provider.metadata?.supportedFeatures?.[feature] === true;
+    return provider && provider.metadata?.supportedFeatures?.[feature] === true;
   });
 };
 
@@ -55,6 +55,12 @@ const getProviderSupport = (bank: any) => {
     }
     
     const provider = providerData as any;
+    
+    // Skip null or undefined providers
+    if (!provider) {
+      continue;
+    }
+    
     const features = [];
     
     // Check which features this provider supports
