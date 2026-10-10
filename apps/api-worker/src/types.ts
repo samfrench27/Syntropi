@@ -1,6 +1,7 @@
 import type { JWTVerifyGetKey } from 'jose';
 import type { Db } from './db';
 import type { Identity } from './identity';
+import type { PaymentTokenClaims } from './lib/paymentToken';
 
 export type Role = 'superadmin' | 'admin' | 'user';
 
@@ -20,6 +21,13 @@ export interface Bindings {
   YAPILY_CLIENT_SECRET?: string;
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  STRIPE_STARTER_PRICE_ID?: string;
+  STRIPE_GROWTH_PRICE_ID?: string;
+  STRIPE_ENTERPRISE_PRICE_ID?: string;
+  STRIPE_STARTER_PRODUCT_ID?: string;
+  STRIPE_GROWTH_PRODUCT_ID?: string;
+  STRIPE_ENTERPRISE_PRODUCT_ID?: string;
+  TOKEN_WEBHOOK_SECRET?: string;
   API_BASE_URL?: string;
 }
 
@@ -62,5 +70,13 @@ export interface ApiKeyAuth {
 
 export type AppEnv = {
   Bindings: Bindings;
-  Variables: { deps: AppDeps; user: AuthUser; apiKey: ApiKeyAuth };
+  Variables: {
+    deps: AppDeps;
+    user: AuthUser;
+    apiKey: ApiKeyAuth;
+    /** Set by flexibleAuth for API keys, hosted-page tokens and signed-in users alike. */
+    organizationId: string;
+    isSuperadmin: boolean;
+    paymentToken?: PaymentTokenClaims;
+  };
 };

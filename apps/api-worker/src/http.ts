@@ -52,4 +52,5 @@ export const pageInfo = (total: number, page: number, limit: number) => ({
   pages: Math.ceil(total / limit),
 });
 
-export const uuidSchema = z.string().uuid();
+// Any well-formed 8-4-4-4-12 id. zod 4's .uuid() also demands RFC version bits, which Postgres does not.
+export const uuidSchema = z.guid();

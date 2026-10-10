@@ -18,6 +18,7 @@ import { organizationRoutes as clientOrganization } from './routes/client/organi
 import { activitiesRoutes as clientActivities } from './routes/client/activities';
 import { billingRoutes as clientBilling } from './routes/client/billing';
 import { providersRoutes as clientProviders } from './routes/client/providers';
+import { usageRoutes as clientUsage } from './routes/client/usage';
 import { banksRoutes } from './routes/banks';
 import { paymentsRoutes } from './routes/payments';
 import { webhooksRoutes } from './routes/webhooks';
@@ -63,6 +64,7 @@ export function buildApp(deps: AppDeps) {
   app.route('/api/client/activities', clientActivities);
   app.route('/api/client/billing', clientBilling);
   app.route('/api/client/providers', clientProviders);
+  app.route('/api/client/usage', clientUsage);
 
   app.route('/api/banks', banksRoutes);
   app.route('/api/payments', paymentsRoutes);

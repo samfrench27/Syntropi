@@ -14,6 +14,10 @@ mode = "smart"
 # binding = "HYPERDRIVE"
 # id = "<hyperdrive-id>"
 
+# Daily bank list refresh from the providers (03:00 UTC)
+[triggers]
+crons = ["0 3 * * *"]
+
 [vars]
 DASHBOARD_URL = "http://localhost:3000"
 
