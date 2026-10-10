@@ -1,0 +1,11 @@
+# Local development: `wrangler dev --config wrangler.dev.toml`
+# Secrets come from .dev.vars (gitignored). The database connection string for the local
+# Hyperdrive binding comes from WRANGLER_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE.
+name = "syntropi-api-dev"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "local-dev-placeholder"
