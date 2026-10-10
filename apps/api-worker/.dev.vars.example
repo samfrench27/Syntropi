@@ -1,0 +1,19 @@
+# Copy to .dev.vars (gitignored). Never commit real values.
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+DASHBOARD_URL=http://localhost:3000
+HOSTED_PAGES_URL=http://localhost:3001
+MOCK_BANK_URL=http://localhost:3002
+# At least 32 random characters: openssl rand -hex 32
+HOSTED_PAGES_JWT_SECRET=
+TOKEN_WEBHOOK_SECRET=
+# Connection string for the restricted api_worker role (Supabase pooler, session mode)
+WRANGLER_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=
+# Optional until you use these providers
+# TOKEN_API_KEY=
+# TOKEN_API_BASE_URL=
+# YAPILY_CLIENT_ID=
+# YAPILY_CLIENT_SECRET=
+# STRIPE_SECRET_KEY=
+# STRIPE_WEBHOOK_SECRET=
