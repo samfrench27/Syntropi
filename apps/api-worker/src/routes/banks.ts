@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { likePattern } from '../db';
 import { ApiError, ok, pageInfo, pagination, validate, valid } from '../http';
@@ -18,13 +18,32 @@ const listQuery = z.object({
 
 const syncQuery = z.object({ provider: z.string().trim().min(1).max(50).optional() });
 
+/**
+ * Which providers' banks this request may see: what the organization is approved for, narrowed for a
+ * hosted-page token to the one provider its payment uses. Otherwise a Mock bank payment would offer
+ * real banks to the customer just because the organization is approved for a real provider.
+ */
+async function providerScope(c: Context<AppEnv>): Promise<string[] | null> {
+  const deps = c.get('deps');
+  const allowed = await allowedProviderScope(deps.db, callerOf(c));
+  const token = c.get('paymentToken');
+  if (!token) return allowed;
+
+  const [payment] = await deps.db.query<{ provider_code: string }>(
+    `select provider_code from payments where payment_id = $1 and organization_id = $2`,
+    [token.paymentId, token.organizationId],
+  );
+  if (!payment) throw new ApiError('Payment not found', 404);
+  return (allowed ?? [payment.provider_code]).filter((code) => code === payment.provider_code);
+}
+
 // Banks and the provider list, for merchants (API key), hosted pages (payment token) and the dashboard (signed in)
 banksRoutes.get('/', flexibleAuth('read'), validate('query', listQuery), async (c) => {
   const deps = c.get('deps');
   const q = valid<z.infer<typeof listQuery>>(c, 'query');
   const { page, limit, offset } = pagination(c, 100, 100);
 
-  const allowed = await allowedProviderScope(deps.db, callerOf(c));
+  const allowed = await providerScope(c);
   const { banks, total } = await listBanks(
     deps.db,
     allowed,
@@ -36,7 +55,7 @@ banksRoutes.get('/', flexibleAuth('read'), validate('query', listQuery), async (
 
 banksRoutes.get('/providers', flexibleAuth('read'), async (c) => {
   const deps = c.get('deps');
-  const allowed = await allowedProviderScope(deps.db, callerOf(c));
+  const allowed = await providerScope(c);
   return ok(c, { providers: await listProviderCodes(deps.db, allowed) });
 });
 
@@ -51,6 +70,6 @@ banksRoutes.get('/:id', flexibleAuth('read'), async (c) => {
   const deps = c.get('deps');
   const id = c.req.param('id');
   if (!id || id.length > 100) throw new ApiError('Bank not found', 404);
-  const allowed = await allowedProviderScope(deps.db, callerOf(c));
+  const allowed = await providerScope(c);
   return ok(c, { bank: await getBank(deps.db, allowed, id) });
 });

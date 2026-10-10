@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import "../design/tokens.css";
+
+@theme {
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Cards need room at 390px and stay readable at any text size. */
+html {
+  -webkit-text-size-adjust: 100%;
+}

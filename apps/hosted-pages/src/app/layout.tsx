@@ -1,27 +1,24 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
-
 export const metadata: Metadata = {
-  title: 'Syntropi Payment Portal',
-  description: 'Secure payment processing powered by Syntropi',
-  robots: 'noindex, nofollow', // Prevent search indexing for security
+  title: 'Syntropi payment',
+  description: 'Pay securely with your bank.',
+  robots: 'noindex, nofollow',
+  referrer: 'no-referrer',
+  icons: { icon: '/favicon.svg' },
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  colorScheme: 'light dark',
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <div className="min-h-screen bg-gray-50">
-          {children}
-        </div>
-      </body>
+      <body>{children}</body>
     </html>
   )
 }

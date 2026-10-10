@@ -1,128 +1,91 @@
-# Syntropi Hosted Payment Pages
+# Syntropi hosted payment pages
 
-A standalone payment portal application that provides hosted payment pages for merchants using Syntropi's payment infrastructure.
+The page a customer sees after a merchant creates a payment with `flowType: "HOSTED_PAGES"`. The customer
+picks a bank, is sent to it (a real provider's authorisation page, or the Mock bank page for `mock`
+payments), and sees the result. It is a **static export** (no server code) for Cloudflare Pages.
 
-## Overview
+## The link
 
-This application provides a secure, branded payment experience similar to Token.io's hosted pages, allowing merchants to redirect customers to a secure payment flow without building their own payment UI.
-
-## Features
-
-- 🔒 **Secure Payment Flow** - Bank-level security with SSL encryption
-- 🏦 **Bank Selection** - Dynamic bank selection with real-time availability
-- 📱 **Mobile Responsive** - Optimized for both desktop and mobile devices
-- 🎨 **Customizable Branding** - Support for merchant logos and branding
-- ⚡ **Real-time Status** - Live payment status updates
-- 🔄 **Auto-redirect** - Automatic return to merchant after completion
-- 🛡️ **Security Headers** - Enhanced security with proper headers
-
-## URL Structure
-
-### Payment Sessions
 ```
-https://your-domain.com/sessions/{paymentId}?redirect_uri={merchantReturnUrl}
+${HOSTED_PAGES_URL}/sessions/<paymentId>?token=<payment token>
 ```
 
-**Example:**
-```
-https://hosted.syntropi.com/sessions/pay_dc07678a31104724ad04f36bd5ea4a97?redirect_uri=https://merchant.com/return
-```
+`POST /api/payments` returns this as `hostedPageUrl`. The token is a short-lived (1 hour) JWT with purpose
+`hosted-pages-access`; it only works for the payment id inside it. A `redirect_uri` query parameter may
+also be present: the page ignores it. The merchant return URL is fixed when the payment is created and comes
+back from the API (`merchant.redirectUri`).
 
-### Parameters
-- `paymentId` - The unique payment identifier
-- `redirect_uri` (optional) - Where to redirect the user after payment completion
+## How the static export handles the id and token
 
-## Payment Flow
+- `/sessions/[paymentId]` cannot be pre-rendered per id, so there is **one page**, `src/app/sessions/page.tsx`,
+  exported to `out/sessions/index.html`.
+- `public/_redirects` serves it for every id: `/sessions/* /sessions/index.html 200`.
+- In `next dev` (which has no `_redirects`) `next.config.mjs` adds a dev-only rewrite `/sessions/:id` to `/sessions`.
+- The browser reads the payment id from the last segment of `window.location.pathname`
+  (`paymentIdFromPathname` in `src/lib/logic.mjs`) and the token from `?token=`.
+- The token is kept in memory and in `sessionStorage` (so a reload still works), never in `localStorage`.
+  Right after load the query string is removed from the address bar with `history.replaceState`.
+- `public/_headers` sets `Referrer-Policy: no-referrer` (plus `X-Frame-Options: DENY`, `nosniff` and a
+  `frame-ancestors 'none'` CSP). These replace the old Next middleware.
 
-1. **Payment Initiation** - Merchant redirects customer to payment session URL
-2. **Payment Details** - Customer reviews payment amount and details
-3. **Bank Selection** - Customer selects their preferred bank
-4. **Authorization** - Customer is redirected to their bank for authorization
-5. **Processing** - Payment is processed via API_ONLY flow
-6. **Result** - Customer sees payment result and is redirected back to merchant
+## API the page uses
 
-## Integration with Syntropi API
+All calls send `Authorization: Bearer <payment token>`. Responses are `{ success, data }`; errors are
+`{ success: false, error: { message, code? } }`. The page never shows `error.message` to the customer.
 
-The hosted pages application integrates with the main Syntropi API for:
+| Call | Used for |
+| --- | --- |
+| `GET /api/payments/:id/hosted` | Payment details and status on load |
+| `GET /api/banks?limit=100&page=n` | The banks this payment's organization is approved for |
+| `POST /api/payments/initiate` `{paymentId, bankId}` | Choose the bank and start the provider flow; returns `redirectUrl` (the Mock bank link for `mock` payments). Repeats are idempotent. |
+| `GET /api/payments/:id/status` | Polled every 4 s while the bank is processing the payment |
+| `POST /api/payments/:id/cancel` | "Cancel payment" |
 
-- Fetching payment details
-- Retrieving available banks
-- Initiating payments with selected banks
-- Getting payment status updates
+`redirectUrl` and `merchant.redirectUri` are treated as untrusted: only `http:` and `https:` are followed.
 
-## Development
+Screens: loading; choose a bank (search, logos with a letter fallback, keyboard accessible); taking you to your
+bank; processing; completed; failed; cancelled; expired; link not valid (401/403/404 or no token);
+network error with retry; server error with retry. `AUTHORIZING` counts as "choose a bank" because a Mock
+payment starts there.
 
-### Prerequisites
-- Node.js 18+
-- npm
+## Develop
 
-### Setup
 ```bash
 cd apps/hosted-pages
-npm install
-npm run dev
+cp .env.local.example .env.local   # NEXT_PUBLIC_API_URL, default http://127.0.0.1:8787
+npm run dev                        # http://localhost:3001
 ```
 
-The application will start on `http://localhost:3002`
+Open the `hostedPageUrl` returned by the API. The Worker only allows CORS from its `HOSTED_PAGES_URL`
+(`http://localhost:3001` locally). `NEXT_PUBLIC_USE_MOCK_DATA=true` shows fictional data without an API
+(`src/lib/mockData.ts`); there is no silent fallback to mock data otherwise.
 
-### Environment Variables
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3001
-API_BASE_URL=http://localhost:3001
-NEXT_PUBLIC_HOSTED_PAGES_TOKEN=your_token_here
-```
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | Dev server on port 3001 |
+| `npm run build` | Static export to `out/` |
+| `npm start` | Serves `out/` on port 3001 like Pages (`_redirects` and `_headers` applied) |
+| `npm run check-types` | `tsc --noEmit` |
+| `npm test` | Unit tests for the pure helpers and colour contrast (`node --test`, no extra dependencies) |
+| `npm run e2e` | Playwright end-to-end flow (below) |
 
-## API Endpoints Used
+## Tests
 
-### Payment API
-- `GET /payments/{paymentId}` - Get payment details
-- `POST /payments/initiate` - Initiate payment with bank
-- `GET /payments/{paymentId}/status` - Get payment status
-
-### Banks API
-- `GET /banks` - Get available banks
-- `GET /banks/{bankId}` - Get specific bank details
-
-## Security
-
-- SSL/TLS encryption for all communications
-- CSP headers to prevent XSS attacks
-- Frame denial to prevent clickjacking
-- Secure session management
-- Input validation and sanitization
-
-## Deployment
-
-The application can be deployed as a standalone Next.js application:
+`e2e/flow.mjs` creates a real hosted payment through the API (test organization, admin and API key, provider
+`mock`), opens the page with its token, picks a Mock bank and asserts the page goes to the Mock bank link the
+API returned. It also covers an invalid token, a missing token, a token for another payment, an expired
+payment, completed and failed results, cancelling, network error and retry, and an unsafe redirect URL. The
+Mock bank app is not needed. It needs the Worker running, with `apps/api-worker/.dev.vars` (never printed),
+and the page on `http://localhost:3001` (it starts `next dev` if nothing answers).
 
 ```bash
-npm run build
-npm start
+NODE_PATH=<dir containing playwright-core>/node_modules node e2e/flow.mjs
 ```
 
-For production deployment, ensure:
-- Proper SSL certificates
-- Environment variables configured
-- Security headers enabled
-- CORS configured for merchant domains
+`e2e/shots.mjs [outDir]` saves light and dark, desktop and 390 px screenshots of every state.
 
-## Customization
+## Deploy (Cloudflare Pages)
 
-### Branding
-- Merchant logos via payment session data
-- Custom color schemes via CSS variables
-- Branded messaging and terms
-
-### Bank Integration
-- Dynamic bank availability
-- Custom bank ordering
-- Processing time display
-- Instant payment indicators
-
-## Monitoring
-
-The application includes:
-- Error tracking and reporting
-- Payment flow analytics
-- Performance monitoring
-- Security event logging
+Build command `npm run build`, output directory `out`, with `NEXT_PUBLIC_API_URL` set to the Worker's public
+URL. The Worker's `HOSTED_PAGES_URL` must be the Pages origin (it is used for CORS and for building
+`hostedPageUrl`).

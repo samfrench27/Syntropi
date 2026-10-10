@@ -1,0 +1,2 @@
+# One static page serves every payment id: the page reads the id from the URL in the browser.
+/sessions/*  /sessions/index.html  200

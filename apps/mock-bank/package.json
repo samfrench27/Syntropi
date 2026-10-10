@@ -1,0 +1,27 @@
+{
+  "name": "@syntropi/mock-bank",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3002",
+    "build": "next build",
+    "start": "node scripts/serve.mjs",
+    "check-types": "tsc --noEmit",
+    "test": "node --test tests/",
+    "test:e2e": "node e2e/flow.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "^0.477.0",
+    "next": "^15.5.14",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

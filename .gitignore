@@ -40,3 +40,4 @@ yarn-error.log*
 # Local Worker secrets
 .dev.vars
 .dev.vars.*
+.wrangler/
