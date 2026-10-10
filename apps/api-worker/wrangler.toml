@@ -1,0 +1,22 @@
+name = "syntropi-api"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Run the Worker close to the database. The database is the slow neighbour, so this is what
+# keeps each query to a few milliseconds instead of a cross-continent round trip.
+[placement]
+mode = "smart"
+
+# Created with: wrangler hyperdrive create syntropi-db --connection-string=<api_worker connection string>
+# then paste the id below. Left unset until the database role and Hyperdrive exist.
+# [[hyperdrive]]
+# binding = "HYPERDRIVE"
+# id = "<hyperdrive-id>"
+
+[vars]
+DASHBOARD_URL = "http://localhost:3000"
+
+# Secrets (never in this file): set with `wrangler secret put <NAME>`
+#   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, HOSTED_PAGES_JWT_SECRET,
+#   TOKEN_API_KEY, YAPILY_CLIENT_ID, YAPILY_CLIENT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
