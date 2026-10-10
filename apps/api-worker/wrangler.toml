@@ -3,23 +3,28 @@ main = "src/index.ts"
 compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Run the Worker close to the database. The database is the slow neighbour, so this is what
-# keeps each query to a few milliseconds instead of a cross-continent round trip.
+# Run the Worker next to the database, wherever the caller is. The database is in AWS eu-west-2
+# (London), and every request makes a few queries: a cross-Atlantic round trip per query would
+# cost far more than one hop from the caller to London. Smart Placement was not used because it
+# needs traffic from several locations before it moves anything.
 [placement]
-mode = "smart"
+region = "aws:eu-west-2"
 
 # Created with: wrangler hyperdrive create syntropi-db --connection-string=<api_worker connection string>
-# then paste the id below. Left unset until the database role and Hyperdrive exist.
-# [[hyperdrive]]
-# binding = "HYPERDRIVE"
-# id = "<hyperdrive-id>"
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "4d5bac7c642e4c97b59cdf05897dccc3"
 
 # Daily bank list refresh from the providers (03:00 UTC)
 [triggers]
 crons = ["0 3 * * *"]
 
 [vars]
+# Where the front ends live. Localhost until the Pages sites have their own domains.
 DASHBOARD_URL = "http://localhost:3000"
+HOSTED_PAGES_URL = "http://localhost:3001"
+MOCK_BANK_URL = "http://localhost:3002"
+API_BASE_URL = "https://syntropi-api.syntropi.workers.dev"
 
 # Secrets (never in this file): set with `wrangler secret put <NAME>`
 #   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, HOSTED_PAGES_JWT_SECRET,

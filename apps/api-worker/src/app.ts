@@ -28,6 +28,13 @@ import { mockBankRoutes } from './routes/mockBank';
 export function buildApp(deps: AppDeps) {
   const app = new Hono<AppEnv>();
 
+  // How long the API itself took, so callers (and our load tests) can tell it apart from network time
+  app.use('*', async (c, next) => {
+    const started = performance.now();
+    await next();
+    c.res.headers.set('Server-Timing', `app;dur=${(performance.now() - started).toFixed(1)}`);
+  });
+
   app.use('*', secureHeaders());
   app.use(
     '*',
