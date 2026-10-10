@@ -18,8 +18,8 @@ export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Screen built on fixture data while the design is being reviewed. */
-  preview?: boolean;
+  /** A live count shown beside the label. */
+  badge?: 'pendingRequests';
 }
 
 export const AREA_META: Record<Area, { label: string; items: NavItem[] }> = {
@@ -27,7 +27,7 @@ export const AREA_META: Record<Area, { label: string; items: NavItem[] }> = {
     label: 'Platform admin',
     items: [
       { href: '/platform-admin/dashboard', label: 'Dashboard', icon: BarChart3 },
-      { href: '/platform-admin/provider-requests', label: 'Approval queue', icon: Inbox, preview: true },
+      { href: '/platform-admin/provider-requests', label: 'Approval queue', icon: Inbox, badge: 'pendingRequests' },
       { href: '/platform-admin/organizations', label: 'Organizations', icon: Building2 },
       { href: '/platform-admin/users', label: 'Users', icon: Users },
       { href: '/platform-admin/providers', label: 'Providers', icon: Network },
@@ -41,7 +41,7 @@ export const AREA_META: Record<Area, { label: string; items: NavItem[] }> = {
     label: 'Organization',
     items: [
       { href: '/org-admin/dashboard', label: 'Dashboard', icon: BarChart3 },
-      { href: '/org-admin/providers', label: 'Providers', icon: Landmark, preview: true },
+      { href: '/org-admin/providers', label: 'Providers', icon: Landmark },
       { href: '/org-admin/analytics', label: 'Analytics', icon: TrendingUp },
       { href: '/org-admin/organization', label: 'Organization', icon: Building2 },
       { href: '/org-admin/users', label: 'Users', icon: Users },
@@ -54,7 +54,7 @@ export const AREA_META: Record<Area, { label: string; items: NavItem[] }> = {
     label: 'Developer',
     items: [
       { href: '/client-dashboard/dashboard', label: 'Dashboard', icon: BarChart3 },
-      { href: '/client-dashboard/providers', label: 'Providers', icon: Landmark, preview: true },
+      { href: '/client-dashboard/providers', label: 'Providers', icon: Landmark },
       { href: '/client-dashboard/api-keys', label: 'API keys', icon: Key },
       { href: '/client-dashboard/activities', label: 'Activity', icon: Activity },
     ],
@@ -82,7 +82,7 @@ export function pageTitle(items: NavItem[], pathname: string | null): string {
   if (pathname && idx >= 0 && pathname !== items[idx].href) {
     // A detail page under a section, e.g. /analytics/payments/pay_123
     if (pathname.includes('/payments/')) return 'Payment details';
-    if (pathname.endsWith('/create')) return `New ${items[idx].label.toLowerCase().replace(/s$/, '')}`;
+    if (pathname.endsWith('/create')) return `New ${items[idx].label.toLowerCase().replace(/s$/, '').replace(/^api/, 'API')}`;
     return `${items[idx].label} details`;
   }
   if (idx >= 0) return items[idx].label;

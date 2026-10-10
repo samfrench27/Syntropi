@@ -60,7 +60,8 @@ export default function PlatformAdminPaymentDetailPage() {
           signal: abortController.signal
         });
         
-        const paymentData = paymentResponse.data.data || paymentResponse.data;
+        const paymentData = paymentResponse.data?.data?.payment;
+        if (!paymentData) throw new Error('Payment not found');
         
         // Only update state if component is still mounted
         if (isMounted) {
@@ -73,12 +74,12 @@ export default function PlatformAdminPaymentDetailPage() {
             const orgResponse = await api.get(`/admin/organizations/${paymentData.organizationId}`, {
               signal: abortController.signal
             });
-            const orgData = orgResponse.data.data || orgResponse.data;
+            const orgData = orgResponse.data?.data?.organization;
             if (isMounted) {
               setOrganization(orgData);
             }
           } catch (orgError: any) {
-            if (orgError.name !== 'AbortError') {
+            if (orgError.name !== 'AbortError' && orgError.code !== 'ERR_CANCELED') {
               console.error('Error fetching organization:', orgError);
             }
             // Don't fail the whole page if org fetch fails
@@ -86,10 +87,10 @@ export default function PlatformAdminPaymentDetailPage() {
         }
       } catch (error: any) {
         // Don't log errors if request was aborted
-        if (error.name !== 'AbortError') {
+        if (error.name !== 'AbortError' && error.code !== 'ERR_CANCELED') {
           console.error('❌ Platform Payment Detail: Error fetching payment details:', error);
           if (isMounted) {
-            setError(error?.response?.data?.message || 'Failed to load payment details');
+            setError(error?.response?.status === 404 ? 'We could not find that payment.' : error?.response?.data?.error?.message || 'Failed to load payment details');
           }
         }
       } finally {

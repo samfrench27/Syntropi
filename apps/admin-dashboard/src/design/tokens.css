@@ -409,3 +409,11 @@ thead th {
   font-size: 0.8rem;
   font-weight: 600;
 }
+
+/* ---------- Sentence case everywhere ---------- */
+/* Older pages style table headers as small all-caps labels. The design uses sentence case. */
+.shell-content .uppercase {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.875rem;
+}

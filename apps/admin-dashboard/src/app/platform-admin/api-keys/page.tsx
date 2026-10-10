@@ -6,12 +6,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Search, RefreshCw, EyeOff, Copy, Building2, User, Key, Eye } from 'lucide-react';
 import { apiKeyAPI, organizationAPI } from '@/lib/api';
 import Card from '@/components/admin/Card';
+import MaskedKey from '@/components/admin/MaskedKey';
 import PageHeader from '@/components/admin/PageHeader';
 import EmptyState from '@/components/admin/EmptyState';
 
 interface ApiKey {
   _id: string;
   name: string;
+  keyPrefix?: string;
   environment: 'sandbox' | 'production';
   organization: {
     _id: string;
@@ -267,6 +269,9 @@ export default function ApiKeysPage() {
                       Name
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Key
+                  </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Organization
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -292,6 +297,9 @@ export default function ApiKeysPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="font-medium text-gray-900">{apiKey.name}</div>
                         <div className="text-xs text-gray-500">ID: {apiKey._id}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        <MaskedKey prefix={apiKey.keyPrefix} />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 flex items-center">

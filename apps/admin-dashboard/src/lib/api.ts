@@ -4,7 +4,7 @@ import { clearAuth } from './auth';
 import { getFreshToken, supabaseAuth } from './supabase';
 import { logApiRequest, logApiResponse, debugLog } from './debug';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, '') || 'http://127.0.0.1:8787';
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
@@ -51,6 +51,8 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
+    // A request the page itself cancelled (for example on unmount) is not an error
+    if (axios.isCancel(error)) return Promise.reject(error);
     // Log error responses
     if (error.response) {
       logApiResponse(
@@ -122,7 +124,8 @@ export const userAPI = {
   
   createUser: (userData: {
     email: string;
-    password: string;
+    /** Optional: without one, the person is emailed an invitation to set their own. */
+    password?: string;
     firstName: string;
     lastName: string;
     role: string;
@@ -316,29 +319,24 @@ export const analyticsAPI = {
   }) => api.get('/admin/activities', { params }),
 };
 
-// Payments API (for admin dashboard)
+// Payments API (for admin dashboard). These are the signed-in admin endpoints: no API key is involved.
+// A superadmin sees every organization's payments; an organization admin sees only their own.
 export const paymentsAPI = {
-  // Get payments with filters for analytics
   getPayments: (params?: {
+    page?: number;
+    limit?: number;
+    organizationId?: string;
     status?: string;
     provider?: string;
-    limit?: number;
-    offset?: number;
     startDate?: string;
     endDate?: string;
-  }) => api.get('/payments', { 
-    params,
-    headers: {
-      'x-api-key': process.env.NEXT_PUBLIC_API_KEY // Will need API key for payment endpoints
-    }
-  }),
-  
-  // Get single payment details
-  getPayment: (paymentId: string) => api.get(`/payments/${paymentId}`, {
-    headers: {
-      'x-api-key': process.env.NEXT_PUBLIC_API_KEY
-    }
-  }),
+  }) => api.get('/admin/payments', { params }),
+
+  // The payment is at `data.payment`
+  getPayment: (paymentId: string) => api.get(`/admin/payments/${paymentId}`),
+
+  getAnalytics: (params?: { organizationId?: string; startDate?: string; endDate?: string }) =>
+    api.get('/admin/payments/analytics', { params }),
 };
 
 // Billing API
@@ -364,7 +362,7 @@ export const billingAPI = {
     api.post('/client/billing/checkout/success', data),
 
   // Admin billing endpoints  
-  getRevenue: (params?: { months?: number }) => 
+  getRevenue: (params?: { startDate?: string; endDate?: string }) => 
     api.get('/admin/billing/revenue', { params }),
   
   getCustomers: (params?: { page?: number; limit?: number }) => 
@@ -375,5 +373,83 @@ export const billingAPI = {
   
   getMetrics: () => api.get('/admin/billing/metrics'),
 };
+
+// Provider access: what an organization may route payments through
+export type AccessStatus = 'none' | 'pending' | 'approved' | 'rejected' | 'revoked';
+
+export interface ClientProvider {
+  code: string;
+  name: string;
+  description: string;
+  logoUrl: string | null;
+  features: string[];
+  /** 'active' or 'maintenance' */
+  status: string;
+  accessStatus: AccessStatus;
+  alwaysOn: boolean;
+  requestNote: string | null;
+  reviewNote: string | null;
+  requestedAt: string | null;
+  reviewedAt: string | null;
+}
+
+export const clientProvidersAPI = {
+  list: () => api.get<{ data: { providers: ClientProvider[] } }>('/client/providers'),
+  request: (code: string, note?: string) =>
+    api.post<{ data: { provider: ClientProvider } }>(`/client/providers/${encodeURIComponent(code)}/request`, note ? { note } : {}),
+};
+
+export interface ProviderRequest {
+  id: string;
+  organizationId: string;
+  organizationName: string;
+  providerCode: string;
+  providerName: string;
+  status: Exclude<AccessStatus, 'none'>;
+  requestNote: string | null;
+  requestedAt: string;
+  requestedBy: { id: string; name: string; email: string | null } | null;
+  reviewedAt: string | null;
+  reviewedBy: { id: string; name: string; email: string | null } | null;
+  reviewNote: string | null;
+}
+
+export interface ProviderRequestCounts {
+  pending: number;
+  approved: number;
+  rejected: number;
+  revoked: number;
+}
+
+export const providerRequestsAPI = {
+  list: (params?: { status?: string; page?: number; limit?: number; organizationId?: string }) =>
+    api.get<{
+      data: {
+        requests: ProviderRequest[];
+        pagination: { total: number; page: number; limit: number; pages: number };
+        counts: ProviderRequestCounts;
+      };
+    }>('/admin/provider-requests', { params }),
+  get: (id: string) => api.get<{ data: { request: ProviderRequest } }>(`/admin/provider-requests/${id}`),
+  approve: (id: string, note?: string) => api.post<{ data: { request: ProviderRequest } }>(`/admin/provider-requests/${id}/approve`, note ? { note } : {}),
+  reject: (id: string, note: string) => api.post<{ data: { request: ProviderRequest } }>(`/admin/provider-requests/${id}/reject`, { note }),
+  revoke: (id: string, note: string) => api.post<{ data: { request: ProviderRequest } }>(`/admin/provider-requests/${id}/revoke`, { note }),
+};
+
+/** Tells the sidebar badge that the approval queue changed. */
+export const PROVIDER_REQUESTS_CHANGED = 'syntropi:provider-requests-changed';
+
+/** Plain-language message for a failed API call. `fallback` is used when the server says nothing useful. */
+export function describeApiError(error: any, fallback = 'Something went wrong. Please try again.'): string {
+  if (error?.code === 'ERR_NETWORK' || (!error?.response && error?.request)) {
+    return 'We could not reach the server. Check your connection and try again.';
+  }
+  const status = error?.response?.status;
+  const message = error?.response?.data?.error?.message;
+  if (status === 401) return 'Your session has ended. Sign in again to continue.';
+  if (status === 403) return message && !/^(Admin|Super admin) access required$/.test(message) ? message : 'You do not have permission to do this.';
+  if (status && status >= 500) return 'The server had a problem. Please try again in a moment.';
+  return message || fallback;
+}
 
 export default api;

@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useState, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Save, Users, Key, Activity } from 'lucide-react';
 import Card from '@/components/admin/Card';
+import MaskedKey from '@/components/admin/MaskedKey';
 import { organizationAPI, userAPI, apiKeyAPI } from '@/lib/api';
 import { isSuperAdmin } from '@/lib/auth';
 
@@ -48,12 +49,20 @@ interface User {
   status: string;
 }
 
-export default function OrganizationDetailsPage({ params }: { params: { id: string } }) {
+export default function OrganizationDetailsPage() {
+  const params = useParams<{ id: string }>();
   const [organization, setOrganization] = useState<OrganizationDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('details');
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(
+    initialTab === 'users' || initialTab === 'api-keys' || initialTab === 'activity' ? initialTab : 'details',
+  );
+  const [orgKeys, setOrgKeys] = useState<any[] | null>(null);
+  const [orgActivities, setOrgActivities] = useState<any[] | null>(null);
+  const [tabError, setTabError] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const router = useRouter();
@@ -88,7 +97,21 @@ export default function OrganizationDetailsPage({ params }: { params: { id: stri
     if (activeTab === 'users') {
       fetchUsers();
     }
-  }, [activeTab]);
+    if (activeTab === 'api-keys') {
+      setTabError(null);
+      organizationAPI
+        .getOrganizationApiKeys(organizationId, { limit: 50 })
+        .then((r) => setOrgKeys(r.data.data.apiKeys))
+        .catch(() => setTabError('We could not load the API keys.'));
+    }
+    if (activeTab === 'activity') {
+      setTabError(null);
+      organizationAPI
+        .getOrganizationActivities(organizationId, { limit: 50 })
+        .then((r) => setOrgActivities(r.data.data.activities))
+        .catch(() => setTabError('We could not load the activity.'));
+    }
+  }, [activeTab, organizationId]);
 
   const fetchOrganization = async () => {
     setLoading(true);
@@ -739,9 +762,28 @@ export default function OrganizationDetailsPage({ params }: { params: { id: stri
                 }
               />
               <Card.Body>
-                <p className="text-center text-gray-500 py-4">
-                  API keys management will be implemented in a future update.
-                </p>
+                {tabError ? (
+                  <p className="text-center text-red-600 py-4">{tabError}</p>
+                ) : orgKeys === null ? (
+                  <p className="text-center text-gray-500 py-4">Loading...</p>
+                ) : orgKeys.length === 0 ? (
+                  <p className="text-center text-gray-500 py-4">This organization has no API keys yet.</p>
+                ) : (
+                  <ul className="divide-y divide-gray-200">
+                    {orgKeys.map((k) => (
+                      <li key={k.id} className="flex items-center justify-between gap-4 py-3">
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900 truncate">{k.name}</p>
+                          <MaskedKey prefix={k.keyPrefix} className="text-sm text-gray-600" />
+                        </div>
+                        <span className="text-sm text-gray-600 capitalize">
+                          {k.environment}
+                          {k.isActive ? '' : ' (revoked)'}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </Card.Body>
             </Card>
           )}
@@ -750,9 +792,29 @@ export default function OrganizationDetailsPage({ params }: { params: { id: stri
             <Card>
               <Card.Header title="Activity Log" />
               <Card.Body>
-                <p className="text-center text-gray-500 py-4">
-                  Activity log will be implemented in a future update.
-                </p>
+                {tabError ? (
+                  <p className="text-center text-red-600 py-4">{tabError}</p>
+                ) : orgActivities === null ? (
+                  <p className="text-center text-gray-500 py-4">Loading...</p>
+                ) : orgActivities.length === 0 ? (
+                  <p className="text-center text-gray-500 py-4">No activity yet.</p>
+                ) : (
+                  <ul className="divide-y divide-gray-200">
+                    {orgActivities.map((a) => (
+                      <li key={a.id} className="flex items-center justify-between gap-4 py-3 text-sm">
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900 truncate">{a.action}</p>
+                          <p className="text-gray-600 truncate">
+                            {a.user ? `${a.user.firstName ?? ''} ${a.user.lastName ?? ''}`.trim() || a.user.email : 'System'}
+                          </p>
+                        </div>
+                        <time className="text-gray-600 shrink-0" dateTime={a.createdAt}>
+                          {new Date(a.createdAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
+                        </time>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </Card.Body>
             </Card>
           )}

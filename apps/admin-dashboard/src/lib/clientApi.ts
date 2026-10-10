@@ -4,7 +4,7 @@ import { clearAuth } from './auth';
 import { getFreshToken, supabaseAuth } from './supabase';
 import { logApiRequest, logApiResponse, debugLog } from './debug';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8787/api';
 
 const clientApi = axios.create({
   baseURL: API_URL,
@@ -51,6 +51,8 @@ clientApi.interceptors.response.use(
     return response;
   },
   async (error) => {
+    // A request the page itself cancelled (for example on unmount) is not an error
+    if (axios.isCancel(error)) return Promise.reject(error);
     // Log error responses
     if (error.response) {
       logApiResponse(

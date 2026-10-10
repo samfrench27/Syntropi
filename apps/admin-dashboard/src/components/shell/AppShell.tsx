@@ -9,6 +9,7 @@ import LoadingState from '@/components/admin/LoadingState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTheme, type Mode } from '@/design/ThemeProvider';
+import { PROVIDER_REQUESTS_CHANGED, providerRequestsAPI } from '@/lib/api';
 import { activeIndex, AREA_META, pageTitle, type Area } from './navConfig';
 
 type Role = 'superadmin' | 'admin' | 'user';
@@ -93,6 +94,36 @@ export default function AppShell({ area, allowedRoles, children }: AppShellProps
   );
 }
 
+/** Number of provider requests waiting for review. Refreshed on navigation and after a decision. */
+function usePendingRequests(enabled: boolean, pathname: string | null): number {
+  const [count, setCount] = useState(0);
+  const refresh = React.useCallback(async () => {
+    try {
+      const res = await providerRequestsAPI.list({ status: 'pending', limit: 1 });
+      setCount(res.data.data.counts.pending);
+    } catch {
+      /* the badge is a convenience: keep the last number */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (enabled) refresh();
+  }, [enabled, pathname, refresh]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const onChange = (e: Event) => {
+      const detail = (e as CustomEvent<{ pending?: number }>).detail;
+      if (typeof detail?.pending === 'number') setCount(detail.pending);
+      else refresh();
+    };
+    window.addEventListener(PROVIDER_REQUESTS_CHANGED, onChange);
+    return () => window.removeEventListener(PROVIDER_REQUESTS_CHANGED, onChange);
+  }, [enabled, refresh]);
+
+  return count;
+}
+
 function Sidebar({
   area,
   label,
@@ -109,6 +140,7 @@ function Sidebar({
   const listRef = useRef<HTMLUListElement>(null);
   const [lens, setLens] = useState<{ top: number; height: number } | null>(null);
   const [animate, setAnimate] = useState(false);
+  const pending = usePendingRequests(items.some((i) => i.badge === 'pendingRequests'), pathname);
 
   // The selection lens glides between items. The first placement must not animate.
   useLayoutEffect(() => {
@@ -166,13 +198,13 @@ function Sidebar({
                 >
                   <Icon size={19} aria-hidden />
                   <span className="flex-1">{item.label}</span>
-                  {item.preview && (
+                  {item.badge === 'pendingRequests' && pending > 0 && (
                     <span
-                      className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                      style={{ background: 'var(--d-accent-soft)', color: 'var(--d-accent-ink)' }}
-                      title="Preview on sample data"
+                      className="mono min-w-[1.4rem] rounded-full px-1.5 py-0.5 text-center text-xs font-semibold"
+                      style={{ background: 'var(--d-accent)', color: 'var(--d-on-accent)' }}
                     >
-                      Preview
+                      <span className="sr-only">{pending} waiting: </span>
+                      <span aria-hidden>{pending > 99 ? '99+' : pending}</span>
                     </span>
                   )}
                 </Link>

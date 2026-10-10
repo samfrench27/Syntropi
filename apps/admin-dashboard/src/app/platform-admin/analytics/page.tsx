@@ -270,7 +270,7 @@ export default function PlatformAnalyticsPage() {
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     });
 
-    let datasets = [];
+    const datasets: any[] = [];
 
     if (endpointFilter === 'all' || endpointFilter === 'banks') {
       datasets.push({

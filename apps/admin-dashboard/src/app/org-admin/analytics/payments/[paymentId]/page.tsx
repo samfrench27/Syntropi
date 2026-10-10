@@ -56,7 +56,8 @@ export default function OrgAdminPaymentDetailPage() {
           signal: abortController.signal
         });
         
-        const paymentData = paymentResponse.data.data || paymentResponse.data;
+        const paymentData = paymentResponse.data?.data?.payment;
+        if (!paymentData) throw new Error('Payment not found');
         
         // Only update state if component is still mounted
         if (isMounted) {
@@ -64,10 +65,10 @@ export default function OrgAdminPaymentDetailPage() {
         }
       } catch (error: any) {
         // Don't log errors if request was aborted
-        if (error.name !== 'AbortError') {
+        if (error.name !== 'AbortError' && error.code !== 'ERR_CANCELED') {
           console.error('❌ Payment Detail: Error fetching payment details:', error);
           if (isMounted) {
-            setError(error?.response?.data?.message || 'Failed to load payment details');
+            setError(error?.response?.status === 404 ? 'We could not find that payment.' : error?.response?.data?.error?.message || 'Failed to load payment details');
           }
         }
       } finally {
