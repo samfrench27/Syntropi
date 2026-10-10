@@ -3,6 +3,7 @@ import { User } from '../../models/user.model';
 import { Organization } from '../../models/organization.model';
 import { Activity } from '../../models/activity.model';
 import { createError } from '../../middleware/errorHandler';
+import { createIdentity, deleteIdentity, setAppMetadata, setIdentityActive } from '../../lib/supabase';
 
 // Get all users (with pagination and filters)
 export const getUsers = async (req: Request, res: Response, next: NextFunction) => {
@@ -108,10 +109,9 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
       return next(createError('Only super admins can create admin users', 403));
     }
     
-    // Create user
+    // Create the profile first so its id can go into the Supabase claims
     const user = await User.create({
       email,
-      password,
       firstName,
       lastName,
       role,
@@ -119,7 +119,22 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
       createdBy: adminId,
       status: 'active'
     });
-    
+
+    // Then the sign-in identity. With a password the account is ready; without one the user is
+    // emailed an invite to set their own.
+    try {
+      const supabaseId = await createIdentity({
+        email,
+        password,
+        meta: { role, organization_id: String(organizationId), mongo_user_id: String(user._id) },
+      });
+      user.supabaseId = supabaseId;
+      await user.save();
+    } catch (identityError) {
+      await User.findByIdAndDelete(user._id);
+      throw identityError;
+    }
+
     // Log activity
     await Activity.create({
       user: adminId,
@@ -198,6 +213,20 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
       },
       { new: true }
     ).select('-password');
+
+    // Keep the Supabase claims and sign-in access in step with the profile
+    if (updatedUser?.supabaseId) {
+      if (role && role !== user.role) {
+        await setAppMetadata(updatedUser.supabaseId, {
+          role: updatedUser.role,
+          organization_id: String(updatedUser.organization),
+          mongo_user_id: String(updatedUser._id),
+        });
+      }
+      if (status && status !== user.status) {
+        await setIdentityActive(updatedUser.supabaseId, status === 'active');
+      }
+    }
     
     // Log activity
     await Activity.create({
@@ -257,7 +286,10 @@ export const deleteUser = async (req: Request, res: Response, next: NextFunction
       return next(createError('Cannot delete user who owns an organization', 400));
     }
     
-    // Delete user
+    // Delete user, and their sign-in identity so the email can be used again
+    if (user.supabaseId) {
+      await deleteIdentity(user.supabaseId);
+    }
     await User.findByIdAndDelete(id);
     
     // Log activity

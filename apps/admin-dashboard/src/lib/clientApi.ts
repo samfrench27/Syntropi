@@ -1,6 +1,7 @@
 // src/lib/clientApi.ts
 import axios from 'axios';
-import { getToken, clearAuth } from './auth';
+import { clearAuth } from './auth';
+import { getFreshToken, supabaseAuth } from './supabase';
 import { logApiRequest, logApiResponse, debugLog } from './debug';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
@@ -14,8 +15,8 @@ const clientApi = axios.create({
 
 // Add auth token to requests
 clientApi.interceptors.request.use(
-  (config) => {
-    const token = getToken();
+  async (config) => {
+    const token = await getFreshToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       // Log all requests with their headers for debugging
@@ -49,7 +50,7 @@ clientApi.interceptors.response.use(
     );
     return response;
   },
-  (error) => {
+  async (error) => {
     // Log error responses
     if (error.response) {
       logApiResponse(
@@ -57,6 +58,16 @@ clientApi.interceptors.response.use(
         error.response.status,
         error.response.data
       );
+
+      if (error.response.status === 401 && !error.config._retried) {
+        // The role may have changed or the token expired: refresh the session once and retry
+        error.config._retried = true;
+        const { data } = await supabaseAuth.refreshSession();
+        if (data.session) {
+          error.config.headers.Authorization = `Bearer ${data.session.access_token}`;
+          return clientApi.request(error.config);
+        }
+      }
       
       if (error.response.status === 401) {
         // Clear auth and redirect to login
@@ -75,13 +86,8 @@ clientApi.interceptors.response.use(
 
 // Client API services (all operate within the user's organization context)
 export const clientAuthAPI = {
-  login: (email: string, password: string) => 
-    clientApi.post('/client/auth/login', { email, password }),
-  
-  me: () => clientApi.get('/client/auth/me'),
-  
-  updatePassword: (currentPassword: string, newPassword: string) =>
-    clientApi.post('/client/auth/update-password', { currentPassword, newPassword }),
+  // Sign-in and password changes are handled by Supabase (see AuthContext)
+  me: () => clientApi.get('/auth/me'),
 };
 
 export const clientOrganizationAPI = {

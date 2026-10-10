@@ -32,7 +32,7 @@ export default function LoginForm() {
       await login(email, password);
       // Successful login is handled by the login function (redirect to dashboard)
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error?.message || 'Login failed. Check your email and password.';
+      const errorMessage = err?.message || 'Sign in failed. Check your email and password.';
       // Store error in session storage to persist across potential reloads
       sessionStorage.setItem('loginError', errorMessage);
       setError(errorMessage);
@@ -118,7 +118,7 @@ export default function LoginForm() {
         <Link href="/forgot-password" className="font-medium hover:underline" style={{ color: 'var(--d-accent-ink)' }}>
           Forgot password?
         </Link>
-        <Link href="/preview/signup" className="font-medium hover:underline" style={{ color: 'var(--d-accent-ink)' }}>
+        <Link href="/signup" className="font-medium hover:underline" style={{ color: 'var(--d-accent-ink)' }}>
           Create an account
         </Link>
       </div>

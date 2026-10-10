@@ -10,6 +10,8 @@ import { syncBanksFromProviders, cleanupNonGBBanks } from './services/bank.servi
 
 // Import routes
 import adminAuthRoutes from './routes/admin/auth.routes';
+import authRoutes from './routes/auth.routes';
+import { assertSupabaseConfigured } from './lib/supabase';
 import adminUserRoutes from './routes/admin/user.routes';
 import adminOrgRoutes from './routes/admin/organization.routes';
 import adminApiKeyRoutes from './routes/admin/apiKey.routes';
@@ -26,13 +28,19 @@ import bankRoutes from './routes/public/bank.routes'; // Using real bank routes
 import paymentRoutes from './routes/public/payment.routes';
 import webhookRoutes from './routes/public/webhook.routes';
 
+// Local overrides first: dotenv never overwrites a variable that is already set
+dotenv.config({ path: process.cwd() + '/.env.local' });
 dotenv.config({ path: process.cwd() + '/config/.env.staging' });
 
 // Debug: Log some environment variables
 console.log('TOKEN_API_KEY loaded:', !!process.env.TOKEN_API_KEY);
 console.log('TOKEN_API_BASE_URL:', process.env.TOKEN_API_BASE_URL);
 
+assertSupabaseConfigured();
+
 const app = express();
+// Behind a proxy (Railway), so rate limits and logs see the real client IP
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5001;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/syntropi';
 
@@ -43,6 +51,7 @@ app.use(express.json());
 app.use(loggerMiddleware);
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin/users', adminUserRoutes);
 app.use('/api/admin/organizations', adminOrgRoutes);

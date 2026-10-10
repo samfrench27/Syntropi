@@ -1,12 +1,12 @@
 // src/contexts/AuthContext.tsx
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authAPI } from '@/lib/api';
 import { User, setAuth, clearAuth, getUser, isAuthenticated } from '@/lib/auth';
+import { supabaseAuth, describeAuthError } from '@/lib/supabase';
 import { debugLog } from '@/lib/debug';
-import { fetchUserOrganization, storeUserOrganizationId } from '@/lib/organizationFetcher';
 
 interface AuthContextType {
   user: User | null;
@@ -28,215 +28,146 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+/** Home screen for each role. */
+export const homeFor = (role?: string) =>
+  role === 'superadmin' ? '/platform-admin/dashboard' : role === 'admin' ? '/org-admin/dashboard' : '/client-dashboard/dashboard';
+
+/** Normalise the profile from the API into the User shape the rest of the app uses. */
+const toUser = (data: any): User => {
+  const organizationId =
+    data.organizationId ||
+    (typeof data.organization === 'string' ? data.organization : data.organization?._id || data.organization?.id) ||
+    undefined;
+
+  if (organizationId && typeof window !== 'undefined') {
+    localStorage.setItem('syntropi_org_id', organizationId);
+  }
+
+  return {
+    id: data.id || data._id,
+    email: data.email,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    role: data.role,
+    organizationId,
+    organization: data.organization,
+  };
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const loadingProfile = useRef<Promise<User | undefined> | null>(null);
 
-  // Function to ensure user has organizationId - improved version
-const ensureOrganizationId = (userData: any): User => {
-  // Extract organization ID safely with more logging
-  let organizationId = null;
-  
-  // Log the full user data structure to understand what we're working with
-  debugLog('AuthContext', 'User data structure:', { 
-    userData: JSON.stringify(userData, null, 2),
-    hasOrgId: !!userData.organizationId,
-    hasOrg: !!userData.organization,
-    orgType: userData.organization ? typeof userData.organization : 'undefined'
-  });
-  
-  // Try direct organizationId property first
-  if (userData.organizationId) {
-    organizationId = userData.organizationId;
-    debugLog('AuthContext', 'Using direct organizationId', { organizationId });
-  }
-  // Then try organization object if available
-  else if (userData.organization) {
-    if (typeof userData.organization === 'string') {
-      organizationId = userData.organization;
-      debugLog('AuthContext', 'Using organization string', { organizationId });
-    } else if (typeof userData.organization === 'object') {
-      // Extract id from object, handling both _id and id properties
-      if (userData.organization._id) {
-        organizationId = userData.organization._id;
-        debugLog('AuthContext', 'Using organization._id', { organizationId });
-      } else if (userData.organization.id) {
-        organizationId = userData.organization.id;
-        debugLog('AuthContext', 'Using organization.id', { organizationId });
-      }
-    }
-  }
-  
-  // Log warning but don't show as error if no organization ID found
-  if (!organizationId) {
-    console.warn('[AuthContext] No organization ID found after extraction', { userData });
-  } else {
-    // If we found an organization ID, save it in localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('syntropi_org_id', organizationId);
-      debugLog('AuthContext', 'Saved organization ID to localStorage', { organizationId });
-    }
-  }
-  
-  // Return user object with organizationId
-  return {
-    id: userData.id || userData._id,
-    email: userData.email,
-    firstName: userData.firstName,
-    lastName: userData.lastName,
-    role: userData.role,
-    organizationId: organizationId,
-    organization: userData.organization,
-  };
-};
+  /** Load the profile for the current session. Concurrent calls share one request. */
+  const loadProfile = useCallback(async (accessToken: string): Promise<User | undefined> => {
+    if (loadingProfile.current) return loadingProfile.current;
 
-
-  // Function to refresh user data from the server
-  const refreshUser = async () => {
-    try {
-      // Only attempt to refresh if we have auth token
-      if (isAuthenticated()) {
+    const request = (async () => {
+      try {
+        // Make the token available to the API client before the first call
+        setAuth(accessToken, getUser() ?? ({} as User));
         const response = await authAPI.me();
-        const userData = response.data.data.user;
-        
-        // Ensure organization ID is properly extracted
-        const updatedUser = ensureOrganizationId(userData);
-        
-        // Update local state
-        setUser(updatedUser);
-        
-        // Also update local storage
-        localStorage.setItem('syntropi_admin_user', JSON.stringify(updatedUser));
-        
-        debugLog('AuthContext', 'User refreshed successfully', { 
-          id: updatedUser.id,
-          organizationId: updatedUser.organizationId
-        });
-        
-        return updatedUser;
+        const profile = toUser(response.data.data.user);
+        setAuth(accessToken, profile);
+        setUser(profile);
+        return profile;
+      } catch (error) {
+        debugLog('AuthContext', 'Could not load profile', { error }, true);
+        throw error;
+      } finally {
+        loadingProfile.current = null;
       }
-    } catch (error) {
-      debugLog('AuthContext', 'Error refreshing user', { error }, true);
-      throw error;
-    }
-  };
+    })();
 
-  // Check if user is authenticated on mount
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      if (isAuthenticated()) {
-        try {
-          // Get user from local storage first
-          const storedUser = getUser();
-          if (storedUser) {
-            // Ensure we have organization ID
-            const userWithOrg = ensureOrganizationId(storedUser);
-            setUser(userWithOrg);
-          }
-          
-          // Then verify with server and update
-          await refreshUser();
-        } catch (error) {
-          clearAuth();
-          debugLog('AuthContext', 'Auth verification failed:', { error }, true);
-        }
-      }
-      setLoading(false);
-    };
-
-    checkAuthStatus();
+    loadingProfile.current = request;
+    return request;
   }, []);
 
-  const login = async (email: string, password: string) => {
-    try {
-      const response = await authAPI.login(email, password);
-      debugLog('Auth', 'Login response received', { status: response.status });
-      
-      const { token, user: userData } = response.data.data;
-      
-      // Log the raw user data from API
-      debugLog('Auth', 'Raw user data from API', { userData });
-      
-      // Create a basic user object from the response
-      const userObj: User = {
-        id: userData.id || userData._id,
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        role: userData.role,
-        organizationId: undefined,
-        organization: userData.organization || null
-      };
-      
-      // Set auth with the basic user first so we are authenticated for the next API calls
-      setAuth(token, userObj);
-      setUser(userObj);
-      
-      // Check if organization data is already available in the response
-      if (userData.organizationId) {
-        userObj.organizationId = userData.organizationId;
-        debugLog('Auth', 'Organization ID found in user data', { organizationId: userData.organizationId });
-      } else if (userData.organization && typeof userData.organization === 'object' && userData.organization._id) {
-        userObj.organizationId = userData.organization._id;
-        debugLog('Auth', 'Organization ID extracted from organization object', { organizationId: userObj.organizationId });
-      }
-      
-      // For admin users, fetch organization information if not already available
-      if (userData.role === 'admin' && !userObj.organizationId) {
-        debugLog('Auth', 'Admin user, fetching organization information', { userId: userObj.id });
-        
-        // Fetch organization in the background
-        fetchUserOrganization(userObj.id).then(orgId => {
-          if (orgId) {
-            // Update user object with organization ID
-            const updatedUser: User = {
-              ...userObj,
-              organizationId: orgId
-            };
-            
-            // Update auth with the organization ID
-            setAuth(token, updatedUser);
-            setUser(updatedUser);
-            
-            debugLog('Auth', 'Updated user with organization ID', { 
-              userId: updatedUser.id, 
-              organizationId: updatedUser.organizationId 
-            });
-          }
-        }).catch(err => {
-          debugLog('Auth', 'Error fetching organization for user', { error: err }, true);
-        });
-      }
-      
-      // Log success with the processed user data
-      debugLog('Auth', 'Login successful, processed user data:', {
-        id: userObj.id,
-        email: userObj.email,
-        role: userObj.role
-      });
-      
-      // Add a small delay before redirecting to ensure state is updated
-      setTimeout(() => {
-        // Redirect based on role
-        if (userData.role === 'superadmin') {
-          router.push('/platform-admin/dashboard');
-        } else if (userData.role === 'admin') {
-          router.push('/org-admin/dashboard');
+  // Restore the session on first load, then follow sign-in, refresh and sign-out events.
+  useEffect(() => {
+    let cancelled = false;
+
+    const init = async () => {
+      try {
+        const { data } = await supabaseAuth.getSession();
+        if (data.session) {
+          // Show the stored profile straight away, then confirm it with the server
+          const stored = getUser();
+          if (stored && !cancelled) setUser(stored);
+          await loadProfile(data.session.access_token);
         } else {
-          router.push('/client-dashboard/dashboard');
+          clearAuth();
         }
-      }, 300); // Increased delay to allow for organization fetch
-    } catch (error) {
-      console.error('Login failed:', error);
-      throw error;
+      } catch {
+        clearAuth();
+        if (!cancelled) setUser(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    init();
+
+    const { data: listener } = supabaseAuth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        clearAuth();
+        setUser(null);
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        // Keep the stored token current. The profile has not changed.
+        setAuth(session.access_token, getUser() ?? ({} as User));
+      } else if (event === 'SIGNED_IN' && session && !loadingProfile.current) {
+        // Also fires when an email confirmation link signs the user in
+        loadProfile(session.access_token)
+          .then((profile) => {
+            if (profile && window.location.pathname.match(/^\/(login|signup)?$/)) router.push(homeFor(profile.role));
+          })
+          .catch(() => undefined);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
+  }, [loadProfile, router]);
+
+  const refreshUser = async () => {
+    const { data } = await supabaseAuth.getSession();
+    if (!data.session) return undefined;
+    return loadProfile(data.session.access_token);
+  };
+
+  const login = async (email: string, password: string) => {
+    const { data, error } = await supabaseAuth.signInWithPassword({ email, password });
+    if (error || !data.session) {
+      throw new Error(error ? describeAuthError(error) : 'Sign in failed. Try again.');
     }
+
+    let profile: User | undefined;
+    try {
+      profile = await loadProfile(data.session.access_token);
+    } catch (profileError: any) {
+      // Signed in with Supabase but has no Syntropi profile (or it is inactive)
+      await supabaseAuth.signOut();
+      clearAuth();
+      const message = profileError?.response?.data?.error?.message;
+      throw new Error(
+        profileError?.response?.status === 403 || profileError?.response?.status === 401
+          ? message || 'This account can’t use Syntropi yet. Contact your administrator.'
+          : 'We couldn’t load your account. Try again.',
+      );
+    }
+
+    router.push(homeFor(profile?.role));
   };
 
   const logout = () => {
-    clearAuth();
-    setUser(null);
-    router.push('/login');
+    supabaseAuth.signOut().finally(() => {
+      clearAuth();
+      setUser(null);
+      router.push('/login');
+    });
   };
 
   const checkAuth = () => {

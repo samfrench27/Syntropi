@@ -3,7 +3,10 @@ import bcrypt from 'bcrypt';
 
 export interface IUser extends Document {
   email: string;
-  password: string;
+  /** Legacy bcrypt hash. Sign-in is handled by Supabase; kept only until the migration is verified. */
+  password?: string;
+  /** Supabase Auth user id (the JWT `sub`). */
+  supabaseId?: string;
   firstName: string;
   lastName: string;
   isVerified: boolean;
@@ -28,8 +31,13 @@ const userSchema = new Schema<IUser>(
     },
     password: {
       type: String,
-      required: true,
-      minlength: 8,
+      required: false,
+      select: false,
+    },
+    supabaseId: {
+      type: String,
+      unique: true,
+      sparse: true,
     },
     firstName: {
       type: String,
@@ -73,7 +81,7 @@ const userSchema = new Schema<IUser>(
 
 // Pre-save hook to hash password
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+  if (!this.password || !this.isModified('password')) return next();
 
   try {
     const salt = await bcrypt.genSalt(10);
@@ -86,6 +94,7 @@ userSchema.pre('save', async function (next) {
 
 // Method to compare passwords
 userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
+  if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 

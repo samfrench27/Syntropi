@@ -1,6 +1,7 @@
 // src/lib/api.ts
 import axios from 'axios';
-import { getToken, clearAuth } from './auth';
+import { clearAuth } from './auth';
+import { getFreshToken, supabaseAuth } from './supabase';
 import { logApiRequest, logApiResponse, debugLog } from './debug';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
@@ -14,8 +15,8 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use(
-  (config) => {
-    const token = getToken();
+  async (config) => {
+    const token = await getFreshToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       // Log all requests with their headers for debugging
@@ -49,7 +50,7 @@ api.interceptors.response.use(
     );
     return response;
   },
-  (error) => {
+  async (error) => {
     // Log error responses
     if (error.response) {
       logApiResponse(
@@ -58,6 +59,16 @@ api.interceptors.response.use(
         error.response.data
       );
       
+      if (error.response.status === 401 && !error.config._retried) {
+        // The role may have changed or the token expired: refresh the session once and retry
+        error.config._retried = true;
+        const { data } = await supabaseAuth.refreshSession();
+        if (data.session) {
+          error.config.headers.Authorization = `Bearer ${data.session.access_token}`;
+          return api.request(error.config);
+        }
+      }
+
       if (error.response.status === 401) {
         // Only clear auth and redirect for admin/auth endpoints
         // Don't logout for API key-protected public endpoints like payments
@@ -83,27 +94,17 @@ api.interceptors.response.use(
   }
 );
 
-// Authentication API
+// Authentication API. Sign-in, sign-out and password reset go straight to Supabase (see AuthContext).
 export const authAPI = {
-  login: (email: string, password: string) => 
-    api.post('/admin/auth/login', { email, password }),
-  
-  forgotPassword: (email: string) => 
-    api.post('/admin/auth/forgot-password', { email }),
-  
-  resetPassword: (token: string, password: string) => 
-    api.post('/admin/auth/reset-password', { token, password }),
-  
-  me: () => api.get('/admin/auth/me'),
-  
-  createFirstAdmin: (userData: {
+  me: () => api.get('/auth/me'),
+
+  signup: (data: {
     email: string;
     password: string;
     firstName: string;
     lastName: string;
-  }) => api.post('/admin/auth/create-first-admin', userData),
-  
-  checkSetupStatus: () => api.get('/admin/auth/setup-status'),
+    companyName: string;
+  }) => api.post('/auth/signup', data),
 };
 
 // User management API

@@ -66,7 +66,9 @@ export const validateCreateAdmin = [
   // Create user validation
   export const validateCreateUser = [
     body('email').isEmail().withMessage('Valid email is required'),
+    // Optional: without a password the new user is emailed an invite to set their own
     body('password')
+      .optional({ values: 'falsy' })
       .isLength({ min: 8 })
       .withMessage('Password must be at least 8 characters long'),
     body('firstName').notEmpty().withMessage('First name is required'),
@@ -116,5 +118,23 @@ export const validateUpdateClientOrganization = [
   body('contactEmail').optional().isEmail().withMessage('Valid contact email is required'),
   body('billingEmail').optional().isEmail().withMessage('Valid billing email is required'),
   body('settings.webhookUrl').optional().isURL().withMessage('Valid webhook URL is required'),
+  handleValidationErrors,
+];
+
+// Public signup validation. The password rule matches the Supabase project's password policy.
+export const validateSignup = [
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('password')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters long')
+    .matches(/[a-z]/)
+    .withMessage('Password needs a lowercase letter')
+    .matches(/[A-Z]/)
+    .withMessage('Password needs an uppercase letter')
+    .matches(/[0-9]/)
+    .withMessage('Password needs a number'),
+  body('firstName').trim().notEmpty().withMessage('First name is required').isLength({ max: 100 }),
+  body('lastName').trim().notEmpty().withMessage('Last name is required').isLength({ max: 100 }),
+  body('companyName').trim().notEmpty().withMessage('Company name is required').isLength({ max: 200 }),
   handleValidationErrors,
 ];

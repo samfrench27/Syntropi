@@ -88,6 +88,17 @@ export const extractOrganizationId = (user: User, token: string): string | null 
   }
 };
 
+/** Update just the stored access token, e.g. after Supabase refreshes the session. */
+export const setAuthToken = (token: string) => {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(TOKEN_KEY, token);
+    } catch {
+      /* storage unavailable */
+    }
+  }
+};
+
 export const clearAuth = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(TOKEN_KEY);
