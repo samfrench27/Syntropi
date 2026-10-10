@@ -1,6 +1,9 @@
 // apps/admin-dashboard/next.config.mjs
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // The dev badge sits on top of the sidebar's account chip.
+  devIndicators: false as const,
+
   // Environment variables that should be available to the client
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api',

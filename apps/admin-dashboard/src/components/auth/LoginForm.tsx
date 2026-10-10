@@ -32,7 +32,7 @@ export default function LoginForm() {
       await login(email, password);
       // Successful login is handled by the login function (redirect to dashboard)
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error?.message || 'Login failed. Please check your credentials.';
+      const errorMessage = err.response?.data?.error?.message || 'Login failed. Check your email and password.';
       // Store error in session storage to persist across potential reloads
       sessionStorage.setItem('loginError', errorMessage);
       setError(errorMessage);
@@ -47,7 +47,7 @@ export default function LoginForm() {
       setError(null);
       sessionStorage.removeItem('loginError');
     }
-    
+
     const { name, value } = e.target;
     if (name === 'email') setEmail(value);
     if (name === 'password') setPassword(value);
@@ -55,78 +55,71 @@ export default function LoginForm() {
 
   return (
     <div className="w-full">
+      <h1 className="mb-1 text-2xl font-semibold tracking-tight" style={{ color: 'var(--d-ink)' }}>
+        Sign in
+      </h1>
+      <p className="mb-6 text-sm" style={{ color: 'var(--d-ink-2)' }}>
+        Use your Syntropi account to continue.
+      </p>
+
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div
+          role="alert"
+          className="mb-4 flex items-start gap-2 px-4 py-3 text-sm"
+          style={{
+            borderRadius: 'var(--d-r-ctl)',
+            background: 'color-mix(in srgb, var(--d-bad) 14%, transparent)',
+            color: 'var(--d-bad-ink)',
+          }}
+        >
           {error}
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
-          <label htmlFor="email" className="block text-text-primary font-medium mb-2">
+          <label htmlFor="email" className="mb-1.5 block text-sm font-medium" style={{ color: 'var(--d-ink)' }}>
             Email
           </label>
           <input
             type="email"
             id="email"
             name="email"
+            autoComplete="email"
             value={email}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            style={{ 
-              outline: 'none',
-            }}
-            onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(79, 140, 255, 0.3)'}
-            onBlur={(e) => e.target.style.boxShadow = 'none'}
+            className="ctl-input"
             required
           />
         </div>
-        
+
         <div className="mb-6">
-          <label htmlFor="password" className="block text-text-primary font-medium mb-2">
+          <label htmlFor="password" className="mb-1.5 block text-sm font-medium" style={{ color: 'var(--d-ink)' }}>
             Password
           </label>
           <input
             type="password"
             id="password"
             name="password"
+            autoComplete="current-password"
             value={password}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            style={{ 
-              outline: 'none',
-            }}
-            onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px rgba(79, 140, 255, 0.3)'}
-            onBlur={(e) => e.target.style.boxShadow = 'none'}
+            className="ctl-input"
             required
           />
         </div>
-        
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: '100%', 
-            background: 'linear-gradient(to right, #4F8CFF, #9F5CFF)',
-            color: 'white',
-            padding: '0.5rem 1rem',
-            borderRadius: '0.375rem',
-            opacity: loading ? '0.5' : '1',
-            transition: 'opacity 150ms'
-          }}
-          className="focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Signing in...' : 'Sign In'}
+
+        <button type="submit" disabled={loading} className="btn-primary w-full">
+          {loading ? 'Signing in...' : 'Sign in'}
         </button>
       </form>
-      
-      <div className="mt-4 text-center">
-        <Link 
-          href="/forgot-password" 
-          style={{ color: '#4F8CFF' }}
-          className="hover:opacity-80 transition-opacity"
-        >
-          Forgot your password?
+
+      <div className="mt-5 flex items-center justify-between text-sm">
+        <Link href="/forgot-password" className="font-medium hover:underline" style={{ color: 'var(--d-accent-ink)' }}>
+          Forgot password?
+        </Link>
+        <Link href="/preview/signup" className="font-medium hover:underline" style={{ color: 'var(--d-accent-ink)' }}>
+          Create an account
         </Link>
       </div>
     </div>

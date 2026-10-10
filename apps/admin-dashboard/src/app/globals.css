@@ -1,32 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
+@import "../design/tokens.css";
 
 @theme {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --syntropi-blue: #5449DE;
-  --syntropi-purple: #B63FDE;
-  --syntropi-border: #E5E7EB;
-  --syntropi-soft-lavender: #F5F3FF;
-  --text-secondary: #4A4A4A;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .card-body-scroll {
@@ -34,28 +11,7 @@ body {
   overflow-y: auto;
 }
 
-.btn-gradient {
-  background-image: linear-gradient(to right, var(--syntropi-blue), var(--syntropi-purple));
-  color: white;
-  transition: opacity 0.2s ease;
-}
-
-.btn-gradient:hover {
-  opacity: 0.9;
-}
-
-.btn-secondary {
-  background-color: white;
-  border: 1px solid var(--syntropi-border);
-  color: var(--text-secondary);
-  transition: background-color 0.2s ease;
-}
-
-.btn-secondary:hover {
-  background-color: var(--syntropi-soft-lavender);
-}
-
-/* Animation classes */
+/* Toast animations used by react-hot-toast wrappers */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -84,10 +40,4 @@ body {
 
 .animate-fadeOut {
   animation: fadeOut 0.3s ease-in forwards;
-}
-
-/* Backdrop blur transition */
-.backdrop-blur-sm {
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
 }
