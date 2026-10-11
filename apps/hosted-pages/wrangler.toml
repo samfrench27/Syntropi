@@ -2,8 +2,9 @@ name = "syntropi-pay"
 main = "worker.mjs"
 compatibility_date = "2026-10-01"
 
-# Until pay.syntropi.co.uk is free to use (the old Vercel record is removed), this is served on workers.dev.
-workers_dev = true
+# Public address. Cloudflare creates the DNS record and certificate itself.
+routes = [{ pattern = "pay.syntropi.co.uk", custom_domain = true }]
+workers_dev = false
 preview_urls = false
 
 # The static export, built with: NEXT_PUBLIC_API_URL=https://api.syntropi.co.uk npm run build

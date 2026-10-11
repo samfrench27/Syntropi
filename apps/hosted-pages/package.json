@@ -8,7 +8,8 @@
     "start": "node scripts/serve.mjs",
     "check-types": "tsc --noEmit",
     "test": "node --test test/",
-    "e2e": "node e2e/flow.mjs"
+    "e2e": "node e2e/flow.mjs",
+    "build:prod": "NEXT_PUBLIC_USE_MOCK_DATA=false NEXT_PUBLIC_API_URL=https://api.syntropi.co.uk next build"
   },
   "dependencies": {
     "lucide-react": "^0.294.0",

@@ -2,7 +2,9 @@ import type { Bank, InitiateResult, PaymentSession } from '@/types/payment';
 import { errorKind } from './logic.mjs';
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8787').replace(/\/+$/, '');
-export const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
+// Sample data is for local design work only. A production build can never use it, even if a stray
+// .env.local on the build machine asks for it (this once shipped sample data to the live page).
+export const USE_MOCK_DATA = process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
 
 const TIMEOUT_MS = 15000;
 
