@@ -8,6 +8,9 @@ import Card from '@/components/admin/Card';
 import { userAPI, organizationAPI } from '@/lib/api';
 import { isSuperAdmin } from '@/lib/auth';
 
+import { describeFailures, evaluatePassword } from '@repo/password-policy';
+import PasswordInput from '@/components/auth/PasswordInput';
+import PasswordStrength from '@/components/auth/PasswordStrength';
 interface Organization {
   _id: string;
   name: string;
@@ -31,6 +34,9 @@ function CreateUserPageContent() {
     role: 'user',
     organizationId: '',
   });
+
+  // The same rules the API enforces; only applied when a password is set (otherwise they get an invitation)
+  const policy = evaluatePassword(formData.password, { email: formData.email, names: [formData.firstName, formData.lastName] });
 
   useEffect(() => {
     // Check if there's an organization pre-selected from URL params
@@ -71,6 +77,11 @@ function CreateUserPageContent() {
     setError(null);
 
     // Validate passwords match
+    if (formData.password && !policy.acceptable) {
+      setError(describeFailures(policy) || 'Choose a stronger password.');
+      setLoading(false);
+      return;
+    }
     if (formData.password && formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);
@@ -181,24 +192,25 @@ function CreateUserPageContent() {
                     <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                       Password (optional)
                     </label>
-                    <input
-                      type="password"
+                    <PasswordInput
                       id="password"
+                      aria-describedby={formData.password ? "password-guidance" : undefined}
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    minLength={8}
                     />
-                    <p className="text-xs text-gray-500 mt-1">Leave blank and we will email them an invitation to choose their own password. Or set one now (at least 8 characters).</p>
+                    <p className="text-xs text-gray-500 mt-1">Leave blank and we will email them an invitation to choose their own password. Or set one now.</p>
+                    {formData.password && (
+                      <PasswordStrength id="password-guidance" password={formData.password} email={formData.email} names={[formData.firstName, formData.lastName]} />
+                    )}
                   </div>
                   
                   <div>
                     <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
                       Confirm password
                     </label>
-                    <input
-                      type="password"
+                    <PasswordInput
                       id="confirmPassword"
                       name="confirmPassword"
                       value={formData.confirmPassword}

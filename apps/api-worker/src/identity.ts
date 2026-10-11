@@ -20,6 +20,8 @@ export interface Identity {
   /** Block or allow sign-in. */
   setActive(id: string, active: boolean): Promise<void>;
   deleteUser(id: string): Promise<void>;
+  /** Email a link to choose a new password. The link itself is never returned to the caller. */
+  sendPasswordReset(input: { email: string; redirectTo: string }): Promise<void>;
 }
 
 export function createSupabaseIdentity(
@@ -79,6 +81,14 @@ export function createSupabaseIdentity(
     async deleteUser(id) {
       const { error } = await admin.deleteUser(id);
       if (error) fail('Could not delete user', error.message);
+    },
+
+    async sendPasswordReset({ email, redirectTo }) {
+      const { error } = await anon.resetPasswordForEmail(email, { redirectTo });
+      if (error) {
+        if (error.status === 429) throw new ApiError('Too many reset emails were sent. Try again in a few minutes.', 429);
+        throw new ApiError('We could not send the reset email. Try again.', 502);
+      }
     },
   };
 }

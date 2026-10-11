@@ -20,6 +20,7 @@
     "wrangler": "^4.149.0"
   },
   "dependencies": {
+    "@repo/password-policy": "^0.1.0",
     "@supabase/auth-js": "^2.117.3",
     "hono": "^4.13.13",
     "jose": "^6.2.12",

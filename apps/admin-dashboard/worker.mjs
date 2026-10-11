@@ -26,6 +26,11 @@ export default {
         }
       }
     }
-    return env.ASSETS.fetch(request);
+    const response = await env.ASSETS.fetch(request);
+    if (response.status !== 404) return response;
+
+    // Unknown path: show the app's own "not found" page, with the right status
+    const page = await env.ASSETS.fetch(new Request(new URL('/404.html', url)));
+    return new Response(page.body, { status: 404, headers: page.headers });
   },
 };

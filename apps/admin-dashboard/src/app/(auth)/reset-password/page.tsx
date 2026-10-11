@@ -3,8 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabaseAuth } from '@/lib/supabase';
+import { supabaseAuth, describeAuthError } from '@/lib/supabase';
 import { homeFor, useAuth } from '@/contexts/AuthContext';
+import { describeFailures, evaluatePassword } from '@repo/password-policy';
+import PasswordInput from '@/components/auth/PasswordInput';
+import PasswordStrength from '@/components/auth/PasswordStrength';
 
 type Phase = 'checking' | 'ready' | 'expired';
 
@@ -20,6 +23,7 @@ export default function ResetPasswordPage() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [email, setEmail] = useState<string | undefined>();
 
   useEffect(() => {
     let settled = false;
@@ -32,7 +36,10 @@ export default function ResetPasswordPage() {
       if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') ready();
     });
     supabaseAuth.getSession().then(({ data }) => {
-      if (data.session) ready();
+      if (data.session) {
+        setEmail(data.session.user.email ?? undefined);
+        ready();
+      }
     });
     // No session after a moment means the link was used already or has expired
     const timer = setTimeout(() => !settled && setPhase('expired'), 4000);
@@ -43,19 +50,21 @@ export default function ResetPasswordPage() {
     };
   }, []);
 
+  // The same rules the API and Supabase enforce, shown as the person types
+  const policy = evaluatePassword(password, { email });
+  const mismatch = confirm.length > 0 && password !== confirm;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (!policy.acceptable) return setError(describeFailures(policy) || 'Choose a stronger password.');
     if (password !== confirm) return setError('The two passwords don’t match.');
-    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
-      return setError('Use at least 8 characters, with a lowercase letter, an uppercase letter and a number.');
-    }
 
     setSaving(true);
     const { error: updateError } = await supabaseAuth.updateUser({ password });
     if (updateError) {
       setSaving(false);
-      return setError(updateError.message);
+      return setError(describeAuthError(updateError));
     }
     const profile = await refreshUser().catch(() => undefined);
     router.push(profile ? homeFor(profile.role) : '/login');
@@ -91,7 +100,7 @@ export default function ResetPasswordPage() {
         Choose a password
       </h1>
       <p className="mb-6 text-sm" style={{ color: 'var(--d-ink-2)' }}>
-        At least 8 characters, with upper and lower case letters and a number.
+        Choose something only you would know. Longer is better.
       </p>
 
       {error && (
@@ -112,12 +121,37 @@ export default function ResetPasswordPage() {
         <label htmlFor="password" className="mb-1.5 block text-sm font-medium" style={{ color: 'var(--d-ink)' }}>
           New password
         </label>
-        <input id="password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} className="ctl-input mb-4" required />
-        <label htmlFor="confirm" className="mb-1.5 block text-sm font-medium" style={{ color: 'var(--d-ink)' }}>
+        <PasswordInput
+          id="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="ctl-input"
+          aria-describedby="password-guidance"
+          required
+        />
+        <PasswordStrength id="password-guidance" password={password} email={email} />
+
+        <label htmlFor="confirm" className="mb-1.5 mt-5 block text-sm font-medium" style={{ color: 'var(--d-ink)' }}>
           Confirm password
         </label>
-        <input id="confirm" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className="ctl-input mb-5" required />
-        <button type="submit" disabled={saving} className="btn-primary w-full">
+        <PasswordInput
+          id="confirm"
+          autoComplete="new-password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          className="ctl-input"
+          aria-invalid={mismatch}
+          aria-describedby={mismatch ? 'confirm-error' : undefined}
+          required
+        />
+        {mismatch && (
+          <p id="confirm-error" role="alert" className="mt-1.5 text-sm" style={{ color: 'var(--d-bad-ink)' }}>
+            The two passwords don’t match.
+          </p>
+        )}
+        <div className="mb-5" />
+        <button type="submit" disabled={saving || !policy.acceptable || password !== confirm} className="btn-primary w-full">
           {saving ? 'Saving...' : 'Save password'}
         </button>
       </form>

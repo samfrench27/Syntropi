@@ -3,14 +3,17 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { authAPI } from '@/lib/api';
-
-const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+import { describeFailures, evaluatePassword } from '@repo/password-policy';
+import PasswordInput from '@/components/auth/PasswordInput';
+import PasswordStrength from '@/components/auth/PasswordStrength';
 
 export default function SignupPage() {
   const [form, setForm] = useState({ firstName: '', lastName: '', companyName: '', email: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  // The same rules the API enforces, shown as the person types
+  const policy = evaluatePassword(form.password, { email: form.email, names: [form.firstName, form.lastName] });
 
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
@@ -19,8 +22,8 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!PASSWORD_RULE.test(form.password)) {
-      return setError('Use at least 8 characters, with a lowercase letter, an uppercase letter and a number.');
+    if (!policy.acceptable) {
+      return setError(describeFailures(policy) || 'Choose a stronger password.');
     }
     setLoading(true);
     try {
@@ -97,8 +100,22 @@ export default function SignupPage() {
         </div>
         {field('companyName', 'Company name', 'text', 'organization')}
         {field('email', 'Work email', 'email', 'email')}
-        {field('password', 'Password', 'password', 'new-password')}
-        <button type="submit" disabled={loading} className="btn-primary mt-1 w-full">
+        <div className="mb-4">
+          <label htmlFor="password" className="mb-1.5 block text-sm font-medium" style={{ color: 'var(--d-ink)' }}>
+            Password
+          </label>
+          <PasswordInput
+            id="password"
+            autoComplete="new-password"
+            value={form.password}
+            onChange={set('password')}
+            className="ctl-input"
+            aria-describedby="password-guidance"
+            required
+          />
+          <PasswordStrength id="password-guidance" password={form.password} email={form.email} names={[form.firstName, form.lastName]} />
+        </div>
+        <button type="submit" disabled={loading || !policy.acceptable} className="btn-primary mt-1 w-full">
           {loading ? 'Creating account...' : 'Create account'}
         </button>
       </form>

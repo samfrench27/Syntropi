@@ -41,6 +41,12 @@ export function describeAuthError(error: { message: string; code?: string }): st
   if (error.code === 'invalid_credentials' || /invalid login/i.test(error.message)) {
     return 'That email and password don’t match. Check them and try again.';
   }
+  if (error.code === 'weak_password' || /password (should|must)|weak password/i.test(error.message)) {
+    return 'That password isn’t strong enough. Use at least 12 characters with upper and lower case letters and a number, and avoid common passwords.';
+  }
+  if (error.code === 'same_password' || /different from the old/i.test(error.message)) {
+    return 'Choose a password you haven’t used before for this account.';
+  }
   if (/rate limit|too many/i.test(error.message)) {
     return 'Too many attempts. Wait a few minutes and try again.';
   }

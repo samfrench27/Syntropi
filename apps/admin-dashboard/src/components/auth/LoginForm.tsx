@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import PasswordInput from '@/components/auth/PasswordInput';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -97,8 +98,7 @@ export default function LoginForm() {
           <label htmlFor="password" className="mb-1.5 block text-sm font-medium" style={{ color: 'var(--d-ink)' }}>
             Password
           </label>
-          <input
-            type="password"
+          <PasswordInput
             id="password"
             name="password"
             autoComplete="current-password"

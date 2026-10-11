@@ -11,4 +11,6 @@ preview_urls = false
 [assets]
 directory = "./out"
 binding = "ASSETS"
-not_found_handling = "404-page"
+# Do NOT set not_found_handling here. With it set, Cloudflare answers a browser's page request for an
+# unknown path with the 404 page and never runs worker.mjs, so the pages with an id in the address
+# (which need the Worker's rewrite) show "not found". The Worker serves the 404 page itself.

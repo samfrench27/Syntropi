@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createTestApp, type TestApp } from './helpers/app';
+import { createTestApp, STRONG_PASSWORD, type TestApp } from './helpers/app';
 import { addActivity, seedPeople, type People } from './admin-fixtures';
 
 let t: TestApp;
@@ -11,7 +11,7 @@ beforeEach(async () => {
 
 const newUser = (org: string, over: Record<string, unknown> = {}) => ({
   email: 'New.Hire@acme.test',
-  password: 'Passw0rd!x',
+  password: STRONG_PASSWORD,
   firstName: 'New',
   lastName: 'Hire',
   role: 'user',
@@ -121,6 +121,20 @@ describe('POST /api/admin/users', () => {
     for (const bad of [{ email: 'nope' }, { password: 'short' }, { role: 'superadmin' }, { firstName: '' }, { organizationId: 'x' }]) {
       expect((await t.request('POST', '/api/admin/users', { user: p.userA, body: newUser(p.orgA, bad) })).status).toBe(400);
     }
+  });
+
+  it('holds an admin-set password to the same rules as signup, and still allows no password (an invite)', async () => {
+    for (const password of ['short', 'Password1234', 'alllowercase-longer-77', 'NewHire-Lamps-77']) {
+      const { status, json } = await t.request('POST', '/api/admin/users', { user: p.userA, body: newUser(p.orgA, { password }) });
+      expect(status, password).toBe(400);
+      expect(json.error.code, password).toBe('WEAK_PASSWORD');
+    }
+    expect(t.fake.calls).not.toContain('createUser:password');
+    expect(await t.rows(`select 1 from profiles where email = 'new.hire@acme.test'`)).toHaveLength(0);
+
+    const invite = await t.request('POST', '/api/admin/users', { user: p.userA, body: newUser(p.orgA, { password: undefined }) });
+    expect(invite.status).toBe(201);
+    expect(t.fake.calls).toContain('createUser:invite');
   });
 
   it('creates nothing when Supabase fails', async () => {

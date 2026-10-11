@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { assertStrongPassword } from '../../lib/password';
 import { ApiError, ok, pageInfo, pagination, validate, valid } from '../../http';
 import { authenticate, authorizeAdmin, canAccessOrganization } from '../../middleware/auth';
 import { logActivity } from '../../lib/activity';
@@ -66,7 +67,7 @@ usersRoutes.get('/:id', validate('param', idParam), async (c) => {
 const createSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
   // Optional: without a password the new user is emailed an invite to set their own
-  password: z.string().min(8).max(200).optional().or(z.literal('').transform(() => undefined)),
+  password: z.string().max(256).optional().or(z.literal('').transform(() => undefined)),
   firstName: z.string().trim().min(1).max(100),
   lastName: z.string().trim().min(1).max(100),
   role: z.enum(['admin', 'user']),
@@ -80,6 +81,8 @@ usersRoutes.post('/', validate('json', createSchema), async (c) => {
 
   // Tenant check first: an org admin can only add people to their own organization
   orgScope(c, body.organizationId);
+
+  if (body.password) assertStrongPassword(body.password, { email: body.email, names: [body.firstName, body.lastName] });
 
   const [org] = await db.query<{ id: string; name: string }>(`select id, name from organizations where id = $1`, [body.organizationId]);
   if (!org) throw new ApiError('Organization not found', 404);
@@ -234,6 +237,32 @@ usersRoutes.delete('/:id', validate('param', idParam), async (c) => {
   });
 
   return ok(c, undefined, 'User deleted successfully');
+});
+
+// Send the person a link to choose a new password. The admin never sees or sets anyone's password.
+// Same reach as editing: org admins only for non-admin people in their own organization.
+usersRoutes.post('/:id/send-password-reset', validate('param', idParam), async (c) => {
+  const { db, identity, config } = c.get('deps');
+  const actor = c.get('user');
+  const { id } = valid<{ id: string }>(c, 'param');
+
+  const target = await findVisibleUser(c, id); // 404 for anyone outside the caller's organization
+  if (actor.role !== 'superadmin' && target.role === 'admin') throw new ApiError('You cannot reset an admin\'s password', 403);
+
+  // A few per person per hour, so this cannot be used to flood someone's inbox
+  const [{ allowed }] = await db.query<{ allowed: boolean }>(`select rate_limit_hit($1, 3600, 3) as allowed`, [`admin-reset:${id}`]);
+  if (!allowed) throw new ApiError('A reset email was already sent to this person a few times. Try again later.', 429);
+
+  await identity.sendPasswordReset({ email: target.email, redirectTo: `${config.dashboardUrl}/reset-password` });
+
+  await logActivity(c, {
+    userId: actor.userId,
+    organizationId: actor.organizationId,
+    action: 'admin.user.password_reset_sent',
+    details: { userId: id, email: target.email },
+  });
+
+  return ok(c, { sent: true }, 'Password reset email sent');
 });
 
 usersRoutes.get('/:id/activities', validate('param', idParam), async (c) => {

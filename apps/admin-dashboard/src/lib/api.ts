@@ -121,6 +121,9 @@ export const userAPI = {
   }) => api.get('/admin/users', { params }),
   
   getUser: (id: string) => api.get(`/admin/users/${id}`),
+
+  // Emails the person a link to choose a new password. Admins never see or set anyone's password.
+  sendPasswordReset: (id: string) => api.post(`/admin/users/${id}/send-password-reset`),
   
   createUser: (userData: {
     email: string;

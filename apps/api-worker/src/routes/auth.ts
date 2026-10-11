@@ -4,6 +4,7 @@ import { ApiError, ok, validate, valid } from '../http';
 import { authenticate } from '../middleware/auth';
 import { rateLimit } from '../middleware/rateLimit';
 import { logActivity } from '../lib/activity';
+import { assertStrongPassword } from '../lib/password';
 import type { AppEnv } from '../types';
 
 export const authRoutes = new Hono<AppEnv>();
@@ -37,12 +38,8 @@ authRoutes.get('/me', authenticate, async (c) => {
 
 const signupSchema = z.object({
   email: z.string().trim().email(),
-  password: z
-    .string()
-    .min(8)
-    .regex(/[a-z]/, 'needs a lowercase letter')
-    .regex(/[A-Z]/, 'needs an uppercase letter')
-    .regex(/[0-9]/, 'needs a number'),
+  // The strength rules live in assertStrongPassword (shared with the dashboard); this only bounds the size
+  password: z.string().min(1).max(256),
   firstName: z.string().trim().min(1).max(100),
   lastName: z.string().trim().min(1).max(100),
   companyName: z.string().trim().min(1).max(200),
@@ -63,6 +60,9 @@ authRoutes.post(
     const { identity, db, config } = c.get('deps');
     const body = valid<z.infer<typeof signupSchema>>(c, 'json');
     const email = body.email.toLowerCase();
+
+    // Checked before anything else, so a weak password never reaches the identity provider
+    assertStrongPassword(body.password, { email, names: [body.firstName, body.lastName] });
 
     const respond = () => ok(c, { emailConfirmationRequired: true }, 'Check your email to confirm your account.', 201);
 

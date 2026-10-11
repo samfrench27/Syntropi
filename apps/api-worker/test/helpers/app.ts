@@ -10,6 +10,9 @@ import { createTestDb, seedTenants } from './db';
 export const SUPABASE_URL = 'https://test-project.supabase.co';
 export const ISSUER = `${SUPABASE_URL}/auth/v1`;
 
+/** A password that passes the policy (12+ characters, mixed case, a number, not common). */
+export const STRONG_PASSWORD = 'Quiet-Harbor-Lamps-71';
+
 export function pgliteDb(pg: PGlite): Db {
   const wrap = (runner: Pick<PGlite, 'query'>): Db => ({
     query: async (text, params = []) => (await runner.query(text, params as any[])).rows as any,
@@ -24,6 +27,7 @@ export function fakeIdentity(db: Db) {
   const metadata = new Map<string, AppMetadata>();
   const banned = new Set<string>();
   const calls: string[] = [];
+  const resets: { email: string; redirectTo: string }[] = [];
   const failures: Record<string, Error | undefined> = {};
 
   const maybeFail = (name: string) => {
@@ -57,6 +61,11 @@ export function fakeIdentity(db: Db) {
       maybeFail('setActive');
       active ? banned.delete(id) : banned.add(id);
     },
+    async sendPasswordReset({ email, redirectTo }) {
+      calls.push('sendPasswordReset');
+      maybeFail('sendPasswordReset');
+      resets.push({ email, redirectTo });
+    },
     async deleteUser(id) {
       calls.push('deleteUser');
       maybeFail('deleteUser');
@@ -65,7 +74,7 @@ export function fakeIdentity(db: Db) {
     },
   };
 
-  return { identity, registered, metadata, banned, calls, failures };
+  return { identity, registered, metadata, banned, calls, resets, failures };
 }
 
 export interface TokenOptions {

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createTestApp, ISSUER, type TestApp } from './helpers/app';
+import { createTestApp, ISSUER, STRONG_PASSWORD, type TestApp } from './helpers/app';
 
 let t: TestApp;
 beforeEach(async () => {
@@ -67,7 +67,7 @@ describe('authenticate (Supabase access tokens)', () => {
 });
 
 describe('POST /api/auth/signup', () => {
-  const body = { email: 'New@Example.test', password: 'Passw0rdOK', firstName: 'Ada', lastName: 'Lovelace', companyName: 'Analytical Co' };
+  const body = { email: 'New@Example.test', password: STRONG_PASSWORD, firstName: 'Ada', lastName: 'Lovelace', companyName: 'Analytical Co' };
   const leftovers = async () =>
     (await t.rows(`select (select count(*) from organizations where name = 'Analytical Co')::int as orgs, (select count(*) from profiles where lower(email) = 'new@example.test')::int as profiles`))[0];
 
@@ -111,13 +111,49 @@ describe('POST /api/auth/signup', () => {
     expect(t.fake.calls).toContain('deleteUser');
   });
 
-  it('rejects weak passwords and bad input with a 400', async () => {
-    for (const bad of [{ password: 'weak' }, { password: 'alllowercase1' }, { email: 'not-an-email' }, { companyName: '' }]) {
+  it('rejects bad input with a 400', async () => {
+    for (const bad of [{ email: 'not-an-email' }, { companyName: '' }, { firstName: '' }]) {
       const { status, json } = await t.request('POST', '/api/auth/signup', { body: { ...body, ...bad } });
       expect(status).toBe(400);
       expect(json.error.message).toBe('Validation failed');
     }
     expect(t.fake.calls).not.toContain('signUp');
+  });
+
+  it('rejects a weak password with WEAK_PASSWORD, says what is missing, and never reaches the identity provider', async () => {
+    const { status, json } = await t.request('POST', '/api/auth/signup', { body: { ...body, password: 'short' } });
+    expect(status).toBe(400);
+    expect(json.error.code).toBe('WEAK_PASSWORD');
+    expect(json.error.details).toEqual(expect.arrayContaining(['length', 'uppercase', 'number']));
+    expect(json.error.message).toMatch(/^Your password needs:/);
+    // 11 characters, one short of the minimum
+    const eleven = await t.request('POST', '/api/auth/signup', { body: { ...body, password: 'Harbor-Lam1' } });
+    expect(eleven.status).toBe(400);
+    expect(eleven.json.error.details).toEqual(['length']);
+    expect(t.fake.calls).not.toContain('signUp');
+    expect(await leftovers()).toEqual({ orgs: 0, profiles: 0 });
+  });
+
+  it('rejects commonly used passwords however they are dressed up', async () => {
+    for (const password of ['Password1234', 'p@ssw0rd1234', 'Qwerty123456', 'Welcome12345!']) {
+      const { status, json } = await t.request('POST', '/api/auth/signup', { body: { ...body, password } });
+      expect(status, password).toBe(400);
+      expect(json.error.details, password).toContain('common');
+    }
+  });
+
+  it('rejects a password built from the email name or the person\'s name', async () => {
+    const byName = await t.request('POST', '/api/auth/signup', { body: { ...body, password: 'Lovelace-Harbor-77' } });
+    expect(byName.status).toBe(400);
+    expect(byName.json.error.details).toContain('personal');
+    const byEmail = await t.request('POST', '/api/auth/signup', { body: { ...body, email: 'quiet.harbor@example.test', password: 'Quiet.Harbor-Lamps-77' } });
+    expect(byEmail.status).toBe(400);
+    expect(byEmail.json.error.details).toContain('personal');
+  });
+
+  it('accepts exactly 12 characters with the right mix, and no symbol is needed', async () => {
+    const { status } = await t.request('POST', '/api/auth/signup', { body: { ...body, password: 'HarborLamps7' } });
+    expect(status).toBe(201);
   });
 
   it('limits repeated signups from one caller', async () => {

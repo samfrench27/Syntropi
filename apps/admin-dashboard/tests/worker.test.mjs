@@ -27,3 +27,20 @@ test('leaves the create pages and everything else to the static files', async ()
   assert.equal(await get('/login/'), '/login/');
   assert.equal(await get('/platform-admin/users/abc/extra'), '/platform-admin/users/abc/extra');
 });
+
+test('serves the app\'s own 404 page, with a 404 status, for an unknown path', async () => {
+  const assets = { fetch: async (req) => {
+    const path = new URL(req.url).pathname;
+    return path === '/404.html' ? new Response('not found page', { status: 200, headers: { 'content-type': 'text/html' } }) : new Response('missing', { status: 404 });
+  } };
+  const res = await worker.fetch(new Request('https://dash.example/nope/'), { ASSETS: assets });
+  assert.equal(res.status, 404);
+  assert.equal(await res.text(), 'not found page');
+  assert.equal(res.headers.get('content-type'), 'text/html');
+});
+
+test('passes a found file through untouched', async () => {
+  const res = await worker.fetch(new Request('https://dash.example/login/'), { ASSETS: { fetch: async () => new Response('login page', { status: 200 }) } });
+  assert.equal(res.status, 200);
+  assert.equal(await res.text(), 'login page');
+});
