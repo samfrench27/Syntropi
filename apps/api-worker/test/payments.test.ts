@@ -73,7 +73,8 @@ describe('creating payments', () => {
     const res = await api('POST', '/api/payments', keyA, body());
     expect(res.status).toBe(201);
     const d = res.json.data;
-    expect(d).toMatchObject({ status: 'AUTHORIZING', provider: 'mock', amount: { value: '10.50', currency: 'GBP' }, hostedPageUrl: null });
+    expect(d).toMatchObject({ status: 'AUTHORIZING', provider: 'mock', amount: { value: '10.50', currency: 'GBP' } });
+    expect(d).not.toHaveProperty('hostedPageUrl');
     expect(d.paymentId).toMatch(/^pay_[0-9a-f]{28}$/);
 
     const url = new URL(d.redirectUrl);
@@ -387,9 +388,16 @@ describe('tenant isolation', () => {
 describe('hosted payment pages', () => {
   const create = async (over: Record<string, unknown> = {}) => (await api('POST', '/api/payments', keyA, body({ flowType: 'HOSTED_PAGES', redirectUrl: 'https://shop.test/return', ...over }))).json.data;
 
+  it('returns the hosted page as the one redirectUrl and does not start the bank flow yet', async () => {
+    const d = await create();
+    expect(d.redirectUrl).toContain('/sessions/');
+    expect(d).not.toHaveProperty('hostedPageUrl');
+    expect(d.status).toBe('PENDING');
+  });
+
   it('returns a hosted page URL whose token opens exactly that payment', async () => {
     const d = await create();
-    const url = new URL(d.hostedPageUrl);
+    const url = new URL(d.redirectUrl);
     expect(url.origin + url.pathname).toBe(`http://localhost:3001/sessions/${d.paymentId}`);
     expect(url.searchParams.get('redirect_uri')).toBe('https://shop.test/return');
 
@@ -424,7 +432,7 @@ describe('hosted payment pages', () => {
     const token = await hostedToken(d.paymentId, t.ids.orgA);
     const res = await t.request('GET', `/api/payments/${d.paymentId}/status`, { token });
     expect(res.status).toBe(200);
-    expect(res.json.data.status).toBe('AUTHORIZING');
+    expect(res.json.data.status).toBe('PENDING');
     expect((await t.request('GET', `/api/payments/pay_a1/status`, { token })).status).toBe(403);
     expect((await t.request('GET', `/api/payments/${d.paymentId}/status`)).status).toBe(401);
   });
@@ -449,7 +457,7 @@ describe('hosted payment pages', () => {
     await grant(t.ids.orgA, 'token');
     const d = await create({ provider: 'token' });
     expect(d.status).toBe('PENDING');
-    expect(d.redirectUrl).toBeNull();
+    expect(d.redirectUrl).toContain('/sessions/');
     expect(calls).toEqual([]);
 
     const token = await hostedToken(d.paymentId, t.ids.orgA);

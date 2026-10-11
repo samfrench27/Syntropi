@@ -94,9 +94,9 @@ export async function setup() {
       },
     });
     const data = r.json.data;
-    if (!data?.hostedPageUrl) throw new Error(`Could not create payment (${r.status}): ${JSON.stringify(r.json.error || r.json).slice(0, 200)}`);
-    const url = new URL(data.hostedPageUrl);
-    return { paymentId: data.paymentId, token: url.searchParams.get('token'), hostedPageUrl: data.hostedPageUrl, response: data };
+    if (!data?.redirectUrl) throw new Error(`Could not create payment (${r.status}): ${JSON.stringify(r.json.error || r.json).slice(0, 200)}`);
+    const url = new URL(data.redirectUrl);
+    return { paymentId: data.paymentId, token: url.searchParams.get('token'), hostedPageUrl: data.redirectUrl, response: data };
   }
 
   /** Approve or reject on the Mock bank through the API (the Mock bank page does the same from its buttons). */

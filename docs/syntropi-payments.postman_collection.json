@@ -96,7 +96,7 @@
               "const j = pm.response.json();",
               "pm.test('Payment created', () => pm.response.to.have.status(201));",
               "if (j.data && j.data.paymentId) { pm.collectionVariables.set('paymentId', j.data.paymentId); }",
-              "console.log('Open this to pay:', (j.data && (j.data.hostedPageUrl || j.data.redirectUrl)));"
+              "console.log('Open this to pay:', (j.data && j.data.redirectUrl));"
             ]
           }
         }
@@ -121,7 +121,7 @@
             "payments"
           ]
         },
-        "description": "Same, but the customer chooses a bank on Syntropi's hosted page. Open `hostedPageUrl` from the response.",
+        "description": "Same, but the customer chooses a bank on Syntropi's hosted page. Open `redirectUrl` from the response.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"toAccount\": {\n    \"accountName\": \"Acme Coffee Roasters Ltd\",\n    \"sortCode\": \"04-00-04\",\n    \"accountNumber\": \"12345678\"\n  },\n  \"amount\": {\n    \"value\": \"25.00\",\n    \"currency\": \"GBP\"\n  },\n  \"reference\": \"Order 1002\",\n  \"flowType\": \"HOSTED_PAGES\",\n  \"redirectUrl\": \"https://example.com/thanks\"\n}",
@@ -141,7 +141,7 @@
               "const j = pm.response.json();",
               "pm.test('Payment created', () => pm.response.to.have.status(201));",
               "if (j.data && j.data.paymentId) { pm.collectionVariables.set('paymentId', j.data.paymentId); }",
-              "console.log('Open this to pay:', (j.data && (j.data.hostedPageUrl || j.data.redirectUrl)));"
+              "console.log('Open this to pay:', (j.data && j.data.redirectUrl));"
             ]
           }
         }
@@ -186,7 +186,7 @@
               "const j = pm.response.json();",
               "pm.test('Payment created', () => pm.response.to.have.status(201));",
               "if (j.data && j.data.paymentId) { pm.collectionVariables.set('paymentId', j.data.paymentId); }",
-              "console.log('Open this to pay:', (j.data && (j.data.hostedPageUrl || j.data.redirectUrl)));"
+              "console.log('Open this to pay:', (j.data && j.data.redirectUrl));"
             ]
           }
         }

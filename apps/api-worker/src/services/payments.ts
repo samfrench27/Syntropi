@@ -356,7 +356,7 @@ export async function createPayment(deps: AppDeps, ctx: { organizationId: string
     throw new ApiError('Hosted pages are not configured', 503, 'HOSTED_PAGES_NOT_CONFIGURED');
   }
   // With hosted pages the customer picks the bank, so the provider is only called once they have
-  const deferred = flowType === 'HOSTED_PAGES' && !input.bankId && code !== MOCK_PROVIDER;
+  const deferred = flowType === 'HOSTED_PAGES' && !input.bankId;
 
   const paymentId = `pay_${randomId(14)}`;
   const now = deps.now();
@@ -398,8 +398,9 @@ export async function createPayment(deps: AppDeps, ctx: { organizationId: string
   return {
     paymentId: fresh.payment_id,
     status: fresh.status,
-    redirectUrl: redirectUrl ?? null,
-    hostedPageUrl: flowType === 'API_ONLY' ? null : await hostedPageUrl(deps, fresh),
+    // One URL to send the customer to: Syntropi's hosted page for the hosted flows (the bank's own link is
+    // only used by the hosted page itself), or the bank's link for API_ONLY
+    redirectUrl: flowType === 'API_ONLY' ? (redirectUrl ?? null) : await hostedPageUrl(deps, fresh),
     provider: fresh.provider_code,
     bankId: fresh.bank_id ?? undefined,
     amount: amountOf(fresh),
@@ -549,6 +550,13 @@ export async function initiateHosted(deps: AppDeps, organizationId: string, inpu
   let redirectUrl: string | undefined;
   if (row.provider_code === MOCK_PROVIDER) {
     redirectUrl = await mockBankUrl(deps, toAdapterPayment(row));
+    // The customer has now chosen a bank: the payment moves on from PENDING (once, so a repeat call changes nothing)
+    if (row.status === 'PENDING') {
+      await deps.db.tx(async (tx) => {
+        await tx.query(`update payments set bank_id = coalesce($2, bank_id) where id = $1::uuid`, [row.id, input.bankId]);
+        await applyStatus(tx, deps.now(), row.id, 'AUTHORIZING', { details: 'Customer chose a bank on the hosted page' });
+      });
+    }
   } else if (row.provider_payment_id) {
     redirectUrl = row.provider_redirect_url ?? undefined;
   } else {

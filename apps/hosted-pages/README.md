@@ -10,7 +10,7 @@ payments), and sees the result. It is a **static export** (no server code) for C
 ${HOSTED_PAGES_URL}/sessions/<paymentId>?token=<payment token>
 ```
 
-`POST /api/payments` returns this as `hostedPageUrl`. The token is a short-lived (1 hour) JWT with purpose
+`POST /api/payments` returns this as `redirectUrl`. The token is a short-lived (1 hour) JWT with purpose
 `hosted-pages-access`; it only works for the payment id inside it. A `redirect_uri` query parameter may
 also be present: the page ignores it. The merchant return URL is fixed when the payment is created and comes
 back from the API (`merchant.redirectUri`).
@@ -56,7 +56,7 @@ cp .env.local.example .env.local   # NEXT_PUBLIC_API_URL, default http://127.0.0
 npm run dev                        # http://localhost:3001
 ```
 
-Open the `hostedPageUrl` returned by the API. The Worker only allows CORS from its `HOSTED_PAGES_URL`
+Open the `redirectUrl` returned by the API. The Worker only allows CORS from its `HOSTED_PAGES_URL`
 (`http://localhost:3001` locally). `NEXT_PUBLIC_USE_MOCK_DATA=true` shows fictional data without an API
 (`src/lib/mockData.ts`); there is no silent fallback to mock data otherwise.
 
@@ -88,4 +88,4 @@ NODE_PATH=<dir containing playwright-core>/node_modules node e2e/flow.mjs
 
 Build command `npm run build`, output directory `out`, with `NEXT_PUBLIC_API_URL` set to the Worker's public
 URL. The Worker's `HOSTED_PAGES_URL` must be the Pages origin (it is used for CORS and for building
-`hostedPageUrl`).
+`redirectUrl`).
