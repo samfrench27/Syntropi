@@ -31,7 +31,7 @@ export default function PasswordInput({ className = '', wrapperClassName = '', s
         aria-label={visible ? 'Hide password' : 'Show password'}
         aria-pressed={visible}
         disabled={props.disabled}
-        className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-[inherit] transition-colors hover:bg-[var(--d-accent-soft)] disabled:cursor-not-allowed disabled:opacity-50"
+        className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-full bg-transparent opacity-70 transition-opacity hover:opacity-100 focus-visible:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
         style={{ color: 'var(--d-ink-2)' }}
       >
         {visible ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
