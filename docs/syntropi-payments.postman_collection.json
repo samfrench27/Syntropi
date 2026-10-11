@@ -1,0 +1,302 @@
+{
+  "info": {
+    "name": "Syntropi payments API",
+    "description": "Make payments against the Syntropi API.\n\n1. Create an API key in the dashboard (API keys page). It is shown once.\n2. Paste it into the collection variable `apiKey` (Variables tab).\n3. Run the requests in order. Create-payment requests save `paymentId` for the later ones.\n\nNew accounts can only use the Mock bank (no real money).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "x-api-key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.syntropi.co.uk/api"
+    },
+    {
+      "key": "apiKey",
+      "value": ""
+    },
+    {
+      "key": "paymentId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. List providers I can pay with",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/payments/providers",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "payments",
+            "providers"
+          ]
+        },
+        "description": "Providers your organization is approved for. A new account only has 'mock'."
+      }
+    },
+    {
+      "name": "2. Create payment (Mock bank, API only)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/payments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "payments"
+          ]
+        },
+        "description": "Creates a payment on the Mock bank. Copy `redirectUrl` from the response into a browser, sign in with the dummy credentials shown on the page, then Approve or Reject.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"toAccount\": {\n    \"accountName\": \"Acme Coffee Roasters Ltd\",\n    \"sortCode\": \"04-00-04\",\n    \"accountNumber\": \"12345678\"\n  },\n  \"amount\": {\n    \"value\": \"12.50\",\n    \"currency\": \"GBP\"\n  },\n  \"reference\": \"Order 1001\",\n  \"flowType\": \"API_ONLY\",\n  \"redirectUrl\": \"https://example.com/thanks\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j = pm.response.json();",
+              "pm.test('Payment created', () => pm.response.to.have.status(201));",
+              "if (j.data && j.data.paymentId) { pm.collectionVariables.set('paymentId', j.data.paymentId); }",
+              "console.log('Open this to pay:', (j.data && (j.data.hostedPageUrl || j.data.redirectUrl)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Create payment (Mock bank, hosted pages)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/payments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "payments"
+          ]
+        },
+        "description": "Same, but the customer chooses a bank on Syntropi's hosted page. Open `hostedPageUrl` from the response.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"toAccount\": {\n    \"accountName\": \"Acme Coffee Roasters Ltd\",\n    \"sortCode\": \"04-00-04\",\n    \"accountNumber\": \"12345678\"\n  },\n  \"amount\": {\n    \"value\": \"25.00\",\n    \"currency\": \"GBP\"\n  },\n  \"reference\": \"Order 1002\",\n  \"flowType\": \"HOSTED_PAGES\",\n  \"redirectUrl\": \"https://example.com/thanks\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j = pm.response.json();",
+              "pm.test('Payment created', () => pm.response.to.have.status(201));",
+              "if (j.data && j.data.paymentId) { pm.collectionVariables.set('paymentId', j.data.paymentId); }",
+              "console.log('Open this to pay:', (j.data && (j.data.hostedPageUrl || j.data.redirectUrl)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Create payment (real provider, e.g. Token.io)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/payments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "payments"
+          ]
+        },
+        "description": "Only works once a Syntropi admin has approved your organization for this provider. Until then you get 403 PROVIDER_NOT_APPROVED.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"provider\": \"token\",\n  \"toAccount\": {\n    \"accountName\": \"Acme Coffee Roasters Ltd\",\n    \"sortCode\": \"04-00-04\",\n    \"accountNumber\": \"12345678\"\n  },\n  \"amount\": {\n    \"value\": \"10.00\",\n    \"currency\": \"GBP\"\n  },\n  \"reference\": \"Order 1003\",\n  \"flowType\": \"HOSTED_PAGES\",\n  \"redirectUrl\": \"https://example.com/thanks\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j = pm.response.json();",
+              "pm.test('Payment created', () => pm.response.to.have.status(201));",
+              "if (j.data && j.data.paymentId) { pm.collectionVariables.set('paymentId', j.data.paymentId); }",
+              "console.log('Open this to pay:', (j.data && (j.data.hostedPageUrl || j.data.redirectUrl)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Get payment",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/payments/{{paymentId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "payments",
+            "{{paymentId}}"
+          ]
+        },
+        "description": "Uses the paymentId saved by the last create request."
+      }
+    },
+    {
+      "name": "6. Sync payment status with the provider",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/payments/{{paymentId}}/sync",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "payments",
+            "{{paymentId}}",
+            "sync"
+          ]
+        },
+        "description": "Asks the provider for the latest status."
+      }
+    },
+    {
+      "name": "7. List payments",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/payments?limit=20&offset=0",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "payments"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "20"
+            },
+            {
+              "key": "offset",
+              "value": "0"
+            }
+          ]
+        },
+        "description": ""
+      }
+    },
+    {
+      "name": "8. Cancel payment",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/payments/{{paymentId}}/cancel",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "payments",
+            "{{paymentId}}",
+            "cancel"
+          ]
+        },
+        "description": "Only works while the payment hasn't completed."
+      }
+    },
+    {
+      "name": "List banks",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/banks?limit=20",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "banks"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "description": ""
+      }
+    }
+  ]
+}
