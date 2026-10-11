@@ -3,7 +3,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut, Menu, Moon, Sun, SunMoon } from 'lucide-react';
+import { LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun, SunMoon } from 'lucide-react';
 import RoleBasedRoute from '@/components/auth/RoleBasedRoute';
 import LoadingState from '@/components/admin/LoadingState';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,6 +33,27 @@ export default function AppShell({ area, allowedRoles, children }: AppShellProps
   const { loading: authLoading } = useAuth();
   const { currentOrganization, loading: orgLoading, error: orgError, refreshOrganization } = useOrganization();
   const needsOrg = area !== 'platform';
+
+  // Desktop only: the sidebar can shrink to an icon rail. The choice is remembered on this device.
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem('syntropi.sidebar') === 'collapsed');
+    } catch {
+      /* storage blocked: stay expanded */
+    }
+  }, []);
+  const toggleCollapsed = () =>
+    setCollapsed((c) => {
+      try {
+        localStorage.setItem('syntropi.sidebar', c ? 'expanded' : 'collapsed');
+      } catch {
+        /* not remembered, still works */
+      }
+      return !c;
+    });
+  // The mobile sheet is always the full menu
+  const rail = collapsed && !mobileOpen;
 
   // Close the mobile sheet whenever the route changes.
   useEffect(() => setMobileOpen(false), [pathname]);
@@ -65,12 +86,12 @@ export default function AppShell({ area, allowedRoles, children }: AppShellProps
           <Menu size={20} aria-hidden />
         </button>
         <aside
-          className={`glass fixed bottom-3 left-3 top-3 z-40 flex w-64 flex-col transition-transform duration-300 lg:sticky lg:top-3 lg:h-[calc(100vh-1.5rem)] lg:translate-x-0 ${
+          className={`glass fixed bottom-3 left-3 top-3 z-40 flex ${rail ? 'w-64 lg:w-[4.5rem]' : 'w-64'} shrink-0 flex-col transition-[transform,width] duration-300 lg:sticky lg:top-3 lg:h-[calc(100vh-1.5rem)] lg:translate-x-0 ${
             mobileOpen ? 'translate-x-0' : '-translate-x-[110%]'
           }`}
           style={{ borderRadius: 'var(--d-r-sheet)', transitionTimingFunction: 'var(--d-spring)' }}
         >
-          <Sidebar area={area} label={subtitle} areaLabel={label} pathname={pathname} />
+          <Sidebar area={area} label={subtitle} areaLabel={label} pathname={pathname} rail={rail} onToggle={toggleCollapsed} />
         </aside>
 
         <main className="min-w-0 flex-1 pb-6 pt-4 lg:pt-6">
@@ -129,11 +150,15 @@ function Sidebar({
   label,
   areaLabel,
   pathname,
+  rail,
+  onToggle,
 }: {
   area: Area;
   label: string;
   areaLabel: string;
   pathname: string | null;
+  rail: boolean;
+  onToggle: () => void;
 }) {
   const { items } = AREA_META[area];
   const active = activeIndex(items, pathname);
@@ -157,13 +182,27 @@ function Sidebar({
 
   return (
     <>
-      <div className="px-6 pb-3 pt-6">
-        <p className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--d-ink)' }}>
-          Syntropi
-        </p>
-        <p className="mt-0.5 text-sm" style={{ color: 'var(--d-ink-2)' }}>
-          {label}
-        </p>
+      <div className={`flex items-start pb-3 pt-6 ${rail ? 'justify-center px-2' : 'justify-between px-6'}`}>
+        {!rail && (
+          <div className="min-w-0">
+            <p className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--d-ink)' }}>
+              Syntropi
+            </p>
+            <p className="mt-0.5 truncate text-sm" style={{ color: 'var(--d-ink-2)' }}>
+              {label}
+            </p>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={rail ? 'Expand menu' : 'Collapse menu'}
+          title={rail ? 'Expand menu' : 'Collapse menu'}
+          className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100 lg:flex"
+          style={{ color: 'var(--d-ink-2)' }}
+        >
+          {rail ? <PanelLeftOpen size={19} aria-hidden /> : <PanelLeftClose size={19} aria-hidden />}
+        </button>
       </div>
 
       <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 pb-3">
@@ -191,15 +230,16 @@ function Sidebar({
                 <Link
                   href={item.href}
                   aria-current={isActive ? 'page' : undefined}
-                  className="flex items-center gap-3 px-3 py-2.5 text-[15px] font-medium transition-colors"
+                  title={rail ? item.label : undefined}
+                  className={`flex items-center gap-3 py-2.5 text-[15px] font-medium transition-colors ${rail ? 'justify-center px-0' : 'px-3'}`}
                   style={{
                     borderRadius: 'var(--d-r-ctl)',
                     color: isActive ? 'var(--d-accent-ink)' : 'var(--d-ink-2)',
                   }}
                 >
                   <Icon size={19} aria-hidden />
-                  <span className="flex-1">{item.label}</span>
-                  {item.badge === 'pendingRequests' && pending > 0 && (
+                  <span className={rail ? 'sr-only' : 'flex-1'}>{item.label}</span>
+                  {item.badge === 'pendingRequests' && pending > 0 && !rail && (
                     <span
                       className="mono min-w-[1.4rem] rounded-full px-1.5 py-0.5 text-center text-xs font-semibold"
                       style={{ background: 'var(--d-accent)', color: 'var(--d-on-accent)' }}
@@ -216,14 +256,14 @@ function Sidebar({
       </nav>
 
       <div className="p-3">
-        <UserMenu areaLabel={areaLabel} />
+        <UserMenu areaLabel={areaLabel} rail={rail} />
       </div>
     </>
   );
 }
 
 /** Account chip pinned to the sidebar footer. The popover opens upwards. */
-function UserMenu({ areaLabel }: { areaLabel: string }) {
+function UserMenu({ areaLabel, rail }: { areaLabel: string; rail: boolean }) {
   const { user, logout } = useAuth();
   const { mode, setMode } = useTheme();
   const [open, setOpen] = useState(false);
@@ -251,7 +291,7 @@ function UserMenu({ areaLabel }: { areaLabel: string }) {
       {open && (
         <div
           role="menu"
-          className="glass pop-in absolute bottom-full left-0 right-0 mb-2 p-2"
+          className={`glass pop-in absolute bottom-full left-0 mb-2 p-2 ${rail ? 'w-64' : 'right-0'}`}
           style={{ borderRadius: 'var(--d-r-panel)' }}
         >
           <div className="px-3 py-2">
@@ -299,7 +339,8 @@ function UserMenu({ areaLabel }: { areaLabel: string }) {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex w-full items-center gap-3 rounded-2xl p-2 text-left transition-colors hover:bg-[var(--d-accent-soft)]"
+        title={rail ? name : undefined}
+        className={`flex w-full items-center gap-3 rounded-2xl p-2 text-left transition-colors hover:bg-[var(--d-accent-soft)] ${rail ? 'justify-center' : ''}`}
         style={{ background: open ? 'var(--d-accent-soft)' : undefined }}
       >
         <span
@@ -309,7 +350,7 @@ function UserMenu({ areaLabel }: { areaLabel: string }) {
         >
           {initials}
         </span>
-        <span className="min-w-0 flex-1">
+        <span className={`min-w-0 flex-1 ${rail ? 'sr-only' : ''}`}>
           <span className="block truncate text-sm font-semibold" style={{ color: 'var(--d-ink)' }}>
             {name}
           </span>
