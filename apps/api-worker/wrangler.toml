@@ -3,6 +3,12 @@ main = "src/index.ts"
 compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_compat"]
 
+# The public address merchants use. Cloudflare creates the DNS record and certificate itself.
+routes = [{ pattern = "api.syntropi.co.uk", custom_domain = true }]
+# The temporary workers.dev address and preview URLs are off: the custom domain is the only way in.
+workers_dev = false
+preview_urls = false
+
 # Run the Worker next to the database, wherever the caller is. The database is in AWS eu-west-2
 # (London), and every request makes a few queries: a cross-Atlantic round trip per query would
 # cost far more than one hop from the caller to London. Smart Placement was not used because it
@@ -24,7 +30,7 @@ crons = ["0 3 * * *"]
 DASHBOARD_URL = "http://localhost:3000"
 HOSTED_PAGES_URL = "http://localhost:3001"
 MOCK_BANK_URL = "http://localhost:3002"
-API_BASE_URL = "https://syntropi-api.syntropi.workers.dev"
+API_BASE_URL = "https://api.syntropi.co.uk"
 
 # Secrets (never in this file): set with `wrangler secret put <NAME>`
 #   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, HOSTED_PAGES_JWT_SECRET,
