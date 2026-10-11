@@ -35,6 +35,12 @@ export function buildApp(deps: AppDeps) {
     c.res.headers.set('Server-Timing', `app;dur=${(performance.now() - started).toFixed(1)}`);
   });
 
+  // An API is not for search results
+  app.use('*', async (c, next) => {
+    await next();
+    c.res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  });
+
   app.use('*', secureHeaders());
   app.use(
     '*',

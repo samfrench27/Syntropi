@@ -1,5 +1,6 @@
 # The payment token is in the first address only; never send it to another site, and never cache pages.
 /*
+  X-Robots-Tag: noindex, nofollow
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer

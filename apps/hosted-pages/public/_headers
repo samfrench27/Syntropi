@@ -1,5 +1,6 @@
 # Cloudflare Pages response headers (replaces the old Next middleware).
 /*
+  X-Robots-Tag: noindex, nofollow
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   # The payment token travels in the first URL only; never leak a URL to another site.
