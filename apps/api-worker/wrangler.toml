@@ -29,7 +29,7 @@ crons = ["0 3 * * *"]
 # Where the front ends live. Localhost until the Pages sites have their own domains.
 DASHBOARD_URL = "http://localhost:3000"
 HOSTED_PAGES_URL = "http://localhost:3001"
-MOCK_BANK_URL = "http://localhost:3002"
+MOCK_BANK_URL = "https://bank.syntropi.co.uk"
 API_BASE_URL = "https://api.syntropi.co.uk"
 
 # Secrets (never in this file): set with `wrangler secret put <NAME>`
