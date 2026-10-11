@@ -144,7 +144,8 @@ function Sidebar({
 
   // The selection lens glides between items. The first placement must not animate.
   useLayoutEffect(() => {
-    const el = listRef.current?.children[active] as HTMLElement | undefined;
+    // Look the item up by index: the lens <li> is also a child of the list, so children[active] is off by one
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-nav-index="${active}"]`);
     if (!el) {
       setLens(null);
       return;
@@ -186,7 +187,7 @@ function Sidebar({
             const Icon = item.icon;
             const isActive = i === active;
             return (
-              <li key={item.href} className="relative">
+              <li key={item.href} data-nav-index={i} className="relative">
                 <Link
                   href={item.href}
                   aria-current={isActive ? 'page' : undefined}
