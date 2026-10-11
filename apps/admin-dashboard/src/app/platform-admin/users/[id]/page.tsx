@@ -2,7 +2,8 @@
 'use client';
 
 import React, { useEffect, useState, use } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useRouteParams } from '@/lib/useRouteParams';
 import { ArrowLeft, Save, Building2, Activity, Key } from 'lucide-react';
 import Card from '@/components/admin/Card';
 import { userAPI, organizationAPI } from '@/lib/api';
@@ -43,7 +44,7 @@ interface Activity {
 }
 
 export default function UserDetailsPage() {
-  const params = useParams<{ id: string }>();
+  const params = useRouteParams<{ id: string }>('/platform-admin/users/[id]');
   const [user, setUser] = useState<UserDetails | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);

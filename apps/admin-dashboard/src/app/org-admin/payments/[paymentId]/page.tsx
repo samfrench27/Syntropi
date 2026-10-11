@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useRouteParams } from '@/lib/useRouteParams';
 import { 
   ArrowLeft,
   Copy,
@@ -37,7 +38,7 @@ interface Payment {
 
 export default function PaymentDetailPage() {
   const router = useRouter();
-  const params = useParams();
+  const params = useRouteParams<{ paymentId: string }>('/org-admin/payments/[paymentId]');
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
   const [payment, setPayment] = useState<Payment | null>(null);

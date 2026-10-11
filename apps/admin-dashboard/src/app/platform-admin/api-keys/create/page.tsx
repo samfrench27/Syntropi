@@ -13,7 +13,7 @@ interface Organization {
   name: string;
 }
 
-export default function CreateApiKeyPage() {
+function CreateApiKeyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -299,5 +299,14 @@ export default function CreateApiKeyPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+// useSearchParams needs a Suspense boundary when the dashboard is built as static files
+export default function CreateApiKeyPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <CreateApiKeyPageContent />
+    </React.Suspense>
   );
 }

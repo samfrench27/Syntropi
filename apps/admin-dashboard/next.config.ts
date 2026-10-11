@@ -1,27 +1,17 @@
-// apps/admin-dashboard/next.config.mjs
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+// apps/admin-dashboard/next.config.ts
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
   // The dev badge sits on top of the sidebar's account chip.
-  devIndicators: false as const,
+  devIndicators: false,
+
+  // Production is a set of static files (served by worker.mjs). Development keeps the normal server.
+  ...(process.env.NODE_ENV === 'production' ? { output: 'export' as const, trailingSlash: true } : {}),
+  images: { unoptimized: true },
 
   // Environment variables that should be available to the client
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api',
-  },
-
-  // Configure headers for CORS
-  async headers() {
-    return [
-      {
-        source: "/:path*",
-        headers: [
-          { key: "Access-Control-Allow-Credentials", value: "true" },
-          { key: "Access-Control-Allow-Origin", value: "*" },
-          { key: "Access-Control-Allow-Methods", value: "GET,DELETE,PATCH,POST,PUT" },
-          { key: "Access-Control-Allow-Headers", value: "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization" },
-        ]
-      }
-    ]
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8787/api',
   },
 
   // Disable type checking during build to avoid issues

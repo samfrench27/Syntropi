@@ -2,7 +2,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useRouteParams } from '@/lib/useRouteParams';
 import { ArrowLeft, EyeOff, ClipboardCheck, Building2, User, Clock, Calendar, Activity } from 'lucide-react';
 import Card from '@/components/admin/Card';
 import MaskedKey from '@/components/admin/MaskedKey';
@@ -38,7 +39,7 @@ interface UsageStats {
 }
 
 export default function ApiKeyDetailsPage() {
-  const params = useParams<{ id: string }>();
+  const params = useRouteParams<{ id: string }>('/platform-admin/api-keys/[id]');
   const [apiKey, setApiKey] = useState<ApiKeyDetails | null>(null);
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
   const [loading, setLoading] = useState(true);

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, use } from 'react';
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouteParams } from '@/lib/useRouteParams';
 import { ArrowLeft, Save, Users, Key, Activity } from 'lucide-react';
 import Card from '@/components/admin/Card';
 import MaskedKey from '@/components/admin/MaskedKey';
@@ -49,8 +50,8 @@ interface User {
   status: string;
 }
 
-export default function OrganizationDetailsPage() {
-  const params = useParams<{ id: string }>();
+function OrganizationDetailsPageContent() {
+  const params = useRouteParams<{ id: string }>('/platform-admin/organizations/[id]');
   const [organization, setOrganization] = useState<OrganizationDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -821,5 +822,14 @@ export default function OrganizationDetailsPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+// useSearchParams needs a Suspense boundary when the dashboard is built as static files
+export default function OrganizationDetailsPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <OrganizationDetailsPageContent />
+    </React.Suspense>
   );
 }

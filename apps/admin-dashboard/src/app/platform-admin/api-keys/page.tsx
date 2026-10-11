@@ -35,7 +35,7 @@ interface Organization {
   name: string;
 }
 
-export default function ApiKeysPage() {
+function ApiKeysPageContent() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
@@ -375,5 +375,14 @@ export default function ApiKeysPage() {
         )}
       </main>
     </div>
+  );
+}
+
+// useSearchParams needs a Suspense boundary when the dashboard is built as static files
+export default function ApiKeysPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <ApiKeysPageContent />
+    </React.Suspense>
   );
 }

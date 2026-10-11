@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "build:prod": "NEXT_PUBLIC_API_URL=https://api.syntropi.co.uk/api next build",
+    "test": "node --test tests/"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^3.9.0",

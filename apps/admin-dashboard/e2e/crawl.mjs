@@ -163,7 +163,9 @@ async function crawlRole(browser, role, ids) {
       await page.goto(BASE + p, { waitUntil: 'networkidle', timeout: 45000 });
       await page.waitForTimeout(600);
       const landed = new URL(page.url());
-      if (landed.pathname !== p.split('?')[0]) add('redirected', landed.pathname);
+      // The static build serves every page with a trailing slash, so /x landing on /x/ is expected
+      const strip = (x) => x.replace(/\/+$/, '');
+      if (strip(landed.pathname) !== strip(p.split('?')[0])) add('redirected', landed.pathname);
       const text = await page.locator('main').innerText().catch(() => '');
       const hit = text.match(BAD_TEXT);
       if (hit) add('bad text', hit[0]);

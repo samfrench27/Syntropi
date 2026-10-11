@@ -13,7 +13,7 @@ interface Organization {
   name: string;
 }
 
-export default function CreateUserPage() {
+function CreateUserPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -288,5 +288,14 @@ export default function CreateUserPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+// useSearchParams needs a Suspense boundary when the dashboard is built as static files
+export default function CreateUserPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <CreateUserPageContent />
+    </React.Suspense>
   );
 }

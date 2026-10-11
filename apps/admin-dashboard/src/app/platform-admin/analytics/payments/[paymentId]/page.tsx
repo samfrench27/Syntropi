@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useRouteParams } from '@/lib/useRouteParams';
 import { ArrowLeft, Clock, CreditCard, Building, User, Calendar, Activity, CheckCircle, XCircle } from 'lucide-react';
 import Card from '@/components/admin/Card';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,7 +33,7 @@ interface Organization {
 }
 
 export default function PlatformAdminPaymentDetailPage() {
-  const params = useParams();
+  const params = useRouteParams<{ paymentId: string }>('/platform-admin/analytics/payments/[paymentId]');
   const router = useRouter();
   const { user } = useAuth();
   const [payment, setPayment] = useState<Payment | null>(null);

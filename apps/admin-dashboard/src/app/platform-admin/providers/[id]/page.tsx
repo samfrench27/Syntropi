@@ -2,7 +2,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useRouteParams } from '@/lib/useRouteParams';
 import { ArrowLeft, Save, Plus, X, Globe, Database, Server, Activity, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import Card from '@/components/admin/Card';
 import { providerAPI } from '@/lib/api';
@@ -26,7 +27,7 @@ interface ProviderDetails {
 }
 
 export default function ProviderDetailsPage() {
-  const params = useParams<{ id: string }>();
+  const params = useRouteParams<{ id: string }>('/platform-admin/providers/[id]');
   const [provider, setProvider] = useState<ProviderDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
