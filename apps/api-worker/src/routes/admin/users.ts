@@ -142,7 +142,7 @@ usersRoutes.post('/', validate('json', createSchema), async (c) => {
 const updateSchema = z.object({
   firstName: z.string().trim().min(1).max(100).optional(),
   lastName: z.string().trim().min(1).max(100).optional(),
-  role: z.enum(['admin', 'user']).optional(),
+  role: z.enum(['superadmin', 'admin', 'user']).optional(),
   status: activeStatus.optional(),
 });
 
@@ -157,7 +157,9 @@ usersRoutes.put('/:id', validate('param', idParam), validate('json', updateSchem
   if (actor.role !== 'superadmin' && (target.role === 'admin' || target.role === 'superadmin')) {
     throw new ApiError('You cannot update admin users', 403);
   }
-  if (body.role === 'admin' && actor.role !== 'superadmin') throw new ApiError('Only super admins can assign admin role', 403);
+  if ((body.role === 'admin' || body.role === 'superadmin') && actor.role !== 'superadmin') {
+    throw new ApiError(`Only super admins can assign ${body.role === 'admin' ? 'admin' : 'super admin'} role`, 403);
+  }
   // Tightened: nobody can demote or lock out a super admin through the API
   if (target.role === 'superadmin' && (body.role !== undefined || body.status !== undefined)) {
     throw new ApiError('Super admin accounts cannot be changed here', 403);

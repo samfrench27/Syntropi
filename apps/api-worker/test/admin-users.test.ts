@@ -209,8 +209,21 @@ describe('PUT /api/admin/users/:id', () => {
     expect((await put(p.superId, p.superId, { firstName: 'Root2' })).status).toBe(200);
   });
 
+  it('lets only a superadmin promote someone to superadmin, and keeps Supabase in step', async () => {
+    const denied = await put(p.userA, p.plainA, { role: 'superadmin' });
+    expect(denied.status).toBe(403);
+    expect((await t.rows(`select role from profiles where id = $1`, [p.plainA]))[0].role).toBe('user');
+
+    const ok = await put(p.superId, p.plainA, { role: 'superadmin' });
+    expect(ok.status).toBe(200);
+    expect((await t.rows(`select role from profiles where id = $1`, [p.plainA]))[0].role).toBe('superadmin');
+    expect(t.fake.metadata.get(p.plainA)).toMatchObject({ role: 'superadmin' });
+    // Once promoted, the account is protected like any other superadmin
+    expect((await put(p.superId, p.plainA, { role: 'user' })).status).toBe(403);
+  });
+
   it('validates the body and the id', async () => {
-    expect((await put(p.userA, p.plainA, { role: 'superadmin' })).status).toBe(400);
+    expect((await put(p.userA, p.plainA, { role: 'owner' })).status).toBe(400);
     expect((await put(p.userA, p.plainA, { status: 'deleted' })).status).toBe(400);
     expect((await put(p.userA, 'bad', {})).status).toBe(400);
     expect((await put(p.superId, p.missing, {})).status).toBe(404);
