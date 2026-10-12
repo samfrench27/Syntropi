@@ -1,0 +1,14 @@
+{
+  "name": "@syntropi/developer-docs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Developer guides and API reference for developer.syntropi.co.uk",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "marked": "^14.1.4"
+  }
+}

@@ -1,12 +1,17 @@
+---
+title: Payment statuses
+slug: payment-statuses
+order: 6
+section: Developer docs
+---
 # Payment statuses
 
 Every payment has two statuses in API responses:
 
-- `status`: Syntropi's own status (unchanged, what integrations use today).
+- `status`: Syntropi's own status.
 - `isoStatus`: the ISO 20022 payment status (`ExternalPaymentTransactionStatus1Code`, as in pain.002 and pacs.002), with a reason code where ISO gives one.
 
-Each ISO status maps to exactly one Syntropi status. The mapping lives in one place,
-`apps/api-worker/src/services/isoStatus.ts`, and the Syntropi status is always derived from the ISO status, so the two cannot disagree.
+Each ISO status maps to exactly one Syntropi status. Syntropi works out its own status from the ISO status, so the two never disagree.
 
 ```json
 "status": "FAILED",
@@ -18,7 +23,7 @@ Each ISO status maps to exactly one Syntropi status. The mapping lives in one pl
 }
 ```
 
-`isoStatus` is returned on create, `GET /api/payments/:id`, the list, and on every entry of `statusHistory`. `reason` appears only on `RJCT` and `CANC`.
+`isoStatus` is returned on create, `GET /api/payments/{paymentId}`, the list, and on every entry of `statusHistory`. `reason` appears only on `RJCT` and `CANC`.
 
 ## ISO status to Syntropi status
 
@@ -45,7 +50,7 @@ Reason codes in use: `AM04` InsufficientFunds, `AC04` ClosedAccountNumber, `CUST
 - `ACSC`, `RJCT` and `CANC` are final. Nothing changes a final payment.
 - Completed and failed payments are counted once for billing, when they reach a final status.
 
-## Token.io
+## Token.io statuses
 
 | Token.io status | ISO | Syntropi |
 |---|---|---|
@@ -59,24 +64,3 @@ Reason codes in use: `AM04` InsufficientFunds, `AC04` ClosedAccountNumber, `CUST
 | `INITIATION_DECLINED`, `CANCELLED` | `CANC` / `CUST` | `CANCELLED` |
 | `INITIATION_EXPIRED`, `EXPIRED` | `RJCT` / `NOAS` | `EXPIRED` |
 
-Changed from before: `SETTLEMENT_IN_PROGRESS` is now `ACCEPTED` (was `SUBMITTED`) and `INITIATION_EXPIRED` is now `EXPIRED` (was `CANCELLED`).
-
-## Mock bank scenarios
-
-On the Mock bank, approving does not have to complete the payment at once. Choose how it moves, on the Mock bank page ("Simulate how the payment moves") or when creating the payment:
-
-```json
-POST /api/payments
-{ "...": "...", "mockBank": { "preset": "realistic", "rejectReason": "AM04" } }
-```
-
-| Scenario | Moves through |
-|---|---|
-| `instant` (default) | `ACSC` straight away |
-| `realistic` | `ACTC` now, `ACCP` after 5s, `ACSP` after 15s, `ACSC` after 60s |
-| `slow` | `ACTC` now, `ACCP` after 30s, `ACSP` after 2 minutes, `ACSC` after 10 minutes |
-| `completeAfterSeconds: N` (1 to 3600) | `ACTC` now, `ACCP` at 10% of N, `ACSP` at 40% of N, `ACSC` at N (very short values skip middle steps) |
-
-`rejectReason` (`CUST`, `AM04`, `AC04`, `NARR`) sets the reason if the payment is rejected. `mockBank` is only accepted for the `mock` provider (400 `MOCK_BANK_ONLY` otherwise). A scenario given on the Mock bank page wins over the one given at creation.
-
-After approval the customer is sent back to the merchant straight away, with the status at that moment in the `status` query parameter (for example `AUTHORIZED`). Later steps appear as they fall due: when the payment is next read, and once a minute otherwise. Each step is written to `statusHistory`. Cancelling stops the remaining steps.

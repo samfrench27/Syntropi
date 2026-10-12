@@ -1,0 +1,673 @@
+openapi: 3.1.0
+info:
+  title: Syntropi API
+  version: 1.0.0
+  summary: Create and track account-to-account payments.
+  description: |
+    The Syntropi API lets a merchant create a payment, send the customer to pay, and read the result.
+
+    Every payment reports two statuses: `status` (Syntropi's own) and `isoStatus` (the ISO 20022 payment status).
+    See [Payment statuses](/guides/payment-statuses/) for how they map.
+
+    New accounts can use the **Mock bank** only. Real providers such as Token.io need approval from Syntropi first.
+
+    All requests and responses are JSON. Every response has a `success` field. Successful responses put the result in `data`;
+    failed responses put the problem in `error`.
+servers:
+  - url: https://api.syntropi.co.uk
+    description: Production
+security:
+  - ApiKey: []
+tags:
+  - name: Payments
+    description: Create a payment, then read, refresh, list or cancel it.
+  - name: Providers
+    description: The payment providers your organization can use.
+  - name: Banks
+    description: The banks your customers can pay from.
+paths:
+  /api/payments:
+    post:
+      tags: [Payments]
+      operationId: createPayment
+      summary: Create a payment
+      description: |
+        Creates a payment and returns where to send the customer.
+
+        - `API_ONLY` (default): `redirectUrl` is the bank's own page (the Mock bank page for the `mock` provider).
+        - `HOSTED_PAGES`: `redirectUrl` is the Syntropi hosted payment page, where the customer chooses a bank.
+        - `EMBEDDED_HOSTED_PAGES`: like `HOSTED_PAGES`, but you must also give `bankId`.
+
+        Needs an API key with the `write` permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+            examples:
+              mockBank:
+                summary: Mock bank, completes straight away
+                value:
+                  toAccount:
+                    accountName: Acme Coffee Roasters Ltd
+                    sortCode: '04-00-04'
+                    accountNumber: '12345678'
+                  amount: { value: '12.50', currency: GBP }
+                  reference: Order 1001
+                  flowType: API_ONLY
+                  redirectUrl: https://example.com/thanks
+              realisticTiming:
+                summary: Mock bank with realistic timing
+                value:
+                  toAccount:
+                    accountName: Acme Coffee Roasters Ltd
+                    sortCode: '04-00-04'
+                    accountNumber: '12345678'
+                  amount: { value: '12.50', currency: GBP }
+                  reference: Order 1002
+                  flowType: API_ONLY
+                  redirectUrl: https://example.com/thanks
+                  mockBank: { preset: realistic }
+              hostedPages:
+                summary: Customer chooses a bank on the hosted page
+                value:
+                  toAccount:
+                    accountName: Acme Coffee Roasters Ltd
+                    sortCode: '04-00-04'
+                    accountNumber: '12345678'
+                  amount: { value: '25.00', currency: GBP }
+                  reference: Order 1003
+                  flowType: HOSTED_PAGES
+                  redirectUrl: https://example.com/thanks
+      responses:
+        '201':
+          description: The payment was created.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, const: true }
+                  data: { $ref: '#/components/schemas/CreatedPayment' }
+              example:
+                success: true
+                data:
+                  paymentId: pay_b969ae6ad9ebdd5406badb515614
+                  status: AUTHORIZING
+                  isoStatus:
+                    code: PDNG
+                    name: Pending
+                    description: The payment is waiting, for example for the customer to approve it at their bank.
+                  redirectUrl: https://bank.syntropi.co.uk/pay/pay_b969ae6ad9ebdd5406badb515614?token=eyJhbGciOi...
+                  provider: mock
+                  amount: { value: '12.50', currency: GBP }
+                  createdAt: '2026-10-11T05:33:03.049Z'
+                  expiresAt: '2026-10-12T05:33:03.032Z'
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/ProviderNotConfigured' }
+    get:
+      tags: [Payments]
+      operationId: listPayments
+      summary: List payments
+      description: Lists your organization's payments, newest first. Needs the `read` permission.
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/PaymentStatus' }
+        - name: provider
+          in: query
+          schema: { type: string, maxLength: 50 }
+          example: mock
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: A page of payments.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, const: true }
+                  data:
+                    type: object
+                    required: [payments, total, limit, offset]
+                    properties:
+                      payments:
+                        type: array
+                        items: { $ref: '#/components/schemas/Payment' }
+                      total: { type: integer, description: How many payments match, across all pages. }
+                      limit: { type: integer }
+                      offset: { type: integer }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/payments/providers:
+    get:
+      tags: [Providers]
+      operationId: listPaymentProviders
+      summary: List the providers you can pay with
+      description: |
+        The providers your organization is approved for and that can take payments.
+        A new organization only has `mock`. Needs the `read` permission.
+      responses:
+        '200':
+          description: The providers you can use.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, const: true }
+                  data:
+                    type: object
+                    required: [providers]
+                    properties:
+                      providers:
+                        type: array
+                        items:
+                          type: object
+                          required: [id, name, supportsPayments]
+                          properties:
+                            id: { type: string, example: mock }
+                            name: { type: string, example: mock }
+                            supportsPayments: { type: boolean, const: true }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/payments/{paymentId}:
+    get:
+      tags: [Payments]
+      operationId: getPayment
+      summary: Get a payment
+      description: |
+        Returns the payment with its status and its full status history. If the provider has news, the payment is refreshed first.
+        Needs the `read` permission.
+      parameters:
+        - $ref: '#/components/parameters/PaymentId'
+      responses:
+        '200':
+          description: The payment.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, const: true }
+                  data: { $ref: '#/components/schemas/Payment' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/payments/{paymentId}/sync:
+    post:
+      tags: [Payments]
+      operationId: syncPayment
+      summary: Refresh a payment from its provider
+      description: |
+        Asks the provider for the latest status and returns the updated payment. Unlike `GET`, a provider failure is reported to you.
+        Needs the `read` permission.
+      parameters:
+        - $ref: '#/components/parameters/PaymentId'
+      responses:
+        '200':
+          description: The refreshed payment.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, const: true }
+                  data: { $ref: '#/components/schemas/Payment' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/payments/{paymentId}/cancel:
+    post:
+      tags: [Payments]
+      operationId: cancelPayment
+      summary: Cancel a payment
+      description: |
+        Cancels a payment that has not finished. The payment becomes `CANCELLED` (ISO `CANC`, reason `CUST`).
+        A payment that is already `COMPLETED`, `FAILED`, `CANCELLED` or `EXPIRED` cannot be cancelled and returns 409.
+        Needs the `write` permission.
+      parameters:
+        - $ref: '#/components/parameters/PaymentId'
+      responses:
+        '200':
+          description: The cancelled payment.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, const: true }
+                  data: { $ref: '#/components/schemas/Payment' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The payment has already finished (`PAYMENT_NOT_CANCELLABLE`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/banks:
+    get:
+      tags: [Banks]
+      operationId: listBanks
+      summary: List banks
+      description: |
+        The banks your customers can pay from, limited to the providers your organization is approved for.
+        Needs the `read` permission.
+      parameters:
+        - name: country
+          in: query
+          description: Two-letter country code. Defaults to `GB`.
+          schema: { type: string, minLength: 2, maxLength: 2 }
+        - name: provider
+          in: query
+          schema: { type: string, maxLength: 50 }
+        - name: paymentMethod
+          in: query
+          schema: { type: string, maxLength: 50 }
+        - name: search
+          in: query
+          description: Part of a bank's name.
+          schema: { type: string, maxLength: 100 }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 100 }
+      responses:
+        '200':
+          description: A page of banks.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, const: true }
+                  data:
+                    type: object
+                    required: [banks, pagination]
+                    properties:
+                      banks:
+                        type: array
+                        items: { $ref: '#/components/schemas/Bank' }
+                      pagination:
+                        type: object
+                        required: [total, page, limit, pages]
+                        properties:
+                          total: { type: integer }
+                          page: { type: integer }
+                          limit: { type: integer }
+                          pages: { type: integer }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/banks/providers:
+    get:
+      tags: [Banks]
+      operationId: listBankProviders
+      summary: List bank providers
+      description: The provider codes whose banks you can see. Needs the `read` permission.
+      responses:
+        '200':
+          description: Provider codes.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, const: true }
+                  data:
+                    type: object
+                    required: [providers]
+                    properties:
+                      providers:
+                        type: array
+                        items: { type: string }
+                        example: [mock]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/banks/{id}:
+    get:
+      tags: [Banks]
+      operationId: getBank
+      summary: Get a bank
+      description: Needs the `read` permission.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, maxLength: 100 }
+      responses:
+        '200':
+          description: The bank.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean, const: true }
+                  data:
+                    type: object
+                    required: [bank]
+                    properties:
+                      bank: { $ref: '#/components/schemas/Bank' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+components:
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: |
+        An API key from the Syntropi dashboard (API keys page). It is shown once when you create it.
+        Each key has `read` and/or `write` permission.
+  parameters:
+    PaymentId:
+      name: paymentId
+      in: path
+      required: true
+      description: The `paymentId` returned when the payment was created.
+      schema: { type: string, example: pay_b969ae6ad9ebdd5406badb515614 }
+  responses:
+    ValidationFailed:
+      description: The request was not valid. `error.details` lists each problem (`VALIDATION_FAILED`).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            success: false
+            error:
+              message: Validation failed
+              code: VALIDATION_FAILED
+              details:
+                - { field: amount.value, message: must be a positive decimal with at most 4 decimal places }
+    Unauthorized:
+      description: No API key, or the key is invalid, inactive or expired.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            success: false
+            error: { message: Invalid API key }
+    Forbidden:
+      description: |
+        The key lacks the needed permission, the organization is not active, or the organization is not approved for
+        the provider (`PROVIDER_NOT_APPROVED`).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            success: false
+            error: { message: API key lacks write permission }
+    NotFound:
+      description: No such payment or bank in your organization.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            success: false
+            error: { message: Payment not found }
+    ProviderNotConfigured:
+      description: The provider cannot be used right now (`PROVIDER_NOT_CONFIGURED`, `HOSTED_PAGES_NOT_CONFIGURED`).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    PaymentStatus:
+      type: string
+      description: Syntropi's payment status. Each ISO 20022 status maps to exactly one of these.
+      enum: [PENDING, AUTHORIZING, AUTHORIZED, SUBMITTED, ACCEPTED, COMPLETED, FAILED, CANCELLED, EXPIRED]
+    IsoStatusCode:
+      type: string
+      description: |
+        ISO 20022 payment status (`ExternalPaymentTransactionStatus1Code`).
+
+        | Code | Syntropi status |
+        |---|---|
+        | `RCVD` | `PENDING` |
+        | `PDNG` | `AUTHORIZING` |
+        | `ACTC` | `AUTHORIZED` |
+        | `ACCP` | `SUBMITTED` |
+        | `ACSP` | `ACCEPTED` |
+        | `ACSC` | `COMPLETED` |
+        | `RJCT` | `FAILED` (or `EXPIRED` when the reason is `NOAS`) |
+        | `CANC` | `CANCELLED` |
+      enum: [RCVD, PDNG, ACTC, ACCP, ACSP, ACSC, RJCT, CANC]
+    IsoReasonCode:
+      type: string
+      description: ISO 20022 status reason (`ExternalStatusReason1Code`).
+      enum: [AM04, AC04, CUST, NOAS, NARR]
+      x-enumDescriptions:
+        AM04: InsufficientFunds
+        AC04: ClosedAccountNumber
+        CUST: RequestedByCustomer
+        NOAS: NoAnswerFromCustomer
+        NARR: Narrative
+    IsoStatus:
+      type: object
+      required: [code, name, description]
+      properties:
+        code: { $ref: '#/components/schemas/IsoStatusCode' }
+        name: { type: string, example: AcceptedSettlementCompleted }
+        description: { type: string }
+        reason:
+          type: object
+          description: Only on `RJCT` and `CANC`.
+          required: [code, name]
+          properties:
+            code: { $ref: '#/components/schemas/IsoReasonCode' }
+            name: { type: string, example: InsufficientFunds }
+    FlowType:
+      type: string
+      enum: [API_ONLY, HOSTED_PAGES, EMBEDDED_HOSTED_PAGES]
+    Amount:
+      type: object
+      required: [value, currency]
+      properties:
+        value:
+          type: string
+          description: A positive decimal with at most 4 decimal places. Sent as a string or a number, always returned as a string.
+          example: '12.50'
+        currency: { type: string, description: ISO 4217 code., example: GBP }
+    Account:
+      type: object
+      required: [accountName]
+      properties:
+        accountName: { type: string, maxLength: 140, example: Acme Coffee Roasters Ltd }
+        accountNumber: { type: string, maxLength: 34 }
+        sortCode: { type: string, maxLength: 8 }
+        iban: { type: string, maxLength: 34 }
+        bic: { type: string, maxLength: 11 }
+        bankName: { type: string, maxLength: 140 }
+    MockBankScenario:
+      type: object
+      description: |
+        Mock bank only. How the payment moves after the customer approves it. The customer can change this on the Mock bank page.
+
+        | Preset | Moves through |
+        |---|---|
+        | `instant` (default) | `ACSC` straight away |
+        | `realistic` | `ACTC` now, `ACCP` after 5s, `ACSP` after 15s, `ACSC` after 60s |
+        | `slow` | `ACTC` now, `ACCP` after 30s, `ACSP` after 2 minutes, `ACSC` after 10 minutes |
+      properties:
+        preset:
+          type: string
+          enum: [instant, realistic, slow]
+        completeAfterSeconds:
+          type: integer
+          minimum: 1
+          maximum: 3600
+          description: Complete this many seconds after approval. Overrides the preset's timing.
+        rejectReason:
+          type: string
+          enum: [CUST, AM04, AC04, NARR]
+          description: The ISO reason used if the payment is rejected. Defaults to `CUST`.
+    CreatePaymentRequest:
+      type: object
+      required: [toAccount, amount]
+      properties:
+        toAccount:
+          allOf:
+            - $ref: '#/components/schemas/Account'
+          description: Who gets paid. Needs an `iban`, or a `sortCode` and `accountNumber`.
+        fromAccount:
+          $ref: '#/components/schemas/Account'
+        amount: { $ref: '#/components/schemas/Amount' }
+        reference:
+          description: Shown on the bank statement. Up to 140 characters.
+          oneOf:
+            - type: string
+              maxLength: 140
+            - type: object
+              properties:
+                reference: { type: string, maxLength: 140 }
+                endToEndId: { type: string, maxLength: 35 }
+        flowType:
+          allOf:
+            - $ref: '#/components/schemas/FlowType'
+          default: API_ONLY
+        redirectUrl:
+          type: string
+          format: uri
+          description: Where the customer returns to after paying. Syntropi adds `paymentId` and `status` to it.
+        provider:
+          type: string
+          pattern: '^[a-z0-9_-]{1,50}$'
+          default: mock
+          description: The provider to use. Defaults to `mock`. Others need approval.
+        bankId:
+          type: string
+          maxLength: 100
+          description: Required for `EMBEDDED_HOSTED_PAGES`.
+        mockBank:
+          allOf:
+            - $ref: '#/components/schemas/MockBankScenario'
+          description: Only with the `mock` provider; any other provider returns 400 `MOCK_BANK_ONLY`.
+    CreatedPayment:
+      type: object
+      required: [paymentId, status, isoStatus, redirectUrl, provider, amount, createdAt, expiresAt]
+      properties:
+        paymentId: { type: string }
+        status: { $ref: '#/components/schemas/PaymentStatus' }
+        isoStatus: { $ref: '#/components/schemas/IsoStatus' }
+        redirectUrl:
+          type: [string, 'null']
+          description: |
+            The one URL to send the customer to. For `API_ONLY` it is the bank's page; for the hosted flows it is the Syntropi
+            hosted payment page. It can be null when the bank gave no link.
+        provider: { type: string }
+        bankId: { type: string }
+        amount: { $ref: '#/components/schemas/Amount' }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time, description: Payments expire 24 hours after creation. }
+    HistoryEntry:
+      type: object
+      required: [status, isoStatus, timestamp, provider, details]
+      properties:
+        status: { $ref: '#/components/schemas/PaymentStatus' }
+        isoStatus: { $ref: '#/components/schemas/IsoStatus' }
+        timestamp: { type: string, format: date-time }
+        provider: { type: [string, 'null'] }
+        details: { type: [string, 'null'] }
+    Payment:
+      type: object
+      required: [paymentId, status, isoStatus, provider, amount, toAccount, reference, flowType, createdAt, updatedAt]
+      properties:
+        paymentId: { type: string }
+        status: { $ref: '#/components/schemas/PaymentStatus' }
+        isoStatus: { $ref: '#/components/schemas/IsoStatus' }
+        provider: { type: string }
+        bankId: { type: string }
+        amount: { $ref: '#/components/schemas/Amount' }
+        fromAccount: { $ref: '#/components/schemas/Account' }
+        toAccount: { $ref: '#/components/schemas/Account' }
+        reference:
+          type: object
+          properties:
+            reference: { type: string }
+            endToEndId: { type: string }
+        flowType: { $ref: '#/components/schemas/FlowType' }
+        redirectUrl:
+          type: string
+          description: The `redirectUrl` you gave when creating the payment.
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time, description: Set when the payment reaches `COMPLETED`. }
+        error:
+          type: object
+          description: Why the payment failed, when it did.
+          properties:
+            code: { type: string, example: USER_REJECTED }
+            message: { type: [string, 'null'] }
+        statusHistory:
+          type: array
+          description: Every status the payment has had, oldest first.
+          items: { $ref: '#/components/schemas/HistoryEntry' }
+    Bank:
+      type: object
+      required: [id, uuid, name, country, supportedPaymentMethods, active, features]
+      properties:
+        id: { type: string, description: The bank id to use as `bankId`. }
+        uuid: { type: string }
+        name: { type: string }
+        displayName: { type: [string, 'null'] }
+        country: { type: string, example: GB }
+        logoUrl: { type: string }
+        supportedPaymentMethods:
+          type: array
+          items: { type: string }
+        active: { type: boolean }
+        features:
+          type: object
+          properties:
+            accountAccess: { type: boolean }
+            accountBalance: { type: boolean }
+            transactions: { type: boolean }
+            payments: { type: boolean }
+        providerSupport:
+          description: Which of your approved providers can reach this bank.
+        recommendedProvider: { type: [string, 'null'] }
+    Error:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, const: false }
+        error:
+          type: object
+          required: [message]
+          properties:
+            message: { type: string }
+            code:
+              type: string
+              description: A stable code for errors your code may want to handle. See the Errors guide.
+            details:
+              type: array
+              description: On `VALIDATION_FAILED`, one entry per problem.
+              items:
+                type: object
+                properties:
+                  field: { type: string }
+                  message: { type: string }

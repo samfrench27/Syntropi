@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Syntropi payments API",
-    "description": "Make payments against the Syntropi API.\n\n1. Create an API key in the dashboard (API keys page). It is shown once.\n2. Paste it into the collection variable `apiKey` (Variables tab).\n3. Run the requests in order. Create-payment requests save `paymentId` for the later ones.\n\nNew accounts can only use the Mock bank (no real money).\n\nEvery payment returns `status` (Syntropi) and `isoStatus` (ISO 20022). See docs/payment-statuses.md.",
+    "description": "Make payments against the Syntropi API.\n\n1. Create an API key in the dashboard (API keys page). It is shown once.\n2. Paste it into the collection variable `apiKey` (Variables tab).\n3. Run the requests in order. Create-payment requests save `paymentId` for the later ones.\n\nNew accounts can only use the Mock bank (no real money).\n\nEvery payment returns `status` (Syntropi) and `isoStatus` (ISO 20022). See https://developer.syntropi.co.uk/guides/payment-statuses/ .",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
