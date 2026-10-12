@@ -23,7 +23,7 @@ id = "4d5bac7c642e4c97b59cdf05897dccc3"
 
 # Daily bank list refresh from the providers (03:00 UTC)
 [triggers]
-crons = ["0 3 * * *"]
+crons = ["0 3 * * *", "* * * * *"]
 
 [vars]
 # Where the front ends live. Localhost until the Pages sites have their own domains.

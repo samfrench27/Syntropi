@@ -70,7 +70,7 @@ const createSchema = z.object({
   password: z.string().max(256).optional().or(z.literal('').transform(() => undefined)),
   firstName: z.string().trim().min(1).max(100),
   lastName: z.string().trim().min(1).max(100),
-  role: z.enum(['admin', 'user']),
+  role: z.enum(['superadmin', 'admin', 'user']),
   organizationId: uuid,
 });
 
@@ -86,7 +86,9 @@ usersRoutes.post('/', validate('json', createSchema), async (c) => {
 
   const [org] = await db.query<{ id: string; name: string }>(`select id, name from organizations where id = $1`, [body.organizationId]);
   if (!org) throw new ApiError('Organization not found', 404);
-  if (body.role === 'admin' && actor.role !== 'superadmin') throw new ApiError('Only super admins can create admin users', 403);
+  if ((body.role === 'admin' || body.role === 'superadmin') && actor.role !== 'superadmin') {
+    throw new ApiError(`Only super admins can create ${body.role === 'admin' ? 'admin' : 'super admin'} users`, 403);
+  }
   if ((await db.query(`select 1 from profiles where lower(email) = $1`, [body.email])).length > 0) {
     throw new ApiError('User already exists with this email', 400);
   }

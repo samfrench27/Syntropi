@@ -1,4 +1,5 @@
 import type { AppDeps } from '../../types';
+import type { IsoState } from '../../services/isoStatus';
 
 export type PaymentStatus =
   | 'PENDING'
@@ -38,12 +39,15 @@ export interface CreateOptions {
 export interface CreateResult {
   providerPaymentId?: string;
   redirectUrl?: string;
+  /** What the provider reported, as an ISO 20022 status. `status` is the Syntropi status derived from it. */
+  iso: IsoState;
   status: PaymentStatus;
   /** Kept in payments.provider_data. Never returned to callers. */
   data: Record<string, unknown>;
 }
 
 export interface StatusResult {
+  iso: IsoState;
   status: PaymentStatus;
   data: Record<string, unknown>;
 }

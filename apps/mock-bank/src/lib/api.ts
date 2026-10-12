@@ -6,8 +6,16 @@ export type PaymentView = {
   currency: string;
   reference?: string;
   status: string;
+  isoStatus?: { code: string; name: string };
+  /** What the merchant asked for when creating the payment, to pre-select in the Simulate panel. */
+  scenario?: Scenario | null;
   expiresAt: string | null;
 };
+
+export type Preset = 'instant' | 'realistic' | 'slow';
+export type RejectReason = 'CUST' | 'AM04' | 'AC04' | 'NARR';
+/** How the payment moves after the decision (see the Syntropi API's mockBank option). */
+export type Scenario = { preset?: Preset; completeAfterSeconds?: number; rejectReason?: RejectReason };
 
 export type Decision = 'approve' | 'reject';
 export type DecisionResult = { status: string; redirectUrl: string | null };
@@ -50,9 +58,9 @@ async function call<T>(path: string, token: string, init: RequestInit = {}): Pro
 
 export const fetchPayment = (id: string, token: string) => call<PaymentView>(`/api/mock-bank/payments/${encodeURIComponent(id)}`, token);
 
-export const sendDecision = (id: string, token: string, decision: Decision) =>
+export const sendDecision = (id: string, token: string, decision: Decision, scenario?: Scenario) =>
   call<DecisionResult>(`/api/mock-bank/payments/${encodeURIComponent(id)}/decision`, token, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ decision }),
+    body: JSON.stringify({ decision, ...(scenario && Object.keys(scenario).length ? { scenario } : {}) }),
   });

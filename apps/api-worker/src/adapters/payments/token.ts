@@ -1,11 +1,12 @@
 import { ApiError } from '../../http';
 import type { AppDeps } from '../../types';
+import { isoToSyntropi, type IsoState } from '../../services/isoStatus';
 import type { AdapterPayment, CreateOptions, PaymentAdapter, PaymentStatus } from './types';
 
 const TIMEOUT_MS = 8000;
 
-/** Token.io status (the v2 payments and webhook vocabularies) to Syntropi's. Unknown values stay PENDING. */
-export function mapTokenStatus(tokenStatus: string | undefined | null): PaymentStatus {
+/** Token.io status (the v2 payments and webhook vocabularies) to ISO 20022. Unknown values stay RCVD (no progress). */
+export function mapTokenIso(tokenStatus: string | undefined | null): IsoState {
   switch ((tokenStatus ?? '').toUpperCase()) {
     case 'INITIATION_PENDING':
     case 'INITIATION_PENDING_REDIRECT_AUTH':
@@ -15,36 +16,42 @@ export function mapTokenStatus(tokenStatus: string | undefined | null): PaymentS
     case 'INITIATION_PENDING_EMBEDDED_AUTH_VERIFICATION':
     case 'INITIATION_PENDING_DECOUPLED_AUTH':
     case 'PENDING_AUTHENTICATION':
-      return 'AUTHORIZING';
+      return { status: 'PDNG' };
     case 'INITIATION_PENDING_REDEMPTION':
     case 'INITIATION_PENDING_REDEMPTION_VERIFICATION':
     case 'PENDING_SUBMISSION':
-      return 'AUTHORIZED';
+      return { status: 'ACTC' };
     case 'INITIATION_PROCESSING':
-    case 'SETTLEMENT_IN_PROGRESS':
     case 'SUBMITTED':
-      return 'SUBMITTED';
+      return { status: 'ACCP' };
+    case 'SETTLEMENT_IN_PROGRESS':
     case 'INITIATION_COMPLETED':
     case 'ACCEPTED':
-      return 'ACCEPTED';
+      return { status: 'ACSP' };
     case 'SETTLEMENT_COMPLETED':
     case 'COMPLETED':
-      return 'COMPLETED';
-    case 'INITIATION_REJECTED':
+      return { status: 'ACSC' };
     case 'INITIATION_REJECTED_INSUFFICIENT_FUNDS':
+      return { status: 'RJCT', reason: 'AM04' };
+    case 'INITIATION_REJECTED':
     case 'INITIATION_FAILED':
     case 'SETTLEMENT_INCOMPLETE':
     case 'FAILED':
-      return 'FAILED';
+      return { status: 'RJCT', reason: 'NARR' };
     case 'INITIATION_DECLINED':
-    case 'INITIATION_EXPIRED':
     case 'CANCELLED':
-      return 'CANCELLED';
+      return { status: 'CANC', reason: 'CUST' };
+    case 'INITIATION_EXPIRED':
     case 'EXPIRED':
-      return 'EXPIRED';
+      return { status: 'RJCT', reason: 'NOAS' };
     default:
-      return 'PENDING';
+      return { status: 'RCVD' };
   }
+}
+
+/** The same, as a Syntropi status. */
+export function mapTokenStatus(tokenStatus: string | undefined | null): PaymentStatus {
+  return isoToSyntropi(mapTokenIso(tokenStatus));
 }
 
 function credentials(deps: AppDeps): { key: string; base: string } {
@@ -153,6 +160,7 @@ export const tokenAdapter: PaymentAdapter = {
     return {
       providerPaymentId: p.id,
       redirectUrl: safeUrl(p.authentication?.redirectUrl),
+      iso: mapTokenIso(p.status),
       status: mapTokenStatus(p.status),
       data: { providerStatus: p.status ?? null },
     };
@@ -162,7 +170,7 @@ export const tokenAdapter: PaymentAdapter = {
     const out = await call(deps, 'GET', `/v2/payments/${encodeURIComponent(providerPaymentId)}`);
     const p = out?.payment;
     if (!p) throw new ApiError('Provider returned an unreadable response', 502, 'PROVIDER_ERROR');
-    return { status: mapTokenStatus(p.status), data: { providerStatus: p.status ?? null } };
+    return { iso: mapTokenIso(p.status), status: mapTokenStatus(p.status), data: { providerStatus: p.status ?? null } };
   },
 
   async cancel(deps, providerPaymentId) {

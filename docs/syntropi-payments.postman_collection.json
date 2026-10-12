@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Syntropi payments API",
-    "description": "Make payments against the Syntropi API.\n\n1. Create an API key in the dashboard (API keys page). It is shown once.\n2. Paste it into the collection variable `apiKey` (Variables tab).\n3. Run the requests in order. Create-payment requests save `paymentId` for the later ones.\n\nNew accounts can only use the Mock bank (no real money).",
+    "description": "Make payments against the Syntropi API.\n\n1. Create an API key in the dashboard (API keys page). It is shown once.\n2. Paste it into the collection variable `apiKey` (Variables tab).\n3. Run the requests in order. Create-payment requests save `paymentId` for the later ones.\n\nNew accounts can only use the Mock bank (no real money).\n\nEvery payment returns `status` (Syntropi) and `isoStatus` (ISO 20022). See docs/payment-statuses.md.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -80,6 +80,96 @@
         "body": {
           "mode": "raw",
           "raw": "{\n  \"toAccount\": {\n    \"accountName\": \"Acme Coffee Roasters Ltd\",\n    \"sortCode\": \"04-00-04\",\n    \"accountNumber\": \"12345678\"\n  },\n  \"amount\": {\n    \"value\": \"12.50\",\n    \"currency\": \"GBP\"\n  },\n  \"reference\": \"Order 1001\",\n  \"flowType\": \"API_ONLY\",\n  \"redirectUrl\": \"https://example.com/thanks\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j = pm.response.json();",
+              "pm.test('Payment created', () => pm.response.to.have.status(201));",
+              "if (j.data && j.data.paymentId) { pm.collectionVariables.set('paymentId', j.data.paymentId); }",
+              "console.log('Open this to pay:', (j.data && j.data.redirectUrl));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2b. Create payment (Mock bank, realistic timing)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/payments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "payments"
+          ]
+        },
+        "description": "Open `redirectUrl`, log in and Approve. Then run 'Get payment' a few times: `isoStatus` moves ACTC, ACCP, ACSP, ACSC over about a minute.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"toAccount\": {\n    \"accountName\": \"Acme Coffee Roasters Ltd\",\n    \"sortCode\": \"04-00-04\",\n    \"accountNumber\": \"12345678\"\n  },\n  \"amount\": {\n    \"value\": \"12.50\",\n    \"currency\": \"GBP\"\n  },\n  \"reference\": \"Order 1001\",\n  \"flowType\": \"API_ONLY\",\n  \"redirectUrl\": \"https://example.com/thanks\",\n  \"mockBank\": {\n    \"preset\": \"realistic\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j = pm.response.json();",
+              "pm.test('Payment created', () => pm.response.to.have.status(201));",
+              "if (j.data && j.data.paymentId) { pm.collectionVariables.set('paymentId', j.data.paymentId); }",
+              "console.log('Open this to pay:', (j.data && j.data.redirectUrl));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2c. Create payment (Mock bank, completes after 30s)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/payments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "payments"
+          ]
+        },
+        "description": "Completes 30 seconds after approval. If you Reject on the Mock bank page, `isoStatus` is RJCT with reason AM04 (InsufficientFunds).",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"toAccount\": {\n    \"accountName\": \"Acme Coffee Roasters Ltd\",\n    \"sortCode\": \"04-00-04\",\n    \"accountNumber\": \"12345678\"\n  },\n  \"amount\": {\n    \"value\": \"12.50\",\n    \"currency\": \"GBP\"\n  },\n  \"reference\": \"Order 1001\",\n  \"flowType\": \"API_ONLY\",\n  \"redirectUrl\": \"https://example.com/thanks\",\n  \"mockBank\": {\n    \"completeAfterSeconds\": 30,\n    \"rejectReason\": \"AM04\"\n  }\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -207,7 +297,7 @@
             "{{paymentId}}"
           ]
         },
-        "description": "Uses the paymentId saved by the last create request."
+        "description": "Returns `status` and `isoStatus` (code, name, reason) plus `statusHistory`, each entry with its own `isoStatus`. Uses the paymentId saved by the last create request."
       }
     },
     {

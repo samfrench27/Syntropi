@@ -24,6 +24,6 @@ export const mockAdapter: PaymentAdapter = {
     if (!deps.config.mockBankUrl) throw new ApiError('Mock bank is not configured', 503, 'PROVIDER_NOT_CONFIGURED');
   },
   async create(deps, payment) {
-    return { redirectUrl: await mockBankUrl(deps, payment), status: 'AUTHORIZING', data: { simulated: true } };
+    return { redirectUrl: await mockBankUrl(deps, payment), iso: { status: 'PDNG' }, status: 'AUTHORIZING', data: { simulated: true } };
   },
 };

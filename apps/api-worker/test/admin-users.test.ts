@@ -115,10 +115,20 @@ describe('POST /api/admin/users', () => {
     expect(t.fake.metadata.get(ok.json.data.user.id)).toEqual({ role: 'admin', organization_id: p.orgB });
   });
 
+  it('lets only a superadmin create another superadmin', async () => {
+    const denied = await t.request('POST', '/api/admin/users', { user: p.userA, body: newUser(p.orgA, { role: 'superadmin' }) });
+    expect(denied.status).toBe(403);
+    expect(t.fake.calls).toEqual([]);
+    const ok = await t.request('POST', '/api/admin/users', { user: p.superId, body: newUser(p.orgA, { role: 'superadmin' }) });
+    expect(ok.status).toBe(201);
+    expect(t.fake.metadata.get(ok.json.data.user.id)).toEqual({ role: 'superadmin', organization_id: p.orgA });
+    expect((await t.rows(`select role from profiles where id = $1`, [ok.json.data.user.id]))[0].role).toBe('superadmin');
+  });
+
   it('rejects a duplicate email, unknown organization and bad bodies', async () => {
     expect((await t.request('POST', '/api/admin/users', { user: p.userA, body: newUser(p.orgA, { email: 'PAT@acme.test' }) })).status).toBe(400);
     expect((await t.request('POST', '/api/admin/users', { user: p.superId, body: newUser(p.missing) })).status).toBe(404);
-    for (const bad of [{ email: 'nope' }, { password: 'short' }, { role: 'superadmin' }, { firstName: '' }, { organizationId: 'x' }]) {
+    for (const bad of [{ email: 'nope' }, { password: 'short' }, { role: 'owner' }, { firstName: '' }, { organizationId: 'x' }]) {
       expect((await t.request('POST', '/api/admin/users', { user: p.userA, body: newUser(p.orgA, bad) })).status).toBe(400);
     }
   });

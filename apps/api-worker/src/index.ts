@@ -3,6 +3,7 @@ import { buildApp } from './app';
 import { createPostgresDb, type Db } from './db';
 import { createSupabaseIdentity } from './identity';
 import { syncBanksFromProviders } from './services/banks';
+import { settleDueMockPayments } from './services/payments';
 import type { AppDeps, Bindings } from './types';
 
 const REQUIRED: (keyof Bindings)[] = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'DASHBOARD_URL', 'HOSTED_PAGES_JWT_SECRET'];
@@ -55,19 +56,27 @@ export default {
     }
   },
 
-  /** Cron trigger: refresh the bank list from the providers (see wrangler.toml). */
-  async scheduled(_controller: ScheduledController, env: Bindings, ctx: ExecutionContext): Promise<void> {
+  /** Cron triggers (see wrangler.toml): every minute, apply due Mock bank status steps; daily, refresh the bank list. */
+  async scheduled(controller: ScheduledController, env: Bindings, ctx: ExecutionContext): Promise<void> {
+    const everyMinute = controller.cron === '* * * * *';
+    const job = everyMinute ? 'Mock bank settlement' : 'Bank sync';
     const problem = configProblem(env);
     if (problem) {
-      console.error(`Bank sync skipped. ${problem}`);
+      console.error(`${job} skipped. ${problem}`);
       return;
     }
     const db = createPostgresDb(env.HYPERDRIVE!.connectionString);
     try {
-      const summary = await syncBanksFromProviders(buildDeps(env, db));
-      console.log('Bank sync finished', JSON.stringify(summary));
+      const deps = buildDeps(env, db);
+      if (everyMinute) {
+        const settled = await settleDueMockPayments(deps);
+        if (settled > 0) console.log(`Mock bank settlement looked at ${settled} payments`);
+      } else {
+        const summary = await syncBanksFromProviders(deps);
+        console.log('Bank sync finished', JSON.stringify(summary));
+      }
     } catch (error) {
-      console.error('Bank sync failed', error);
+      console.error(`${job} failed`, error);
     } finally {
       ctx.waitUntil(db.close());
     }

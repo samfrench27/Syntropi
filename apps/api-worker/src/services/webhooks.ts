@@ -1,9 +1,10 @@
 import { z } from 'zod';
-import { mapTokenStatus } from '../adapters/payments/token';
+import { mapTokenIso } from '../adapters/payments/token';
 import { sha256Hex } from '../lib/crypto';
 import { ApiError } from '../http';
 import type { AppDeps } from '../types';
-import { applyStatus } from './payments';
+import { applyIso } from './payments';
+import { isoToSyntropi } from './isoStatus';
 
 const enc = new TextEncoder();
 
@@ -72,7 +73,8 @@ export async function handleTokenEvent(deps: AppDeps, rawBody: string): Promise<
 
   // Providers that send no event id are de-duplicated on the content of the message
   const eventId = event.id ?? `sha256:${await sha256Hex(rawBody)}`;
-  const mapped = mapTokenStatus(object.status);
+  const iso = mapTokenIso(object.status);
+  const mapped = isoToSyntropi(iso);
 
   return deps.db.tx(async (tx) => {
     const [payment] = await tx.query<{ id: string }>(
@@ -91,7 +93,7 @@ export async function handleTokenEvent(deps: AppDeps, rawBody: string): Promise<
     if (!recorded) return 'duplicate';
 
     const detail = object.execution?.statusDetail;
-    await applyStatus(tx, deps.now(), payment.id, mapped, {
+    await applyIso(tx, deps.now(), payment.id, iso, {
       details: [`Token.io webhook: ${object.status}`, detail ? `Detail: ${detail}` : null].filter(Boolean).join(' | '),
       ...(mapped === 'FAILED'
         ? { error: { code: 'PROVIDER_FAILED', message: object.statusReasonInformation ?? detail ?? null } }

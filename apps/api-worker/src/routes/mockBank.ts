@@ -29,6 +29,6 @@ const bankAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
 mockBankRoutes.get('/payments/:id', bankAuth, async (c) => ok(c, await mockBankPayment(c.get('deps'), claimsOf(c))));
 
 mockBankRoutes.post('/payments/:id/decision', bankAuth, validate('json', decisionSchema), async (c) => {
-  const { decision } = valid<z.infer<typeof decisionSchema>>(c, 'json');
-  return ok(c, await mockBankDecision(c.get('deps'), claimsOf(c), decision));
+  const body = valid<z.infer<typeof decisionSchema>>(c, 'json');
+  return ok(c, await mockBankDecision(c.get('deps'), claimsOf(c), body));
 });

@@ -84,12 +84,12 @@ describe('webhook processing', () => {
     ['INITIATION_PENDING_REDEMPTION', 'AUTHORIZED'],
     ['INITIATION_PROCESSING', 'SUBMITTED'],
     ['INITIATION_COMPLETED', 'ACCEPTED'],
-    ['SETTLEMENT_IN_PROGRESS', 'SUBMITTED'],
+    ['SETTLEMENT_IN_PROGRESS', 'ACCEPTED'],
     ['SETTLEMENT_COMPLETED', 'COMPLETED'],
     ['INITIATION_FAILED', 'FAILED'],
     ['SETTLEMENT_INCOMPLETE', 'FAILED'],
     ['INITIATION_DECLINED', 'CANCELLED'],
-    ['INITIATION_EXPIRED', 'CANCELLED'],
+    ['INITIATION_EXPIRED', 'EXPIRED'],
   ])('maps %s to %s', async (providerStatus, expected) => {
     await t.admin((pg) => pg.query(`update payments set status = 'PENDING' where payment_id = 'pay_a1'`));
     await post(event('e-' + providerStatus, 'tok_a1', providerStatus));

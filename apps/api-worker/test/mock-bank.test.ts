@@ -43,6 +43,8 @@ describe('Mock bank', () => {
       currency: 'GBP',
       reference: 'Order 7',
       status: 'AUTHORIZING',
+      isoStatus: expect.objectContaining({ code: 'PDNG' }),
+      scenario: null,
       expiresAt: expect.any(String),
     });
   });

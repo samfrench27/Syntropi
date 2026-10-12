@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Clock, Info, Loader2, RefreshCw, ShieldAlert, XCircle } from 'lucide-react';
 import { Shell } from '@/components/Shell';
-import { fetchPayment, sendDecision, type Decision, type FailKind, type PaymentView } from '@/lib/api';
+import { fetchPayment, sendDecision, type Decision, type FailKind, type PaymentView, type Preset, type RejectReason, type Scenario } from '@/lib/api';
 import { formatCountdown, formatMoney, parsePaymentId, readToken, safeRedirectUrl, scrubbedUrl, secondsLeft } from '@/lib/helpers.mjs';
 
 type ErrorKind = FailKind | 'missing-token' | 'missing-id';
@@ -27,12 +27,14 @@ const ERRORS: Record<ErrorKind, { title: string; text: string; retry?: boolean }
   server: { title: 'Something went wrong', text: 'The Mock bank had a problem. Please try again in a moment.', retry: true },
 };
 
+// An approved payment keeps moving (AUTHORIZED, SUBMITTED, ACCEPTED) until it completes, so all of those mean "approved".
+const APPROVED = ['AUTHORIZED', 'SUBMITTED', 'ACCEPTED', 'COMPLETED'];
 function outcomeFromStatus(status: string): Outcome | null {
-  if (status === 'COMPLETED') return { approved: true, redirectUrl: null, earlier: true };
+  if (APPROVED.includes(status)) return { approved: true, redirectUrl: null, earlier: true };
   if (status === 'FAILED') return { approved: false, redirectUrl: null, earlier: true };
   return null;
 }
-const isPending = (status: string) => status === 'AUTHORIZING' || status === 'AUTHORIZED';
+const isPending = (status: string) => status === 'AUTHORIZING';
 
 export default function PayPage() {
   const [view, setView] = useState<View>({ step: 'loading' });
@@ -69,14 +71,14 @@ export default function PayPage() {
     void load();
   }, [load]);
 
-  const decide = useCallback(async (payment: PaymentView, decision: Decision): Promise<'network' | 'server' | null> => {
+  const decide = useCallback(async (payment: PaymentView, decision: Decision, scenario?: Scenario): Promise<'network' | 'server' | null> => {
     if (!paymentId.current || !token.current) {
       setView({ step: 'error', kind: 'missing-token' });
       return null;
     }
-    const res = await sendDecision(paymentId.current, token.current, decision);
+    const res = await sendDecision(paymentId.current, token.current, decision, scenario);
     if (res.ok) {
-      const approved = res.data.status === 'COMPLETED';
+      const approved = res.data.status !== 'FAILED';
       setView({ step: 'result', payment, outcome: { approved, redirectUrl: safeRedirectUrl(res.data.redirectUrl), earlier: false } });
       return null;
     }
@@ -100,7 +102,7 @@ export default function PayPage() {
       {view.step === 'loading' && <Loading />}
       {view.step === 'error' && <ErrorPanel kind={view.kind} onRetry={load} />}
       {view.step === 'login' && <LoginStep onContinue={() => setView({ step: 'request', payment: view.payment })} />}
-      {view.step === 'request' && <RequestStep payment={view.payment} onDecide={(d) => decide(view.payment, d)} onExpired={() => setView({ step: 'error', kind: 'expired' })} />}
+      {view.step === 'request' && <RequestStep payment={view.payment} onDecide={(d, s) => decide(view.payment, d, s)} onExpired={() => setView({ step: 'error', kind: 'expired' })} />}
       {view.step === 'result' && <ResultStep payment={view.payment} outcome={view.outcome} />}
     </Shell>
   );
@@ -167,7 +169,75 @@ function LoginStep({ onContinue }: { onContinue: () => void }) {
   );
 }
 
-function RequestStep({ payment, onDecide, onExpired }: { payment: PaymentView; onDecide: (d: Decision) => Promise<'network' | 'server' | null>; onExpired: () => void }) {
+const PRESET_STEPS: Record<Preset, string> = {
+  instant: 'Completes straight away (ACSC)',
+  realistic: 'ACTC now, ACCP after 5s, ACSP after 15s, ACSC after 1 minute',
+  slow: 'ACTC now, ACCP after 30s, ACSP after 2 minutes, ACSC after 10 minutes',
+};
+const REJECT_REASONS: [RejectReason, string][] = [
+  ['CUST', 'Requested by the customer (CUST)'],
+  ['AM04', 'Insufficient funds (AM04)'],
+  ['AC04', 'Closed account (AC04)'],
+  ['NARR', 'Other reason (NARR)'],
+];
+
+/** Lets the person at the Mock bank choose how the payment moves through the ISO 20022 statuses after they decide. */
+function SimulatePanel({ initial, onChange }: { initial?: Scenario | null; onChange: (s: Scenario, valid: boolean) => void }) {
+  type Mode = Preset | 'custom';
+  const [mode, setMode] = useState<Mode>(initial?.completeAfterSeconds ? 'custom' : initial?.preset ?? 'instant');
+  const [seconds, setSeconds] = useState(String(initial?.completeAfterSeconds ?? 30));
+  const [reason, setReason] = useState<RejectReason>(initial?.rejectReason ?? 'CUST');
+  const n = Number(seconds);
+  const valid = mode !== 'custom' || (Number.isInteger(n) && n >= 1 && n <= 3600);
+
+  useEffect(() => {
+    onChange({ ...(mode === 'custom' ? (valid ? { completeAfterSeconds: n } : {}) : { preset: mode }), rejectReason: reason }, valid);
+  }, [mode, seconds, reason]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const modes: [Mode, string][] = [['instant', 'Instant'], ['realistic', 'Realistic'], ['slow', 'Slow'], ['custom', 'Custom']];
+  return (
+    <details className="panel mt-4 px-4 py-3 text-sm" open>
+      <summary className="cursor-pointer font-medium" style={ink}>Simulate how the payment moves</summary>
+      <fieldset className="mt-3">
+        <legend className="mb-1.5 text-sm" style={ink2}>If you approve</legend>
+        <div role="radiogroup" className="flex flex-wrap gap-1.5">
+          {modes.map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              aria-checked={mode === id}
+              onClick={() => setMode(id)}
+              className="rounded-full px-3 py-1.5 text-sm font-medium transition-colors"
+              style={{ background: mode === id ? 'var(--d-accent)' : 'var(--d-accent-soft)', color: mode === id ? 'var(--d-on-accent)' : 'var(--d-ink)' }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {mode === 'custom' ? (
+          <div className="mt-2.5">
+            <label htmlFor="mb-secs" className="mb-1 block text-sm" style={ink2}>Complete after (seconds, 1 to 3600)</label>
+            <input id="mb-secs" inputMode="numeric" className="ctl-input mono" value={seconds} onChange={(e) => setSeconds(e.target.value)} aria-invalid={!valid} />
+            {!valid && <p role="alert" className="mt-1 text-sm" style={{ color: 'var(--d-bad-ink)' }}>Enter a whole number from 1 to 3600.</p>}
+          </div>
+        ) : (
+          <p className="mono mt-2 text-xs" style={ink2}>{PRESET_STEPS[mode]}</p>
+        )}
+      </fieldset>
+      <div className="mt-3">
+        <label htmlFor="mb-reason" className="mb-1 block text-sm" style={ink2}>If you reject, the reason is</label>
+        <select id="mb-reason" className="ctl-input" value={reason} onChange={(e) => setReason(e.target.value as RejectReason)}>
+          {REJECT_REASONS.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+        </select>
+      </div>
+    </details>
+  );
+}
+
+function RequestStep({ payment, onDecide, onExpired }: { payment: PaymentView; onDecide: (d: Decision, s?: Scenario) => Promise<'network' | 'server' | null>; onExpired: () => void }) {
+  const [scenario, setScenario] = useState<Scenario>(payment.scenario ?? {});
+  const [scenarioOk, setScenarioOk] = useState(true);
   const [pending, setPending] = useState<Decision | null>(null);
   const [problem, setProblem] = useState<'network' | 'server' | null>(null);
   const lock = useRef(false);
@@ -188,7 +258,7 @@ function RequestStep({ payment, onDecide, onExpired }: { payment: PaymentView; o
     lock.current = true;
     setPending(d);
     setProblem(null);
-    const failed = await onDecide(d);
+    const failed = await onDecide(d, scenario);
     if (failed) {
       setProblem(failed);
       setPending(null);
@@ -223,6 +293,7 @@ function RequestStep({ payment, onDecide, onExpired }: { payment: PaymentView; o
           <Clock size={14} aria-hidden /> Time left to approve: <span className="mono font-medium" style={ink}>{formatCountdown(left)}</span>
         </p>
       )}
+      <SimulatePanel initial={payment.scenario} onChange={(s, ok) => { setScenario(s); setScenarioOk(ok); }} />
       {problem && (
         <p role="alert" className="mt-4 flex gap-2 text-sm" style={{ color: 'var(--d-bad-ink)' }}>
           <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden />
@@ -230,7 +301,7 @@ function RequestStep({ payment, onDecide, onExpired }: { payment: PaymentView; o
         </p>
       )}
       <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-        <button className="btn-primary sm:flex-1" disabled={pending !== null} aria-busy={pending === 'approve'} onClick={() => act('approve')}>
+        <button className="btn-primary sm:flex-1" disabled={pending !== null || !scenarioOk} aria-busy={pending === 'approve'} onClick={() => act('approve')}>
           {pending === 'approve' && <Loader2 size={16} className="animate-spin" aria-hidden />}
           {pending === 'approve' ? 'Approving...' : 'Approve payment'}
         </button>

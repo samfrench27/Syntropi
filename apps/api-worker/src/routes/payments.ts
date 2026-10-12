@@ -61,7 +61,7 @@ paymentsRoutes.get('/', apiKeyAuth('read'), validate('query', listQuery), async 
   const q = valid<z.infer<typeof listQuery>>(c, 'query');
   const limit = q.limit ?? 20;
   const offset = q.offset ?? 0;
-  const result = await listPayments(c.get('deps').db, c.get('apiKey').organizationId, { status: q.status, provider: q.provider, limit, offset });
+  const result = await listPayments(c.get('deps'), c.get('apiKey').organizationId, { status: q.status, provider: q.provider, limit, offset });
   return ok(c, { ...result, limit, offset });
 });
 
