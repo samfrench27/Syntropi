@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useRouteParams } from '@/lib/useRouteParams';
 import { 
   ArrowLeft,
   Copy,
@@ -27,8 +28,10 @@ interface Payment {
   reference?: string;
   createdAt: string;
   updatedAt: string;
+  isoStatus?: { code: string; name: string; description?: string; reason?: { code: string; name: string } };
   statusHistory: Array<{
     status: string;
+    isoStatus?: { code: string; name: string; description?: string; reason?: { code: string; name: string } };
     timestamp: string;
     details?: string;
   }>;
@@ -41,7 +44,7 @@ interface Organization {
 
 export default function PaymentDetailPage() {
   const router = useRouter();
-  const params = useParams();
+  const params = useRouteParams<{ paymentId: string }>('/platform-admin/payments/[paymentId]');
   const { user } = useAuth();
   const [payment, setPayment] = useState<Payment | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -227,6 +230,19 @@ export default function PaymentDetailPage() {
                 </div>
               </div>
 
+              {payment.isoStatus && (
+                <div className="flex items-center justify-between" title={payment.isoStatus.description}>
+                  <span className="text-sm font-medium text-gray-500">ISO 20022 status</span>
+                  <span className="text-sm text-gray-900">
+                    <span className="font-mono font-semibold">{payment.isoStatus.code}</span>
+                    {' '}{payment.isoStatus.name}
+                    {payment.isoStatus.reason && (
+                      <span className="text-gray-500"> ({payment.isoStatus.reason.code} {payment.isoStatus.reason.name})</span>
+                    )}
+                  </span>
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-500">Amount</span>
                 <span className="text-lg font-semibold text-gray-900">{formatCurrency(payment.amount)}</span>
@@ -365,6 +381,12 @@ export default function PaymentDetailPage() {
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(history.status)}`}>
                               {history.status}
                             </span>
+                            {history.isoStatus && (
+                              <span className="ml-2 text-xs text-gray-500">
+                                ISO <span className="font-mono">{history.isoStatus.code}</span>
+                                {history.isoStatus.reason ? ` / ${history.isoStatus.reason.code}` : ''}
+                              </span>
+                            )}
                           </p>
                           {history.details && (
                             <p className="mt-1 text-sm text-gray-500">{history.details}</p>

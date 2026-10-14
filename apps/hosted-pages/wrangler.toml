@@ -1,0 +1,13 @@
+name = "syntropi-pay"
+main = "worker.mjs"
+compatibility_date = "2026-10-01"
+
+# Public address. Cloudflare creates the DNS record and certificate itself.
+routes = [{ pattern = "pay.syntropi.co.uk", custom_domain = true }]
+workers_dev = false
+preview_urls = false
+
+# The static export, built with: NEXT_PUBLIC_API_URL=https://api.syntropi.co.uk npm run build
+[assets]
+directory = "./out"
+binding = "ASSETS"

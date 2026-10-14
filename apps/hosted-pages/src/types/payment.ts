@@ -1,60 +1,38 @@
+/** What GET /api/payments/:id/hosted and /status return (the Worker's `hostedView`). */
+export type PaymentStatus =
+  | 'PENDING'
+  | 'AUTHORIZING'
+  | 'AUTHORIZED'
+  | 'SUBMITTED'
+  | 'ACCEPTED'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'EXPIRED';
+
 export interface PaymentSession {
   paymentId: string;
-  status: 'PENDING' | 'AUTHORIZING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-  amount: {
-    value: string;
-    currency: string;
-  };
+  status: PaymentStatus;
+  amount: { value: string; currency: string };
   reference?: string;
   description?: string;
-  toAccount: {
-    accountName: string;
-    accountNumber?: string;
-    sortCode?: string;
-  };
-  fromAccount?: {
-    accountName: string;
-    accountNumber?: string;
-    sortCode?: string;
-  };
-  merchant?: {
-    name: string;
-    logo?: string;
-    redirectUri?: string;
-  };
+  toAccount: { accountName: string; accountNumber?: string; sortCode?: string };
+  merchant?: { name: string; logo?: string; redirectUri?: string };
   createdAt: string;
-  expiresAt: string;
+  expiresAt?: string | null;
 }
 
+/** One bank from GET /api/banks (only the fields the page uses). */
 export interface Bank {
   id: string;
   name: string;
-  displayName: string;
-  logo?: string;
-  color?: string;
-  available?: boolean;
-  supportsInstantPayments?: boolean;
-  processingTime?: string;
+  displayName?: string | null;
+  logoUrl?: string;
 }
 
-export interface PaymentInitiationRequest {
+/** POST /api/payments/initiate */
+export interface InitiateResult {
   paymentId: string;
-  bankId: string;
-  flowType: 'API_ONLY' | 'HOSTED';
-  redirectUri?: string;
-}
-
-export interface PaymentInitiationResponse {
-  paymentId: string;
-  status: string;
-  redirectUrl?: string;
-  authorizationUrl?: string;
-  sessionId?: string;
-}
-
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  error?: string;
+  status: PaymentStatus;
+  redirectUrl: string | null;
 }

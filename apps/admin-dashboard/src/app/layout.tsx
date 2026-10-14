@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { OrganizationProvider } from '@/contexts/OrganizationContext';
+import { ThemeProvider, themeBootScript } from '@/design/ThemeProvider';
 
-const inter = Inter({ subsets: ['latin'] });
+const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
+const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' });
 
 export const metadata: Metadata = {
   title: 'Syntropi Admin Dashboard',
@@ -39,13 +41,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <AuthProvider>
-          <OrganizationProvider>
-            {children}
-          </OrganizationProvider>
-        </AuthProvider>
+    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
+      <body className="font-sans">
+        <ThemeProvider>
+          <AuthProvider>
+            <OrganizationProvider>
+              {children}
+            </OrganizationProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

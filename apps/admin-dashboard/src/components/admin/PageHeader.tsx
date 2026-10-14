@@ -6,12 +6,16 @@ interface PageHeaderProps {
   action?: ReactNode;
 }
 
+/**
+ * The AppShell already shows the page title as a large heading, so this renders the title for
+ * screen readers only and shows the description and primary action.
+ */
 export default function PageHeader({ title, description, action }: PageHeaderProps) {
   return (
-    <div className="flex justify-between items-center pb-5 border-b border-gray-200 mb-6">
+    <div className="mb-6 flex items-center justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-        {description && <p className="mt-1 text-sm text-gray-500">{description}</p>}
+        <h2 className="sr-only">{title}</h2>
+        {description && <p className="text-sm text-gray-500">{description}</p>}
       </div>
       {action && <div>{action}</div>}
     </div>

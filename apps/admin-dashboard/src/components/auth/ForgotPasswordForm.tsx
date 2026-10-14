@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { authAPI } from '@/lib/api';
+import { supabaseAuth } from '@/lib/supabase';
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
@@ -15,79 +15,80 @@ export default function ForgotPasswordForm() {
     setLoading(true);
     setError(null);
 
-    try {
-      await authAPI.forgotPassword(email);
-      setSubmitted(true);
-    } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Failed to process request. Please try again.');
-    } finally {
-      setLoading(false);
+    const { error: resetError } = await supabaseAuth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setLoading(false);
+
+    // The same message either way, so this can't be used to find out who has an account
+    if (resetError && /rate limit|too many/i.test(resetError.message)) {
+      setError('Too many requests. Wait a few minutes and try again.');
+      return;
     }
+    setSubmitted(true);
   };
 
   if (submitted) {
     return (
-      <div className="mt-8 w-full max-w-md">
-        <div className="bg-white p-8 rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold mb-6 text-center">Check Your Email</h2>
-          <p className="text-gray-600 mb-6 text-center">
-            If an account exists for {email}, we've sent password reset instructions.
-          </p>
-          <Link 
-            href="/login" 
-            className="block w-full text-center text-blue-600 hover:text-blue-800 font-medium"
-          >
-            Back to Login
-          </Link>
-        </div>
+      <div role="status">
+        <h1 className="mb-1 text-2xl font-semibold tracking-tight" style={{ color: 'var(--d-ink)' }}>
+          Check your email
+        </h1>
+        <p className="mb-6 text-sm" style={{ color: 'var(--d-ink-2)' }}>
+          If an account exists for {email}, we’ve sent a link to reset your password.
+        </p>
+        <Link href="/login" className="text-sm font-medium hover:underline" style={{ color: 'var(--d-accent-ink)' }}>
+          Back to sign in
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="mt-8 w-full max-w-md">
-      <div className="bg-white p-8 rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">Reset Your Password</h2>
-        
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-        
-        <p className="text-gray-600 mb-6">
-          Enter your admin email address and we'll send you instructions to reset your password.
-        </p>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="mb-6">
-            <label htmlFor="email" className="block text-gray-700 font-medium mb-2">
-              Email Address
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-          
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-          >
-            {loading ? 'Sending...' : 'Send Reset Instructions'}
-          </button>
-        </form>
-        
-        <div className="mt-6 text-center text-sm">
-          <Link href="/login" className="text-blue-600 hover:text-blue-800 font-medium">
-            Back to Login
-          </Link>
+    <div>
+      <h1 className="mb-1 text-2xl font-semibold tracking-tight" style={{ color: 'var(--d-ink)' }}>
+        Reset your password
+      </h1>
+      <p className="mb-6 text-sm" style={{ color: 'var(--d-ink-2)' }}>
+        Enter your email and we’ll send you a link to choose a new one.
+      </p>
+
+      {error && (
+        <div
+          role="alert"
+          className="mb-4 px-4 py-3 text-sm"
+          style={{
+            borderRadius: 'var(--d-r-ctl)',
+            background: 'color-mix(in srgb, var(--d-bad) 14%, transparent)',
+            color: 'var(--d-bad-ink)',
+          }}
+        >
+          {error}
         </div>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        <label htmlFor="email" className="mb-1.5 block text-sm font-medium" style={{ color: 'var(--d-ink)' }}>
+          Email
+        </label>
+        <input
+          type="email"
+          id="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="ctl-input mb-5"
+          required
+        />
+        <button type="submit" disabled={loading} className="btn-primary w-full">
+          {loading ? 'Sending...' : 'Send reset link'}
+        </button>
+      </form>
+
+      <div className="mt-5 text-sm">
+        <Link href="/login" className="font-medium hover:underline" style={{ color: 'var(--d-accent-ink)' }}>
+          Back to sign in
+        </Link>
       </div>
     </div>
   );

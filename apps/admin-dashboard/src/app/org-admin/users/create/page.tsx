@@ -8,6 +8,9 @@ import Card from '@/components/admin/Card';
 import { userAPI } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
+import { describeFailures, evaluatePassword } from '@repo/password-policy';
+import PasswordInput from '@/components/auth/PasswordInput';
+import PasswordStrength from '@/components/auth/PasswordStrength';
 export default function CreateUserPage() {
   const router = useRouter();
   const { user: currentUser } = useAuth();
@@ -23,6 +26,9 @@ export default function CreateUserPage() {
     role: 'user',
   });
 
+  // The same rules the API enforces; only applied when a password is set (otherwise they get an invitation)
+  const policy = evaluatePassword(formData.password, { email: formData.email, names: [formData.firstName, formData.lastName] });
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -37,7 +43,12 @@ export default function CreateUserPage() {
     setError(null);
 
     // Validate passwords match
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.password && !policy.acceptable) {
+      setError(describeFailures(policy) || 'Choose a stronger password.');
+      setLoading(false);
+      return;
+    }
+    if (formData.password && formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);
       return;
@@ -52,7 +63,8 @@ export default function CreateUserPage() {
 
     try {
       // Remove confirmPassword before sending to API
-      const { confirmPassword, ...userData } = formData;
+      const { confirmPassword, password, ...rest } = formData;
+      const userData = password ? { ...rest, password } : rest;
       
       await userAPI.createUser({
         ...userData,
@@ -149,33 +161,32 @@ export default function CreateUserPage() {
                 
                 <div>
                   <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                    Password*
+                    Password (optional)
                   </label>
-                  <input
-                    type="password"
+                  <PasswordInput
                     id="password"
+                    aria-describedby={formData.password ? "password-guidance" : undefined}
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                    minLength={8}
                   />
-                  <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters</p>
+                  <p className="text-xs text-gray-500 mt-1">Leave blank and we will email them an invitation to choose their own password. Or set one now.</p>
+                  {formData.password && (
+                    <PasswordStrength id="password-guidance" password={formData.password} email={formData.email} names={[formData.firstName, formData.lastName]} />
+                  )}
                 </div>
                 
                 <div>
                   <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    Confirm Password*
+                    Confirm password
                   </label>
-                  <input
-                    type="password"
+                  <PasswordInput
                     id="confirmPassword"
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
                   />
                 </div>
               </div>

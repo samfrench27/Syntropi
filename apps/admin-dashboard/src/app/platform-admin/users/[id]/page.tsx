@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRouteParams } from '@/lib/useRouteParams';
 import { ArrowLeft, Save, Building2, Activity, Key } from 'lucide-react';
 import Card from '@/components/admin/Card';
 import { userAPI, organizationAPI } from '@/lib/api';
@@ -42,7 +43,8 @@ interface Activity {
   createdAt: string;
 }
 
-export default function UserDetailsPage({ params }: { params: { id: string } }) {
+export default function UserDetailsPage() {
+  const params = useRouteParams<{ id: string }>('/platform-admin/users/[id]');
   const [user, setUser] = useState<UserDetails | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -65,8 +67,6 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
     role: '',
     status: 'active',
     organizationId: '',
-    newPassword: '',
-    confirmPassword: '',
   });
 
   useEffect(() => {
@@ -101,8 +101,6 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
           role: userData.role || '',
           status: userData.status || 'active',
           organizationId: userData.organization?._id || '',
-          newPassword: '',
-          confirmPassword: '',
         });
       }
     } catch (err: any) {
@@ -142,17 +140,30 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
     }));
   };
 
+  // "Send password reset email": the person chooses their own password through the emailed link
+  const [resetState, setResetState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const sendReset = async () => {
+    setResetState('sending');
+    setResetMessage(null);
+    try {
+      await userAPI.sendPasswordReset(userId);
+      setResetState('sent');
+      setResetMessage(`Reset email sent to ${formData.email}.`);
+    } catch (err: any) {
+      setResetState('error');
+      setResetMessage(
+        err.response?.status === 429
+          ? 'A reset email was already sent to this person a few times. Try again later.'
+          : err.response?.data?.error?.message || 'We couldn’t send the reset email. Try again.',
+      );
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
-
-    // Check if password fields are filled and match
-    if (formData.newPassword && formData.newPassword !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      setSaving(false);
-      return;
-    }
 
     try {
         if (isCreateMode) {
@@ -163,7 +174,6 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
             email: formData.email,
             role: formData.role,
             organizationId: formData.organizationId,
-            password: formData.newPassword, // Required for new users
           });
           alert('User created successfully');
           router.push('/platform-admin/users'); // Redirect to users list
@@ -174,7 +184,6 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
             lastName: formData.lastName,
             role: formData.role,
             status: formData.status,
-            ...(formData.newPassword && { password: formData.newPassword }),
           };
   
           if (isSuperAdminUser && formData.organizationId !== user?.organization?._id) {
@@ -461,40 +470,31 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
                     )}
                   </div>
                   
-                  <div className="space-y-4 pt-4 border-t border-gray-200">
-                    <h3 className="text-lg font-medium text-gray-900">Change Password</h3>
-                    <p className="text-sm text-gray-500">Leave blank to keep the current password.</p>
-                    
-                    <div>
-                      <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                        New Password
-                      </label>
-                      <input
-                        type="password"
-                        id="newPassword"
-                        name="newPassword"
-                        value={formData.newPassword}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        minLength={8}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters</p>
+                  {!isCreateMode && (
+                    <div className="space-y-3 pt-4 border-t border-gray-200">
+                      <h3 className="text-lg font-medium text-gray-900">Password</h3>
+                      <p className="text-sm text-gray-500">
+                        We&apos;ll email {formData.email || 'this person'} a link to choose a new password. You never see or set it.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={sendReset}
+                        disabled={resetState === 'sending'}
+                        className="btn-quiet"
+                      >
+                        {resetState === 'sending' ? 'Sending...' : 'Send password reset email'}
+                      </button>
+                      {resetMessage && (
+                        <p
+                          role="status"
+                          className="text-sm"
+                          style={{ color: resetState === 'error' ? 'var(--d-bad-ink)' : 'var(--d-ok-ink)' }}
+                        >
+                          {resetMessage}
+                        </p>
+                      )}
                     </div>
-                    
-                    <div>
-                      <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                        Confirm New Password
-                      </label>
-                      <input
-                        type="password"
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
+                  )}
                 </Card.Body>
                 
                 <Card.Footer className="flex justify-end">

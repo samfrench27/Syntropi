@@ -7,12 +7,14 @@ import { clientAPIKeyAPI } from '@/lib/clientApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import Card from '@/components/admin/Card';
+import MaskedKey from '@/components/admin/MaskedKey';
 import PageHeader from '@/components/admin/PageHeader';
 import EmptyState from '@/components/admin/EmptyState';
 
 interface ApiKey {
   _id: string;
   name: string;
+  keyPrefix?: string;
   environment: 'sandbox' | 'production';
   createdBy: {
     _id: string;
@@ -236,6 +238,9 @@ export default function ClientApiKeysPage() {
                     Name
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                    Key
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                     Environment
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
@@ -255,6 +260,9 @@ export default function ClientApiKeysPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-medium text-gray-900">{apiKey.name}</div>
                       <div className="text-xs text-gray-500">ID: {apiKey._id}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <MaskedKey prefix={apiKey.keyPrefix} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {renderEnvironmentBadge(apiKey.environment)}

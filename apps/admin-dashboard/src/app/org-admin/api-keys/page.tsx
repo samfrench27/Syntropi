@@ -7,12 +7,14 @@ import { Plus, Search, RefreshCw, EyeOff, Eye, Key } from 'lucide-react';
 import { apiKeyAPI } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Card from '@/components/admin/Card';
+import MaskedKey from '@/components/admin/MaskedKey';
 import PageHeader from '@/components/admin/PageHeader';
 import EmptyState from '@/components/admin/EmptyState';
 
 interface ApiKey {
   _id: string;
   name: string;
+  keyPrefix?: string;
   environment: 'sandbox' | 'production';
   createdBy: {
     _id: string;
@@ -214,7 +216,7 @@ export default function OrgAdminApiKeysPage() {
                     Name
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Environment
+                    Key
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Environment
@@ -239,6 +241,9 @@ export default function OrgAdminApiKeysPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-medium text-gray-900">{apiKey.name}</div>
                       <div className="text-xs text-gray-500">ID: {apiKey._id}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <MaskedKey prefix={apiKey.keyPrefix} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {renderEnvironmentBadge(apiKey.environment)}

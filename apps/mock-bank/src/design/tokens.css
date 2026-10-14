@@ -1,0 +1,411 @@
+/*
+ * Syntropi design tokens.
+ *
+ * Design A (Clear glass) in two modes (data-mode = light | dark).
+ * Glass is reserved for the controls layer (sidebar, toolbar, sheets, menus).
+ * Data surfaces use --d-panel, which stays near-opaque so text stays legible.
+ *
+ * Tailwind's colour, radius and shadow tokens are remapped at the bottom, so
+ * existing pages written with bg-white / text-gray-* pick up the active design
+ * without edits.
+ */
+
+/* ---------- Base: light ---------- */
+:root {
+  --d-canvas: #e9ecfa;
+  --d-field:
+    radial-gradient(60% 50% at 12% 6%, rgba(84, 73, 222, 0.36), transparent 70%),
+    radial-gradient(50% 45% at 92% 10%, rgba(182, 63, 222, 0.24), transparent 70%),
+    radial-gradient(55% 50% at 72% 98%, rgba(56, 189, 248, 0.26), transparent 70%),
+    radial-gradient(40% 40% at 4% 92%, rgba(31, 169, 113, 0.12), transparent 70%);
+
+  --d-glass: rgba(255, 255, 255, 0.42);
+  --d-glass-edge: rgba(255, 255, 255, 0.65);
+  --d-glass-hi: rgba(255, 255, 255, 0.9);
+  --d-blur: 30px;
+  --d-sat: 180%;
+  --d-shadow-float: 0 8px 32px rgba(27, 24, 64, 0.12), 0 1px 2px rgba(27, 24, 64, 0.06);
+
+  --d-panel: rgba(255, 255, 255, 0.86);
+  --d-panel-edge: rgba(27, 24, 64, 0.06);
+  --d-panel-shadow: 0 1px 2px rgba(27, 24, 64, 0.04), 0 4px 16px rgba(27, 24, 64, 0.05);
+
+  --d-ink: #1b1840;
+  --d-ink-2: #4b4a6b;
+  --d-ink-3: #67668c;
+
+  --d-accent: #5449de;
+  --d-accent-ink: #3a30b8;
+  --d-accent-soft: rgba(84, 73, 222, 0.12);
+  --d-on-accent: #ffffff;
+
+  --d-ok: #1fa971;
+  --d-ok-ink: #0f7a51;
+  --d-warn: #e0a100;
+  --d-warn-ink: #8a6200;
+  --d-bad: #e5484d;
+  --d-bad-ink: #b3262b;
+
+  --d-r-sheet: 28px;
+  --d-r-panel: 20px;
+  --d-r-ctl: 12px;
+
+  --d-spring: cubic-bezier(0.32, 1.25, 0.5, 1);
+  --d-ease: cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+
+/* ---------- Dark ---------- */
+html[data-mode="dark"] {
+  --d-canvas: #0e0d24;
+  --d-field:
+    radial-gradient(60% 50% at 12% 6%, rgba(84, 73, 222, 0.5), transparent 70%),
+    radial-gradient(50% 45% at 92% 10%, rgba(182, 63, 222, 0.3), transparent 70%),
+    radial-gradient(55% 50% at 72% 98%, rgba(56, 189, 248, 0.2), transparent 70%);
+
+  --d-glass: rgba(34, 32, 80, 0.4);
+  --d-glass-edge: rgba(255, 255, 255, 0.14);
+  --d-glass-hi: rgba(255, 255, 255, 0.22);
+  --d-shadow-float: 0 12px 40px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+
+  --d-panel: rgba(24, 22, 58, 0.84);
+  --d-panel-edge: rgba(255, 255, 255, 0.08);
+  --d-panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+
+  --d-ink: #f1f1fb;
+  --d-ink-2: #b7b6d6;
+  --d-ink-3: #8f8db6;
+
+  --d-accent: #8479ff;
+  --d-accent-ink: #c4beff;
+  --d-accent-soft: rgba(132, 121, 255, 0.2);
+  --d-on-accent: #0e0d24;
+
+  --d-ok: #34d399;
+  --d-ok-ink: #6ee7b7;
+  --d-warn: #fbbf24;
+  --d-warn-ink: #fcd34d;
+  --d-bad: #f87171;
+  --d-bad-ink: #fca5a5;
+}
+
+/* ---------- Surfaces ---------- */
+html {
+  color-scheme: light;
+}
+html[data-mode="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--d-canvas);
+  color: var(--d-ink);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The light field gives the glass something to refract. It sits behind everything. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--d-field);
+  pointer-events: none;
+}
+
+.glass {
+  background: var(--d-glass);
+  -webkit-backdrop-filter: blur(var(--d-blur)) saturate(var(--d-sat));
+  backdrop-filter: blur(var(--d-blur)) saturate(var(--d-sat));
+  border: 1px solid var(--d-glass-edge);
+  box-shadow: inset 0 1px 0 var(--d-glass-hi), var(--d-shadow-float);
+}
+
+.panel {
+  background: var(--d-panel);
+  border: 1px solid var(--d-panel-edge);
+  border-radius: var(--d-r-panel);
+  box-shadow: var(--d-panel-shadow);
+}
+
+/* Solid fallbacks: no blur when the user or browser asks for less transparency. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--d-panel);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  body::before {
+    opacity: 0.35;
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--d-panel);
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--d-accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Controls ---------- */
+.ctl-input {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--d-r-ctl);
+  background: color-mix(in srgb, var(--d-panel) 70%, transparent);
+  border: 1px solid var(--d-panel-edge);
+  box-shadow: inset 0 1px 2px rgba(27, 24, 64, 0.06);
+  color: var(--d-ink);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ctl-input:focus {
+  outline: none;
+  border-color: var(--d-accent);
+  box-shadow: 0 0 0 3px var(--d-accent-soft);
+}
+.ctl-input::placeholder {
+  color: var(--d-ink-3);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.1rem;
+  border-radius: var(--d-r-ctl);
+  background: var(--d-accent);
+  color: var(--d-on-accent);
+  font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 6px 18px color-mix(in srgb, var(--d-accent) 40%, transparent);
+  transition: transform 0.18s var(--d-spring), filter 0.15s;
+}
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-quiet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.95rem;
+  border-radius: var(--d-r-ctl);
+  background: var(--d-panel);
+  border: 1px solid var(--d-panel-edge);
+  color: var(--d-ink);
+  font-weight: 500;
+  transition: transform 0.18s var(--d-spring), background-color 0.15s;
+}
+.btn-quiet:hover:not(:disabled) {
+  background: var(--d-accent-soft);
+}
+.btn-quiet:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Legacy classes still used by existing pages */
+.btn-gradient {
+  background: var(--d-accent);
+  color: var(--d-on-accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  transition: filter 0.15s;
+}
+.btn-gradient:hover {
+  filter: brightness(1.08);
+}
+.btn-secondary {
+  background-color: var(--d-panel);
+  border: 1px solid var(--d-panel-edge);
+  color: var(--d-ink-2);
+  transition: background-color 0.15s;
+}
+.btn-secondary:hover {
+  background-color: var(--d-accent-soft);
+}
+
+/* Status chip: colour is always paired with an icon and a label. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--chip-bg);
+  color: var(--chip-ink);
+  transition: background-color 0.4s var(--d-ease), color 0.4s var(--d-ease);
+}
+.chip[data-tone="ok"] { --chip-bg: color-mix(in srgb, var(--d-ok) 16%, transparent); --chip-ink: var(--d-ok-ink); }
+.chip[data-tone="warn"] { --chip-bg: color-mix(in srgb, var(--d-warn) 18%, transparent); --chip-ink: var(--d-warn-ink); }
+.chip[data-tone="bad"] { --chip-bg: color-mix(in srgb, var(--d-bad) 16%, transparent); --chip-ink: var(--d-bad-ink); }
+.chip[data-tone="idle"] { --chip-bg: var(--d-accent-soft); --chip-ink: var(--d-ink-2); }
+
+.mono {
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Route ribbon (providers) ---------- */
+.ribbon-line {
+  stroke: var(--d-ink-3);
+  opacity: 0.35;
+}
+.ribbon-line[data-live="true"] {
+  stroke: var(--d-accent);
+  opacity: 1;
+}
+@keyframes ribbon-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.95; }
+}
+.ribbon-line[data-pending="true"] {
+  stroke: var(--d-warn);
+  stroke-dasharray: 6 6;
+  animation: ribbon-pulse 1.8s ease-in-out infinite;
+}
+
+/* ---------- Motion: only answers actions; honour reduced motion ---------- */
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateX(24px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.sheet-in { animation: sheet-in 0.38s var(--d-spring) both; }
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.pop-in { animation: pop-in 0.2s var(--d-ease) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------- Tailwind remaps ---------- */
+html {
+  --radius-md: var(--d-r-ctl);
+  --radius-lg: var(--d-r-ctl);
+  --radius-xl: var(--d-r-panel);
+  --radius-2xl: var(--d-r-panel);
+  --radius-3xl: var(--d-r-sheet);
+
+  --shadow: var(--d-panel-shadow);
+  --shadow-sm: var(--d-panel-shadow);
+  --shadow-md: var(--d-panel-shadow);
+  --shadow-lg: var(--d-shadow-float);
+  --shadow-xl: var(--d-shadow-float);
+
+  --color-white: var(--d-panel);
+
+  --color-gray-50: color-mix(in srgb, var(--d-accent) 5%, transparent);
+  --color-gray-100: color-mix(in srgb, var(--d-ink) 6%, transparent);
+  --color-gray-200: color-mix(in srgb, var(--d-ink) 10%, transparent);
+  --color-gray-300: color-mix(in srgb, var(--d-ink) 18%, transparent);
+  --color-gray-400: var(--d-ink-3);
+  --color-gray-500: var(--d-ink-3);
+  --color-gray-600: var(--d-ink-2);
+  --color-gray-700: var(--d-ink-2);
+  --color-gray-800: var(--d-ink);
+  --color-gray-900: var(--d-ink);
+
+  --color-blue-50: var(--d-accent-soft);
+  --color-blue-100: var(--d-accent-soft);
+  --color-blue-500: var(--d-accent);
+  --color-blue-600: var(--d-accent);
+  --color-blue-700: var(--d-accent-ink);
+  --color-blue-800: var(--d-accent-ink);
+  --color-indigo-50: var(--d-accent-soft);
+  --color-indigo-100: var(--d-accent-soft);
+  --color-indigo-600: var(--d-accent);
+  --color-indigo-700: var(--d-accent-ink);
+  --color-purple-100: var(--d-accent-soft);
+  --color-purple-600: var(--d-accent);
+  --color-purple-800: var(--d-accent-ink);
+
+  --color-green-50: color-mix(in srgb, var(--d-ok) 12%, transparent);
+  --color-green-100: color-mix(in srgb, var(--d-ok) 16%, transparent);
+  --color-green-500: var(--d-ok);
+  --color-green-600: var(--d-ok);
+  --color-green-700: var(--d-ok-ink);
+  --color-green-800: var(--d-ok-ink);
+
+  --color-yellow-50: color-mix(in srgb, var(--d-warn) 12%, transparent);
+  --color-yellow-100: color-mix(in srgb, var(--d-warn) 18%, transparent);
+  --color-yellow-500: var(--d-warn);
+  --color-yellow-700: var(--d-warn-ink);
+  --color-yellow-800: var(--d-warn-ink);
+  --color-amber-100: color-mix(in srgb, var(--d-warn) 18%, transparent);
+  --color-amber-800: var(--d-warn-ink);
+
+  --color-red-50: color-mix(in srgb, var(--d-bad) 10%, transparent);
+  --color-red-100: color-mix(in srgb, var(--d-bad) 16%, transparent);
+  --color-red-400: var(--d-bad);
+  --color-red-500: var(--d-bad);
+  --color-red-600: var(--d-bad);
+  --color-red-700: var(--d-bad-ink);
+  --color-red-800: var(--d-bad-ink);
+}
+
+/* ---------- Auth forms: restyle forms that still use legacy classes/inline styles ---------- */
+.auth-card input:not([type="checkbox"]):not([type="radio"]) {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--d-r-ctl);
+  background: color-mix(in srgb, var(--d-panel) 70%, transparent);
+  border: 1px solid var(--d-panel-edge);
+  color: var(--d-ink);
+}
+.auth-card input:focus {
+  outline: none;
+  border-color: var(--d-accent);
+  box-shadow: 0 0 0 3px var(--d-accent-soft);
+}
+.auth-card button[type="submit"] {
+  background: var(--d-accent) !important;
+  color: var(--d-on-accent) !important;
+  border-radius: var(--d-r-ctl) !important;
+  font-weight: 600;
+  padding: 0.65rem 1.1rem !important;
+}
+.auth-card a {
+  color: var(--d-accent-ink) !important;
+}
+.auth-card label {
+  color: var(--d-ink);
+}
+.auth-card h2 {
+  color: var(--d-ink);
+}
+
+/* ---------- Page content: one consistent inset, set by the shell ---------- */
+/* Existing pages bring their own root padding (p-6) or none. The shell owns the inset now,
+   so the page-level padding is neutralised. Removed as pages move to the new primitives. */
+.shell-content > .p-6,
+.shell-content > main.p-6,
+.shell-content > div > main.p-6 {
+  padding: 0 !important;
+}
+
+/* Table headers: sentence case, no tracked caps. */
+thead th {
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-size: 0.8rem;
+  font-weight: 600;
+}

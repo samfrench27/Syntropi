@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Save, Copy, AlertCircle } from 'lucide-react';
 import Card from '@/components/admin/Card';
+import ApiKeyReveal from '@/components/admin/ApiKeyReveal';
 import { apiKeyAPI, organizationAPI } from '@/lib/api';
 
 interface Organization {
@@ -12,7 +13,7 @@ interface Organization {
   name: string;
 }
 
-export default function CreateApiKeyPage() {
+function CreateApiKeyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -112,41 +113,8 @@ export default function CreateApiKeyPage() {
             <Card>
               <Card.Header title="API Key Created Successfully" />
               <Card.Body className="space-y-6">
-                <div className="rounded-md bg-yellow-50 p-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <AlertCircle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-yellow-800">Important</h3>
-                      <div className="mt-2 text-sm text-yellow-700">
-                        <p>
-                          This API key will only be displayed once. Please save it somewhere secure.
-                          You won't be able to retrieve it again.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Your API Key
-                  </label>
-                  <div className="flex items-center">
-                    <code className="flex-1 p-3 bg-gray-800 text-white text-sm font-mono rounded overflow-x-auto">
-                      {newApiKey}
-                    </code>
-                    <button 
-                      onClick={() => copyToClipboard(newApiKey)}
-                      className="ml-2 p-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                      title="Copy to clipboard"
-                    >
-                      <Copy size={16} />
-                    </button>
-                  </div>
-                </div>
-                
+                <ApiKeyReveal apiKey={newApiKey} />
+
                 <div className="flex justify-between">
                   <button
                     onClick={() => router.push('/platform-admin/api-keys')}
@@ -331,5 +299,14 @@ export default function CreateApiKeyPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+// useSearchParams needs a Suspense boundary when the dashboard is built as static files
+export default function CreateApiKeyPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <CreateApiKeyPageContent />
+    </React.Suspense>
   );
 }

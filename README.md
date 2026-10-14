@@ -1,84 +1,68 @@
-# Turborepo starter
+# Syntropi
 
-This Turborepo starter is maintained by the Turborepo core team.
+Open banking payments platform. Merchants create payments through an API; customers pay at their bank.
+Every organization starts on a **Mock bank**; real providers (Token.io, ...) are enabled per organization
+by a Syntropi admin in the **approval queue**.
 
-## Using this example
+## Architecture
 
-Run the following command:
+| Part | Tech | Where |
+|---|---|---|
+| `apps/api-worker` | Hono on Cloudflare Workers, Postgres via Hyperdrive | the API |
+| `apps/admin-dashboard` | Next.js 15 (client-side) | platform admin, org admin and developer screens |
+| `apps/hosted-pages` | Next.js 14, static export | the page customers use to choose their bank |
+| `apps/mock-bank` | Next.js 15, static export | the practice bank (dummy login, approve or reject) |
+| `supabase/` | Supabase Postgres, Auth | schema migrations (`supabase/migrations`) and auth settings (`config.toml`) |
+
+Identity (signup, sign-in, password reset, sessions) is **Supabase Auth**. Everything else lives in Postgres.
+The API verifies Supabase access tokens locally against the project's published keys; roles come from the
+token's `app_metadata`, never from user-editable data.
+
+### Security model
+- Every table has row-level security, deny by default. The API connects as a restricted `api_worker` role
+  (not a superuser, no RLS bypass); the public anon key can read nothing.
+- Every tenant table carries `organization_id`. The API scopes every query to the caller's organization;
+  only a superadmin crosses organizations.
+- API keys are stored hashed and shown once, when created.
+- Hosted pages and the Mock bank use short-lived tokens that work for one payment only.
+- Real providers are refused unless the organization is approved (`403 PROVIDER_NOT_APPROVED`).
+- No secret has a fallback value: the Worker refuses to serve if one is missing.
+
+## Local development
+
+Requirements: Node 20+ for the apps and tests; **Node 22+ for `wrangler`** (the Worker runtime).
 
 ```sh
-npx create-turbo@latest
+npm install
+
+# API: tests run on an in-memory Postgres (PGlite), so no Docker or database is needed
+npm test -w apps/api-worker
+
+# Run the Worker locally against your Supabase project.
+# 1. copy the values from apps/api-worker/.dev.vars.example into apps/api-worker/.dev.vars (gitignored)
+# 2. create the api_worker login role and connection string (see supabase/README.md)
+cd apps/api-worker && npx wrangler dev --config wrangler.dev.toml --port 8787
+
+# First platform admin (there is no public endpoint for this)
+npm run bootstrap:superadmin -w apps/api-worker -- --email you@company.com --first Ada --last Lovelace
+
+# Front ends (each reads its own .env.local; see the .env.local.example files)
+npm run dev -w apps/admin-dashboard   # http://localhost:3000
+npm run dev -w apps/hosted-pages      # http://localhost:3001
+npm run dev -w apps/mock-bank         # http://localhost:3002
 ```
 
-## What's inside?
+### Database changes
+Migrations are plain SQL in `supabase/migrations`, applied with `supabase db push`. The test suite runs
+the real migrations, as the restricted role, so a missing grant or policy fails a test.
 
-This Turborepo includes the following packages/apps:
+## Tests
+- `apps/api-worker`: unit and integration tests (`npm test -w apps/api-worker`).
+- `apps/admin-dashboard/e2e/crawl.mjs`: signs in as each role and visits every page, failing on any page
+  error or failed API call.
+- `apps/mock-bank/e2e/flow.mjs`, `apps/hosted-pages/e2e/flow.mjs`: drive a real payment end to end.
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm build
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm dev
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-npx turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-npx turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
-- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
-- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
-- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
-- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
-- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
+## Hosting (free to start)
+Cloudflare Workers (API), Cloudflare Pages (the three front ends), Supabase (database and auth). See the
+plan notes in the pull request for limits and when to upgrade: Supabase free projects pause when idle and
+have no backups, so move to a paid plan before real customers use payments.

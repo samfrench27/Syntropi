@@ -1,0 +1,16 @@
+name = "syntropi-dashboard"
+main = "worker.mjs"
+compatibility_date = "2026-10-01"
+
+# Public address. Cloudflare creates the DNS record and certificate itself.
+routes = [{ pattern = "dashboard.syntropi.co.uk", custom_domain = true }]
+workers_dev = false
+preview_urls = false
+
+# The static export, built with: npm run build:prod
+[assets]
+directory = "./out"
+binding = "ASSETS"
+# Do NOT set not_found_handling here. With it set, Cloudflare answers a browser's page request for an
+# unknown path with the 404 page and never runs worker.mjs, so the pages with an id in the address
+# (which need the Worker's rewrite) show "not found". The Worker serves the 404 page itself.

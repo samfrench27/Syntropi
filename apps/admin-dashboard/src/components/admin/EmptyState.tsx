@@ -15,7 +15,7 @@ export default function EmptyState({ title, description, icon, action }: EmptySt
       </div>
       <h3 className="mt-4 text-lg font-medium text-gray-900">{title}</h3>
       <p className="mt-2 text-sm text-gray-500">{description}</p>
-      {action && <div className="mt-6">{action}</div>}
+      {action && <div className="mt-6 flex justify-center">{action}</div>}
     </div>
   );
 }

@@ -1,132 +1,40 @@
-import { PaymentSession, Bank } from '@/types/payment';
+// Only used when NEXT_PUBLIC_USE_MOCK_DATA=true (local design work without an API). All fictional.
+import type { Bank, InitiateResult, PaymentSession } from '@/types/payment';
 
-// Mock payment data for demo purposes
-export const mockPaymentSession: PaymentSession = {
-  paymentId: 'pay_dc07678a31104724ad04f36bd5ea4a97',
+const session: PaymentSession = {
+  paymentId: 'pay_demo',
   status: 'PENDING',
-  amount: {
-    value: '2.00',
-    currency: 'GBP'
-  },
-  reference: 'RemittancePrimary3ccS8rztHO5R1eE',
-  description: 'Payment for services rendered',
-  toAccount: {
-    accountName: 'samfrenchio',
-    accountNumber: '12345678',
-    sortCode: '12-34-56'
-  },
-  fromAccount: {
-    accountName: 'Customer Account',
-    accountNumber: '87654321',
-    sortCode: '65-43-21'
-  },
-  merchant: {
-    name: 'Test Organisation',
-    logo: '/api/placeholder/120/40',
-    redirectUri: 'https://example.com/return'
-  },
+  amount: { value: '24.50', currency: 'GBP' },
+  reference: 'Order 1042',
+  toAccount: { accountName: 'Example Coffee Roasters Ltd' },
+  merchant: { name: 'Example Coffee Roasters', redirectUri: 'https://merchant.example/return' },
   createdAt: new Date().toISOString(),
-  expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 minutes from now
+  expiresAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
 };
 
-// Mock bank data - simplified structure, real API provides S3 logos
-export const mockBanks: Bank[] = [
-  {
-    id: 'natwest',
-    name: 'NatWest Bank',
-    displayName: 'NatWest',
-    available: true,
-    supportsInstantPayments: true,
-    processingTime: 'Instant'
-  },
-  {
-    id: 'hsbc',
-    name: 'HSBC UK',
-    displayName: 'HSBC',
-    available: true,
-    supportsInstantPayments: true,
-    processingTime: 'Instant'
-  },
-  {
-    id: 'barclays',
-    name: 'Barclays Bank',
-    displayName: 'Barclays',
-    available: true,
-    supportsInstantPayments: false,
-    processingTime: '1-2 hours'
-  },
-  {
-    id: 'lloyds',
-    name: 'Lloyds Bank',
-    displayName: 'Lloyds',
-    available: true,
-    supportsInstantPayments: true,
-    processingTime: 'Instant'
-  },
-  {
-    id: 'santander',
-    name: 'Santander UK',
-    displayName: 'Santander',
-    available: true,
-    supportsInstantPayments: false,
-    processingTime: '2-4 hours'
-  },
-  {
-    id: 'nationwide',
-    name: 'Nationwide Building Society',
-    displayName: 'Nationwide',
-    available: true,
-    supportsInstantPayments: true,
-    processingTime: 'Instant'
-  }
+const banks: Bank[] = [
+  { id: 'gb-national-bank-of-test', name: 'National Bank of Test' },
+  { id: 'gb-financial-trust-test', name: 'Financial Trust Test' },
+  { id: 'gb-demo-credit', name: 'Demo Credit Union' },
 ];
 
-// Mock API functions for development/demo
-export const mockAPI = {
-  getPayment: async (paymentId: string) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (paymentId === 'demo-payment-id' || paymentId === mockPaymentSession.paymentId) {
-      return {
-        success: true,
-        data: mockPaymentSession
-      };
-    }
-    
-    throw new Error('Payment not found');
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+export const mockApi = {
+  async getSession() {
+    await wait(300);
+    return { ...session };
   },
-
-  getAvailableBanks: async () => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    return {
-      success: true,
-      data: mockBanks.filter(bank => bank.available)
-    };
+  async getBanks() {
+    await wait(300);
+    return banks;
   },
-
-  initiatePayment: async (request: any) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Simulate bank redirect URL
-    const bankRedirectUrl = `https://online.${request.bankId}.co.uk/auth?session=${Date.now()}`;
-    
-    return {
-      success: true,
-      data: {
-        paymentId: request.paymentId,
-        status: 'AUTHORIZING',
-        redirectUrl: bankRedirectUrl,
-        sessionId: `session_${Date.now()}`
-      }
-    };
-  }
-};
-
-// Utility function to check if we should use mock data
-export const shouldUseMockData = () => {
-  return process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
+  async initiate(): Promise<InitiateResult> {
+    await wait(300);
+    return { paymentId: session.paymentId, status: 'AUTHORIZING', redirectUrl: 'https://example.com/mock-bank' };
+  },
+  async cancel() {
+    await wait(200);
+    return { ...session, status: 'CANCELLED' as const };
+  },
 };

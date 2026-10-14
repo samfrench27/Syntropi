@@ -36,3 +36,9 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Local Worker secrets
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.wrangler/

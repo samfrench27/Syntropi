@@ -1,371 +1,267 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements } from '@stripe/react-stripe-js';
-import { billingAPI } from '@/lib/api';
+import { useCallback, useEffect, useState } from 'react';
+import { AlertCircle, Check, CheckCircle2, Clock, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-// Initialize Stripe
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
-
-interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  currency: string;
-  interval: string;
-  features: string[];
-  limits: {
-    payments: number;
-    apiCalls: number;
-    users: number;
-  };
-}
+import { billingAPI, describeApiError } from '@/lib/api';
 
 interface Subscription {
   id: string;
   plan: string;
   status: string;
-  currentPeriodStart: string;
-  currentPeriodEnd: string;
-  cancelAtPeriodEnd: boolean;
+  currentPeriodStart?: string | null;
+  currentPeriodEnd?: string | null;
+  cancelAtPeriodEnd?: boolean;
 }
 
+interface Plan {
+  name: string;
+  price: number;
+  interval: string;
+  features: string[];
+}
+
+// Prices live in Stripe; what each plan includes is shown here.
 const PLANS: Record<string, Plan> = {
   starter: {
-    id: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID || 'price_starter_placeholder',
     name: 'Starter',
     price: 10,
-    currency: 'GBP',
     interval: 'month',
-    features: [
-      'Up to 100 payments per month',
-      'Basic API access',
-      'Email support',
-      'Standard reporting'
-    ],
-    limits: {
-      payments: 100,
-      apiCalls: 1000,
-      users: 5
-    }
+    features: ['Up to 100 payments per month', 'Basic API access', 'Email support', 'Standard reporting'],
   },
   growth: {
-    id: process.env.NEXT_PUBLIC_STRIPE_GROWTH_PRICE_ID || 'price_growth_placeholder',
     name: 'Growth',
     price: 50,
-    currency: 'GBP',
     interval: 'month',
-    features: [
-      'Up to 1,000 payments per month',
-      'Advanced API features',
-      'Priority support',
-      'Advanced reporting',
-      'Webhooks'
-    ],
-    limits: {
-      payments: 1000,
-      apiCalls: 10000,
-      users: 25
-    }
+    features: ['Up to 1,000 payments per month', 'Advanced API features', 'Priority support', 'Advanced reporting', 'Webhooks'],
   },
   enterprise: {
-    id: process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID || 'price_enterprise_placeholder',
     name: 'Enterprise',
     price: 150,
-    currency: 'GBP',
     interval: 'month',
-    features: [
-      'Unlimited payments',
-      'Full API access',
-      'Dedicated support',
-      'Custom reporting',
-      'Advanced webhooks',
-      'SLA guarantee'
-    ],
-    limits: {
-      payments: -1,
-      apiCalls: -1,
-      users: -1
-    }
-  }
+    features: ['Unlimited payments', 'Full API access', 'Dedicated support', 'Custom reporting', 'Advanced webhooks', 'SLA guarantee'],
+  },
 };
 
-// Debug: Log environment variables
-console.log('Stripe Environment Variables:', {
-  STARTER: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID,
-  GROWTH: process.env.NEXT_PUBLIC_STRIPE_GROWTH_PRICE_ID,
-  ENTERPRISE: process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID
-});
+const STATUS_TONE: Record<string, string> = { active: 'ok', trialing: 'ok', past_due: 'warn', incomplete: 'warn', canceled: 'bad', unpaid: 'bad' };
+const statusLabel = (s: string) => s.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 
-// Debug: Log actual plan IDs being used
-console.log('Plan IDs being used:', {
-  starter: PLANS.starter.id,
-  growth: PLANS.growth.id,
-  enterprise: PLANS.enterprise.id
-});
+const formatDate = (iso?: string | null) => {
+  if (!iso) return 'Not set';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? 'Not set' : d.toLocaleDateString('en-GB', { dateStyle: 'medium' });
+};
+
+function describeBillingError(error: any, fallback: string): string {
+  if (error?.response?.status === 503) return 'Billing is not set up for this environment yet, so plans cannot be changed here.';
+  return describeApiError(error, fallback);
+}
 
 export default function BillingPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState<string>('');
-  const [isUpgrading, setIsUpgrading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [busyPlan, setBusyPlan] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchSubscription();
-    
-    // Handle success from Stripe Checkout
-    const urlParams = new URLSearchParams(window.location.search);
-    const success = urlParams.get('success');
-    const sessionId = urlParams.get('session_id');
-    
-    if (success === 'true' && sessionId) {
-      handleCheckoutSuccess(sessionId);
-    }
-  }, []);
-
-  const fetchSubscription = async () => {
+  const fetchSubscription = useCallback(async () => {
     try {
       const response = await billingAPI.getSubscription();
-      if (response.data.success && response.data.data) {
-        setSubscription(response.data.data);
-      } else {
-        setSubscription(null);
-      }
+      // The subscription is `data.subscription`, and null until the organization has one
+      const sub = response.data?.data?.subscription;
+      setSubscription(sub && typeof sub === 'object' && sub.plan ? (sub as Subscription) : null);
+      setLoadError(null);
     } catch (error) {
-      console.error('Error fetching subscription:', error);
-      setSubscription(null);
+      setLoadError(describeBillingError(error, 'We could not load your subscription.'));
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleCheckoutSuccess = async (sessionId: string) => {
-    try {
-      const response = await billingAPI.handleCheckoutSuccess({ sessionId });
-      if (response.data.success) {
-        toast.success('Subscription activated successfully!');
-        fetchSubscription();
-        // Clean up URL parameters
+  const handleCheckoutSuccess = useCallback(
+    async (sessionId: string) => {
+      try {
+        await billingAPI.handleCheckoutSuccess({ sessionId });
+        toast.success('Subscription activated');
         window.history.replaceState({}, document.title, window.location.pathname);
+        fetchSubscription();
+      } catch (error) {
+        toast.error(describeBillingError(error, 'We could not confirm your payment. If you were charged, it will appear shortly.'));
       }
-    } catch (error: any) {
-      console.error('Error handling checkout success:', error);
-      toast.error('Failed to activate subscription');
-    }
-  };
+    },
+    [fetchSubscription],
+  );
+
+  useEffect(() => {
+    fetchSubscription();
+    // Returning from Stripe Checkout
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+    if (params.get('success') === 'true' && sessionId) handleCheckoutSuccess(sessionId);
+  }, [fetchSubscription, handleCheckoutSuccess]);
 
   const handlePlanSelect = async (planKey: string) => {
-    if (subscription?.plan === planKey) return;
-
-    setIsUpgrading(true);
+    if (subscription?.plan === planKey && subscription.status !== 'incomplete') return;
+    setBusyPlan(planKey);
     try {
-      const response = subscription 
+      const response = subscription
         ? await billingAPI.updateSubscription({ plan: planKey })
         : await billingAPI.createSubscription({ plan: planKey });
-
-      if (response.data.success) {
-        const data = response.data.data;
-        
-        if (data.checkoutUrl) {
-          // Redirect to Stripe Checkout for new subscription
-          toast.success('Redirecting to checkout...');
-          window.location.href = data.checkoutUrl;
-        } else {
-          // Subscription updated successfully
-          toast.success('Plan updated successfully');
-          fetchSubscription();
-        }
+      const data = response.data?.data;
+      if (data?.checkoutUrl) {
+        toast.success('Taking you to checkout');
+        window.location.href = data.checkoutUrl;
       } else {
-        toast.error(response.data.message || 'Failed to update plan');
-      }
-    } catch (error: any) {
-      console.error('Error updating plan:', error);
-      toast.error(error?.response?.data?.message || 'Failed to update plan');
-    } finally {
-      setIsUpgrading(false);
-    }
-  };
-
-  const handleCancelSubscription = async () => {
-    if (!subscription) return;
-
-    if (!confirm('Are you sure you want to cancel your subscription? It will remain active until the end of your billing period.')) {
-      return;
-    }
-
-    try {
-      const response = await billingAPI.cancelSubscription();
-
-      if (response.data.success) {
-        toast.success('Subscription cancelled successfully');
+        toast.success('Plan updated');
         fetchSubscription();
-      } else {
-        toast.error(response.data.message || 'Failed to cancel subscription');
       }
-    } catch (error: any) {
-      console.error('Error cancelling subscription:', error);
-      toast.error(error?.response?.data?.message || 'Failed to cancel subscription');
+    } catch (error) {
+      toast.error(describeBillingError(error, 'We could not change your plan.'));
+    } finally {
+      setBusyPlan(null);
     }
   };
 
-  const openBillingPortal = async () => {
+  const handleCancel = async () => {
+    if (!subscription) return;
+    if (!confirm('Cancel your subscription? It stays active until the end of your billing period.')) return;
+    try {
+      await billingAPI.cancelSubscription();
+      toast.success('Subscription cancelled. It stays active until the end of the period.');
+      fetchSubscription();
+    } catch (error) {
+      toast.error(describeBillingError(error, 'We could not cancel your subscription.'));
+    }
+  };
+
+  const openPortal = async () => {
     try {
       const response = await billingAPI.createBillingPortalSession();
-
-      if (response.data.success) {
-        window.location.href = response.data.data.url;
-      } else {
-        toast.error('Failed to open billing portal');
-      }
-    } catch (error: any) {
-      console.error('Error opening billing portal:', error);
-      toast.error(error?.response?.data?.message || 'Failed to open billing portal');
+      window.location.href = response.data.data.url;
+    } catch (error) {
+      toast.error(describeBillingError(error, 'We could not open the billing portal.'));
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="max-w-5xl space-y-5 p-6" aria-busy="true">
+        <div className="panel h-40 animate-pulse" />
+        <div className="panel h-72 animate-pulse" />
       </div>
     );
   }
 
-  return (
-    <Elements stripe={stripePromise}>
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Billing & Subscription</h1>
-          <p className="text-gray-600">Manage your subscription and billing information</p>
-        </div>
+  const incomplete = subscription?.status === 'incomplete';
 
-        {/* Current Subscription */}
-        {subscription && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">Current Subscription</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600">Plan</p>
-                <p className="font-semibold capitalize">{subscription.plan}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Status</p>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                  subscription.status === 'active' 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {subscription.status}
+  return (
+    <div className="max-w-5xl space-y-5 p-6">
+      {loadError && (
+        <div role="alert" className="panel flex flex-col items-start gap-3 p-6">
+          <p className="flex items-start gap-2 text-sm" style={{ color: 'var(--d-bad-ink)' }}>
+            <AlertCircle size={16} className="mt-0.5 shrink-0" aria-hidden />
+            {loadError}
+          </p>
+          <button className="btn-quiet" onClick={fetchSubscription}>
+            <RefreshCw size={14} aria-hidden /> Try again
+          </button>
+        </div>
+      )}
+
+      {subscription && (
+        <section className="panel p-6" aria-labelledby="current-sub">
+          <h2 id="current-sub" className="text-lg font-semibold" style={{ color: 'var(--d-ink)' }}>
+            Current subscription
+          </h2>
+          <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <dt className="text-sm" style={{ color: 'var(--d-ink-2)' }}>Plan</dt>
+              <dd className="font-semibold" style={{ color: 'var(--d-ink)' }}>{PLANS[subscription.plan]?.name ?? subscription.plan}</dd>
+            </div>
+            <div>
+              <dt className="text-sm" style={{ color: 'var(--d-ink-2)' }}>Status</dt>
+              <dd>
+                <span className="chip" data-tone={STATUS_TONE[subscription.status] ?? 'idle'}>
+                  {subscription.status === 'active' ? <CheckCircle2 size={13} aria-hidden /> : <Clock size={13} aria-hidden />}
+                  {statusLabel(subscription.status)}
                 </span>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Next billing date</p>
-                <p className="font-semibold">
-                  {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Auto-renewal</p>
-                <p className="font-semibold">
-                  {subscription.cancelAtPeriodEnd ? 'Cancelled' : 'Active'}
-                </p>
-              </div>
+              </dd>
             </div>
-            
-            <div className="mt-4 flex space-x-4">
-              {subscription.status === 'incomplete' ? (
-                <div className="space-y-2">
-                  <p className="text-sm text-orange-600">
-                    ⚠️ Payment required to activate your subscription
-                  </p>
-                  <button
-                    onClick={() => handlePlanSelect(subscription.plan)}
-                    className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
-                    disabled={isUpgrading}
-                  >
-                    {isUpgrading ? 'Processing...' : 'Complete Payment'}
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={openBillingPortal}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Manage Billing
-                </button>
-              )}
-              {!subscription.cancelAtPeriodEnd && subscription.status !== 'incomplete' && (
-                <button
-                  onClick={handleCancelSubscription}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                >
-                  Cancel Subscription
-                </button>
-              )}
+            <div>
+              <dt className="text-sm" style={{ color: 'var(--d-ink-2)' }}>{subscription.cancelAtPeriodEnd ? 'Ends on' : 'Next billing date'}</dt>
+              <dd className="font-semibold" style={{ color: 'var(--d-ink)' }}>{formatDate(subscription.currentPeriodEnd)}</dd>
             </div>
+            <div>
+              <dt className="text-sm" style={{ color: 'var(--d-ink-2)' }}>Renewal</dt>
+              <dd className="font-semibold" style={{ color: 'var(--d-ink)' }}>{subscription.cancelAtPeriodEnd ? 'Cancelled' : 'Automatic'}</dd>
+            </div>
+          </dl>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            {incomplete ? (
+              <>
+                <p className="w-full text-sm" style={{ color: 'var(--d-warn-ink)' }}>Payment is needed to activate this subscription.</p>
+                <button className="btn-primary" disabled={busyPlan !== null} onClick={() => handlePlanSelect(subscription.plan)}>
+                  {busyPlan ? 'Working...' : 'Complete payment'}
+                </button>
+              </>
+            ) : (
+              <button className="btn-primary" onClick={openPortal}>Manage billing</button>
+            )}
+            {!subscription.cancelAtPeriodEnd && !incomplete && (
+              <button className="btn-quiet" onClick={handleCancel}>Cancel subscription</button>
+            )}
           </div>
+        </section>
+      )}
+
+      <section className="panel p-6" aria-labelledby="plans">
+        <h2 id="plans" className="text-lg font-semibold" style={{ color: 'var(--d-ink)' }}>
+          {subscription ? 'Change plan' : 'Choose a plan'}
+        </h2>
+        {!subscription && !loadError && (
+          <p className="mt-1 text-sm" style={{ color: 'var(--d-ink-2)' }}>
+            Your organization is on the free plan. Pick a plan to raise your limits.
+          </p>
         )}
 
-        {/* Plan Selection */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-6">
-            {subscription ? 'Change Plan' : 'Choose Your Plan'}
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {Object.entries(PLANS).map(([planKey, plan]) => (
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+          {Object.entries(PLANS).map(([key, plan]) => {
+            const current = subscription?.plan === key;
+            return (
               <div
-                key={planKey}
-                className={`border rounded-lg p-6 ${
-                  subscription?.plan === planKey
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
+                key={key}
+                className="flex flex-col p-5"
+                style={{
+                  borderRadius: 'var(--d-r-panel)',
+                  border: `1px solid ${current ? 'var(--d-accent)' : 'var(--d-panel-edge)'}`,
+                  background: current ? 'var(--d-accent-soft)' : 'transparent',
+                }}
               >
-                <div className="text-center">
-                  <h3 className="text-xl font-semibold">{plan.name}</h3>
-                  <div className="mt-2">
-                    <span className="text-3xl font-bold">£{plan.price}</span>
-                    <span className="text-gray-600">/{plan.interval}</span>
-                  </div>
-                </div>
-
-                <ul className="mt-6 space-y-3">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start">
-                      <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-sm text-gray-600">{feature}</span>
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--d-ink)' }}>{plan.name}</h3>
+                <p className="mt-1">
+                  <span className="text-3xl font-semibold" style={{ color: 'var(--d-ink)' }}>£{plan.price}</span>
+                  <span className="text-sm" style={{ color: 'var(--d-ink-2)' }}> a {plan.interval}</span>
+                </p>
+                <ul className="mt-4 flex-1 space-y-2">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2 text-sm" style={{ color: 'var(--d-ink-2)' }}>
+                      <Check size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--d-ok-ink)' }} aria-hidden />
+                      {feature}
                     </li>
                   ))}
                 </ul>
-
                 <button
-                  onClick={() => handlePlanSelect(planKey)}
-                  disabled={subscription?.plan === planKey || isUpgrading}
-                  className={`mt-6 w-full py-3 px-4 rounded-md font-semibold ${
-                    subscription?.plan === planKey
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
+                  onClick={() => handlePlanSelect(key)}
+                  disabled={(current && !incomplete) || busyPlan !== null}
+                  className={current ? 'btn-quiet mt-5 w-full' : 'btn-primary mt-5 w-full'}
                 >
-                  {subscription?.plan === planKey 
-                    ? 'Current Plan' 
-                    : isUpgrading 
-                      ? 'Processing...' 
-                      : subscription 
-                        ? 'Switch to this plan' 
-                        : 'Get Started'
-                  }
+                  {current ? 'Current plan' : busyPlan === key ? 'Working...' : subscription ? 'Switch to this plan' : 'Choose plan'}
                 </button>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
-      </div>
-    </Elements>
+      </section>
+    </div>
   );
 }

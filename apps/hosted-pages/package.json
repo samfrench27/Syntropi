@@ -1,30 +1,32 @@
 {
   "name": "@syntropi/hosted-pages",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3002",
+    "dev": "next dev -p 3001",
     "build": "next build",
-    "start": "next start -p 3002",
-    "lint": "next lint"
+    "start": "node scripts/serve.mjs",
+    "check-types": "tsc --noEmit",
+    "test": "node --test test/",
+    "e2e": "node e2e/flow.mjs",
+    "build:prod": "NEXT_PUBLIC_USE_MOCK_DATA=false NEXT_PUBLIC_API_URL=https://api.syntropi.co.uk next build"
   },
   "dependencies": {
+    "lucide-react": "^0.294.0",
     "next": "^14.0.0",
     "react": "^18.0.0",
-    "react-dom": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^2.1.4",
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
-    "typescript": "^5.0.0",
-    "tailwindcss": "^3.3.0",
     "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.31",
-    "lucide-react": "^0.294.0",
-    "axios": "^1.6.0",
-    "clsx": "^2.0.0"
-  },
-  "devDependencies": {
     "eslint": "^8.0.0",
-    "eslint-config-next": "^14.0.0"
+    "eslint-config-next": "^14.0.0",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5.0.0"
   }
 }

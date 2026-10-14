@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Copy, AlertCircle } from 'lucide-react';
 import Card from '@/components/admin/Card';
+import ApiKeyReveal from '@/components/admin/ApiKeyReveal';
 import { clientAPIKeyAPI } from '@/lib/clientApi';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -80,53 +81,8 @@ export default function CreateApiKeyPage() {
             <>
               <Card.Header title="API Key Created Successfully" />
               <Card.Body className="space-y-6">
-                <div className="rounded-md bg-yellow-50 p-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <AlertCircle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-yellow-800">Important</h3>
-                      <div className="mt-2 text-sm text-yellow-700">
-                        <p>
-                          This API key will only be displayed once. Please save it somewhere secure.
-                          You won't be able to retrieve it again.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Your API Key
-                  </label>
-                  <div className="flex items-center">
-                    <code className="flex-1 p-3 bg-gray-800 text-white text-sm font-mono rounded overflow-x-auto">
-                      {newApiKey}
-                    </code>
-                    <button 
-                      onClick={() => copyToClipboard(newApiKey)}
-                      className="ml-2 p-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                      title="Copy to clipboard"
-                    >
-                      <Copy size={16} />
-                    </button>
-                  </div>
-                  <div className="mt-4">
-                    <a 
-                      href={`data:text/plain;charset=utf-8,${encodeURIComponent(newApiKey || '')}`} 
-                      download="secret.txt"
-                      className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                      Download Key
-                    </a>
-                  </div>
-                </div>
-                
+                <ApiKeyReveal apiKey={newApiKey} />
+
                 <div className="flex justify-between">
                   <button
                     onClick={() => router.push('/client-dashboard/api-keys')}

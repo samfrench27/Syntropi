@@ -30,7 +30,7 @@ interface Organization {
   name: string;
 }
 
-export default function UsersPage() {
+function UsersPageContent() {
   const [users, setUsers] = useState<User[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
@@ -383,5 +383,14 @@ export default function UsersPage() {
         )}
       </main>
     </div>
+  );
+}
+
+// useSearchParams needs a Suspense boundary when the dashboard is built as static files
+export default function UsersPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <UsersPageContent />
+    </React.Suspense>
   );
 }

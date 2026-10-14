@@ -1,0 +1,16 @@
+{
+  "name": "@repo/password-policy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The password rules, shared by the dashboard (what people see) and the API (what is enforced).",
+  "exports": {
+    ".": {
+      "types": "./index.d.mts",
+      "default": "./index.mjs"
+    }
+  },
+  "scripts": {
+    "test": "node --test test/"
+  }
+}

@@ -3,8 +3,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRouteParams } from '@/lib/useRouteParams';
 import { ArrowLeft, EyeOff, ClipboardCheck, Building2, User, Clock, Calendar, Activity } from 'lucide-react';
 import Card from '@/components/admin/Card';
+import MaskedKey from '@/components/admin/MaskedKey';
 import { apiKeyAPI } from '@/lib/api';
 
 interface ApiKeyDetails {
@@ -22,6 +24,7 @@ interface ApiKeyDetails {
     lastName: string;
     email: string;
   };
+  keyPrefix?: string;
   isActive: boolean;
   lastUsed?: string;
   createdAt: string;
@@ -35,7 +38,8 @@ interface UsageStats {
   today: number;
 }
 
-export default function ApiKeyDetailsPage({ params }: { params: { id: string } }) {
+export default function ApiKeyDetailsPage() {
+  const params = useRouteParams<{ id: string }>('/platform-admin/api-keys/[id]');
   const [apiKey, setApiKey] = useState<ApiKeyDetails | null>(null);
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -256,6 +260,12 @@ export default function ApiKeyDetailsPage({ params }: { params: { id: string } }
                 </div>
                 
                 <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 mb-1">Key</h3>
+                    <MaskedKey prefix={apiKey.keyPrefix} className="text-gray-900" />
+                    <p className="mt-1 text-xs text-gray-500">The full key is only shown once, when it is created.</p>
+                  </div>
+
                   <div>
                     <h3 className="text-sm font-medium text-gray-700 mb-1">Name</h3>
                     <p className="text-gray-900">{apiKey.name}</p>
